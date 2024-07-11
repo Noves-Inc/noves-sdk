@@ -35,6 +35,3 @@ jest-config/
 
 # TypeScript compiled files
 *.tsbuildinfo
-
-# Ignore test-related files
-tests/
