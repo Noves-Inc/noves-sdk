@@ -1,0 +1,40 @@
+# Node modules
+node_modules/
+npm-debug.log*
+
+# Logs
+logs/
+*.log
+yarn-debug.log*
+yarn-error.log*
+
+# Build directories
+dist/
+build/
+
+# Temporary files
+temp/
+.tmp/
+*.tmp
+
+# Jest coverage reports
+coverage/
+
+# Jest cache
+jest-cache/
+jest-config/
+
+# Environment variables
+.env
+
+# VSCode settings
+.vscode/
+
+# macOS files
+.DS_Store
+
+# TypeScript compiled files
+*.tsbuildinfo
+
+# Ignore test-related files
+tests/

@@ -1,0 +1,13 @@
+/src
+/node_modules
+
+.env
+.DS_Store
+
+tsconfig.json
+tsup.config.ts
+
+# Ignore test-related files and configs
+tests/
+jest.config.js
+jest.setup.js
