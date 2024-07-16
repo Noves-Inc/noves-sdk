@@ -1,6 +1,8 @@
 // src/translate/translateEVM.ts
 
-import { ApiResponse, Chain } from '../types/types';
+import { ApiResponse, Chain, Transaction } from '../types/types';
+import { ChainNotFoundError } from '../errors/ChainNotFoundError';
+import { TransactionError } from '../errors/TransactionError';
 
 const BASE_URL = 'https://translate.noves.fi';
 const ECOSYSTEM = 'evm';
@@ -56,8 +58,42 @@ class Translate {
     return result.response;
   }
 
-  public async getTransaction(chain: string, txHash: string): Promise<ApiResponse> {
-    return this.request(`txs/${chain}/${txHash}`);
+  /**
+   * Get a chain by its name.
+   * @param {string} name - The name of the chain to retrieve.
+   * @returns {Promise<Chain>} A promise that resolves to the chain object or undefined if not found.
+   * @throws {ChainNotFoundError} Will throw an error if the chain is not found.
+   */
+  public async getChain(name: string): Promise<Chain> {
+    const result = await this.request('chains');
+    const chain = result.response.find((chain: Chain) => chain.name.toLowerCase() === name.toLowerCase());
+    if (!chain) {
+      throw new ChainNotFoundError(name);
+    }
+    return chain;
+  }
+
+
+  /**
+   * Get a transaction by its hash.
+   * @param {string} chain - The chain name.
+   * @param {string} txHash - The transaction hash.
+   * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async getTransaction(chain: string, txHash: string): Promise<Transaction> {
+    try {
+      const result = await this.request(`${chain}/tx/${txHash}`);
+      return result.response;
+    } catch (error) {
+      if (error instanceof Response) {
+        const errorResponse = await error.json();
+        if (errorResponse.status === 400 && errorResponse.errors) {
+          throw new TransactionError(errorResponse.errors);
+        }
+      }
+      throw error;
+    }
   }
 }
 
