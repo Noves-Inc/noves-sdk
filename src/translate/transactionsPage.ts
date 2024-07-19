@@ -1,5 +1,6 @@
 // src/translate/TransactionsPage.ts
 
+import { PageOptions } from '../types/types';
 import { Translate } from './translateEVM';
 
 export class TransactionsPage {
@@ -7,12 +8,12 @@ export class TransactionsPage {
   private walletAddress: string;
   private chain: string;
   public transactions: any[];
-  public nextPageKeys: string[];
+  public nextPageKeys: PageOptions[];
 
-  constructor(translate: Translate, walletAddress: string, chain: string, initialData: any) {
+  constructor(translate: Translate, initialData: any) {
     this.translate = translate;
-    this.walletAddress = walletAddress;
-    this.chain = chain;
+    this.walletAddress = initialData.walletAddress;
+    this.chain = initialData.chain;
     this.transactions = initialData.transactions;
     this.nextPageKeys = initialData.nextPageKeys || [];
   }
@@ -27,19 +28,9 @@ export class TransactionsPage {
     }
 
     const nextPageUrl = this.nextPageKeys.shift();
-    const response = await this.translate.request(nextPageUrl);
-    this.transactions = response.response.transactions;
-    this.nextPageKeys = response.response.nextPageKeys || [];
+    const response = await this.translate.getTransactions(this.chain, this.walletAddress, nextPageUrl);
+    this.transactions = response.transactions;
+    this.nextPageKeys = response.nextPageKeys || [];
     return this.transactions;
-  }
-
-  /**
-   * Manually fetch transactions for a given page key.
-   * @param {string} pageKey - The page key to fetch transactions.
-   * @returns {Promise<any[]>} A promise that resolves to an array of transactions.
-   */
-  public async getTransactions(pageKey: string): Promise<any[]> {
-    const response = await this.translate.request(pageKey);
-    return response.response.transactions;
   }
 }

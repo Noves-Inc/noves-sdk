@@ -4,6 +4,7 @@ import { ApiResponse, Chain, PageOptions, Transaction } from '../types/types';
 import { TransactionsPage } from './transactionsPage';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
+import { constructUrl, parseUrl } from '../utils/urlUtils';
 
 const BASE_URL = 'https://translate.noves.fi';
 const ECOSYSTEM = 'evm';
@@ -100,35 +101,23 @@ export class Translate {
   /**
    * Get a list of transactions with pagination support.
    * @param {string} chain - The chain name.
+   * @param {string} walletAddress - The wallet address.
    * @returns {Promise<TransactionsPage>} A promise that resolves to a TransactionsPage instance.
    */
   public async getTransactions(chain: string, walletAddress: string, pageOptions?: PageOptions): Promise<TransactionsPage> {
-    
+
     const endpoint = `${chain}/txs/${walletAddress}`;
-    const url = this.constructUrl(endpoint, pageOptions);
+    const url = constructUrl(endpoint, pageOptions);
     const result = await this.request(url);
 
     const initialData = {
+      chain: chain,
+      walletAddress: walletAddress,
       transactions: result.response.items,
-      nextPageKeys: result.response.nextPageUrl || pageOptions 
+      currentPageKey: pageOptions,
+      nextPageKey: parseUrl(result.response.nextPageUrl),
     };
-    return new TransactionsPage(this, walletAddress, chain, initialData);
-  }
-
-  private constructUrl(baseUrl: string, params?: PageOptions): string {
-    if (!params) {
-      return baseUrl;
-    }
-
-    const url = new URL(baseUrl);
-    (Object.keys(params) as Array<keyof PageOptions>).forEach(key => {
-      const value = params[key];
-      if (value !== undefined) {
-        url.searchParams.append(key, value.toString());
-      }
-    });
-
-    return url.toString();
+    return new TransactionsPage(this, initialData);
   }
 }
 
