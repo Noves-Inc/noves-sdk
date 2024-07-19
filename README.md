@@ -14,5 +14,5 @@ Noves SDK is a powerful SDK for developers to interact with Noves API, providing
 You can install the SDK using npm:
 
 ```bash
-npm install noves-sdk
+npm install @noves/noves-sdk
 ```

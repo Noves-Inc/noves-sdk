@@ -8,6 +8,16 @@ export interface Chain {
     evmChainId: number;
     name: string;
 }
+
+export interface PageOptions {
+    startBlock?: number;
+    endBlock?: number;
+    startTimestamp?: number;
+    endTimestamp?: number;
+    sort?: 'desc' | 'asc';
+    viewAsAccountAddress?: string;
+    liveData?: boolean;
+}
   
 export interface Transaction {
     txTypeVersion: number;
