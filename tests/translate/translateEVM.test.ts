@@ -2,6 +2,7 @@ import nock from 'nock';
 import { TranslateEVM } from '../../src/translate/translateEVM';
 import { ChainNotFoundError } from '../../src/errors/ChainNotFoundError';
 import { TransactionError } from '../../src/errors/TransactionError';
+import { PageOptions } from '../../src';
 
 const BASE_URL = 'https://translate.noves.fi';
 
@@ -105,7 +106,6 @@ describe('TranslateEVM', () => {
     try {
       await translate.getTransaction('invalidChain', 'invalidTxHash');
     } catch (error) {
-      console.error(error)
       expect(error).toBeInstanceOf(TransactionError);
       expect((error as any).errors).toEqual(mockErrorResponse.errors);
     }
@@ -126,7 +126,6 @@ describe('TranslateEVM', () => {
     try {
       await translate.getTransaction('eth', 'invalidTxHash');
     } catch (error) {
-      console.error(error)
       expect(error).toBeInstanceOf(TransactionError);
       expect((error as any).errors).toEqual(mockErrorResponse.errors);
     }
@@ -147,9 +146,53 @@ describe('TranslateEVM', () => {
     try {
       await translate.getTransaction('invalidChain', '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22');
     } catch (error) {
-      console.error(error)
       expect(error).toBeInstanceOf(TransactionError);
       expect((error as any).errors).toEqual(mockErrorResponse.errors);
     }
   });
+
+  it('should fetch first page transactions successfully', async () => {
+    const mockTransaction = { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' };
+
+    nock(BASE_URL)
+      .get(`/evm/eth/txs/0xA1EFa0adEcB7f5691605899d13285928AE025844`)
+      .reply(200, { succeeded: true, response: mockTransaction });
+
+    const paginator = await translate.Transactions('eth', '0xA1EFa0adEcB7f5691605899d13285928AE025844');
+    expect(paginator.getTransactions()).toHaveLength(10)
+
+  });
+
+  it('should fetch first page transactions with custom paging successfully', async () => {
+    const mockTransaction = { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' };
+
+    nock(BASE_URL)
+      .get(`/evm/eth/txs/0xA1EFa0adEcB7f5691605899d13285928AE025844`)
+      .reply(200, { succeeded: true, response: mockTransaction });
+
+    const paging: PageOptions = {
+      startBlock: 20104079,
+      sort: 'desc'
+    } 
+
+    const txEngine = await translate.Transactions('eth', '0xA1EFa0adEcB7f5691605899d13285928AE025844', paging);
+    expect(txEngine.getTransactions()).toHaveLength(10)
+    expect(txEngine.getCurrentPageKeys()).toEqual(paging)
+  });
+
+  it('should fetch a page and then the second one using the next method successfully', async () => {
+    const mockTransaction = { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' };
+
+    nock(BASE_URL)
+      .get(`/evm/eth/txs/0xA1EFa0adEcB7f5691605899d13285928AE025844`)
+      .reply(200, { succeeded: true, response: mockTransaction });
+
+    const paginator = await translate.Transactions('eth', '0xA1EFa0adEcB7f5691605899d13285928AE025844');
+    expect(paginator.getTransactions()).toHaveLength(10)
+    
+    await paginator.next()
+    expect(paginator.getTransactions()).toHaveLength(10)
+
+  });
+
 });

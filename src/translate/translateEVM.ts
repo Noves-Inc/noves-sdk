@@ -99,25 +99,34 @@ export class Translate {
   }
 
   /**
-   * Get a list of transactions with pagination support.
+   * Get a pagination object to iterate over transactions pages.
    * @param {string} chain - The chain name.
    * @param {string} walletAddress - The wallet address.
    * @returns {Promise<TransactionsPage>} A promise that resolves to a TransactionsPage instance.
    */
-  public async getTransactions(chain: string, walletAddress: string, pageOptions?: PageOptions): Promise<TransactionsPage> {
+  public async Transactions(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage> {
+    try {
+      const endpoint = `${chain}/txs/${walletAddress}`;
+      const url = constructUrl(endpoint, pageOptions);
+      const result = await this.request(url);
 
-    const endpoint = `${chain}/txs/${walletAddress}`;
-    const url = constructUrl(endpoint, pageOptions);
-    const result = await this.request(url);
-
-    const initialData = {
-      chain: chain,
-      walletAddress: walletAddress,
-      transactions: result.response.items,
-      currentPageKey: pageOptions,
-      nextPageKey: parseUrl(result.response.nextPageUrl),
-    };
-    return new TransactionsPage(this, initialData);
+      const initialData = {
+        chain: chain,
+        walletAddress: walletAddress,
+        transactions: result.response.items,
+        currentPageKeys: pageOptions,
+        nextPageKeys: result.response.hasNextPage ? parseUrl(result.response.nextPageUrl) : null,
+      };
+      return new TransactionsPage(this, initialData);
+    } catch (error) {
+      if (error instanceof Response) {
+        const errorResponse = await error.json();
+        if (errorResponse.status === 400 && errorResponse.errors) {
+          throw new TransactionError(errorResponse.errors);
+        }
+      }
+      throw error;
+    }
   }
 }
 

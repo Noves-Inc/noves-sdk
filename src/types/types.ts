@@ -9,14 +9,51 @@ export interface Chain {
     name: string;
 }
 
+/**
+ * Represents the available options for a page of transactions.
+ * 
+ * @interface PageOptions
+ */
 export interface PageOptions {
+    /**
+     * The starting block number for the transaction page. (Optional)
+     */
     startBlock?: number;
+  
+    /**
+     * The ending block number for the transaction page. (Optional)
+     */
     endBlock?: number;
+  
+    /**
+     * The starting timestamp for the transaction page in milliseconds. (Optional)
+     */
     startTimestamp?: number;
+  
+    /**
+     * The ending timestamp for the transaction page in milliseconds. (Optional)
+     */
     endTimestamp?: number;
+  
+    /**
+     * The sort order for the transaction page. Valid options are 'desc' (descending) or 'asc' (ascending). (Optional)
+     */
     sort?: 'desc' | 'asc';
+  
+    /**
+     * The account address to view transactions from. (Optional)
+     */
     viewAsAccountAddress?: string;
+  
+    /**
+     * Whether to retrieve live data or paginate through historical data. Defaults to false. (Optional)
+     */
     liveData?: boolean;
+
+    /**
+     * The transaction used for starting the next page. (Optional)
+     */
+    ignoreTransactions?: string;
 }
   
 export interface Transaction {
