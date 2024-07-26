@@ -67,8 +67,9 @@ export class Translate {
    * @throws {ChainNotFoundError} Will throw an error if the chain is not found.
    */
   public async getChain(name: string): Promise<Chain> {
+    const validatedName = name.toLowerCase() === 'ethereum' ? 'eth' : name.toLowerCase();
     const result = await this.request('chains');
-    const chain = result.response.find((chain: Chain) => chain.name.toLowerCase() === name.toLowerCase());
+    const chain = result.response.find((chain: Chain) => chain.name.toLowerCase() === validatedName.toLowerCase());
     if (!chain) {
       throw new ChainNotFoundError(name);
     }
@@ -85,7 +86,8 @@ export class Translate {
    */
   public async getTransaction(chain: string, txHash: string): Promise<Transaction> {
     try {
-      const result = await this.request(`${chain}/tx/${txHash}`);
+      const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
+      const result = await this.request(`${validatedChain}/tx/${txHash}`);
       return result.response;
     } catch (error) {
       if (error instanceof Response) {
@@ -106,7 +108,8 @@ export class Translate {
    */
   public async Transactions(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage> {
     try {
-      const endpoint = `${chain}/txs/${walletAddress}`;
+      const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
+      const endpoint = `${validatedChain}/txs/${walletAddress}`;
       const url = constructUrl(endpoint, pageOptions);
       const result = await this.request(url);
 
