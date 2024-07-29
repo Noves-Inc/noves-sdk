@@ -8,14 +8,15 @@ import { Translate } from './translateEVM';
  * * 
  * @class
  */
-export class TransactionsPage {
+export class TransactionsPage<T> {
   private translate: Translate;
   private walletAddress: string;
   private chain: string;
-  private transactions: Transaction[];
+  private transactions: T[];
   private currentPageKeys: PageOptions;
   private nextPageKeys: PageOptions;
   private previousPageKeys: PageOptions | null;
+  private pageKeys: PageOptions[];
 
   /**
    * Creates an instance of TransactionsPage.
@@ -26,17 +27,18 @@ export class TransactionsPage {
     this.translate = translate;
     this.walletAddress = initialData.walletAddress;
     this.chain = initialData.chain;
-    this.transactions = initialData.transactions;
+    this.transactions = [];
     this.currentPageKeys = initialData.currentPageKeys;
     this.nextPageKeys = initialData.nextPageKeys;
     this.previousPageKeys = null;
+    this.pageKeys = [initialData.currentPageKeys];
   }
 
   /**
    * Get the current transactions.
    * @returns {Transaction[]} The current array of transactions.
    */
-  public getTransactions(): Transaction[] {
+  public getTransactions(): T[] {
     return this.transactions;
   }
 
@@ -65,6 +67,23 @@ export class TransactionsPage {
   }
 
   /**
+   * Get all page keys that have been fetched.
+   * @returns {PageOptions[]} An array of all fetched page keys.
+   */
+  public getPageKeys(): PageOptions[] {
+    return this.pageKeys;
+  }
+
+  /**
+   * Get a specific page key by its index.
+   * @param {number} index - The index of the desired page key.
+   * @returns {PageOptions | undefined} The page key at the specified index, or undefined if not available.
+   */
+  public getPageKeyByIndex(index: number): PageOptions | undefined {
+    return this.pageKeys[index];
+  }
+
+  /**
    * Fetch the next page of transactions and update internal state.
    * @returns {Promise<boolean>} A promise that resolves to true if the next page was fetched successfully, false otherwise.
    */
@@ -72,13 +91,14 @@ export class TransactionsPage {
     if (!this.nextPageKeys) {
       return false
     }
-
     const response = await this.translate.Transactions(this.chain, this.walletAddress, this.nextPageKeys);
-    this.transactions = response.transactions;
+    this.transactions = response.transactions as T[];
     
     this.previousPageKeys = this.currentPageKeys;
     this.currentPageKeys = this.nextPageKeys;
     this.nextPageKeys = response.nextPageKeys;
+
+    this.pageKeys.push(this.currentPageKeys);
 
     return true;
   }

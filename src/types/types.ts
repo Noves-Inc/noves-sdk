@@ -114,3 +114,14 @@ export interface RawTransactionData {
     transactionFee: number;
     timestamp: number;
 }
+
+export interface HistoryData {
+    transactionHash: string;
+    blockNumber: number;
+    timestamp: number;
+}
+
+export interface DescribeTransaction {
+    type: string;
+    description: string;
+}

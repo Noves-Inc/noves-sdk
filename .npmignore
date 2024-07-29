@@ -9,5 +9,6 @@ tsup.config.ts
 
 # Ignore test-related files and configs
 tests/
+assets/
 jest.config.js
 jest.setup.js
