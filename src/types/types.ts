@@ -5,7 +5,7 @@ export interface ApiResponse {
 
 export interface Chain {
     ecosystem: string;
-    evmChainId: number;
+    evmChainId?: number;
     name: string;
 }
 

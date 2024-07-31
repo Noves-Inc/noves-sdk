@@ -1,19 +1,19 @@
 // src/translate/translateEVM.ts
 
-import { ApiResponse, Chain, DescribeTransaction, HistoryData, PageOptions, Transaction } from '../types/types';
+import { Chain, DescribeTransaction, HistoryData, PageOptions, Transaction } from '../types/types';
+import { createApiClient } from '../utils/apiUtils';
 import { TransactionsPage } from './transactionsPage';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
 
-const BASE_URL = 'https://translate.noves.fi';
 const ECOSYSTEM = 'evm';
 
 /**
  * Class representing the EVM translation module.
  */
 export class Translate {
-  private apiKey: string;
+  private request: ReturnType<typeof createApiClient>;
 
   /**
    * Create a TranslateEVM instance.
@@ -24,36 +24,12 @@ export class Translate {
     if (!apiKey) {
       throw new Error('API key is required');
     }
-    this.apiKey = apiKey;
-  }
-
-  /**
-   * Make a request to the API.
-   * @param {string} endpoint - The API endpoint to request.
-   * @param {RequestInit} [options={}] - Additional request options.
-   * @returns {Promise<ApiResponse>} The response from the API.
-   * @throws Will throw an error if the network response is not ok.
-   * @private
-   */
-  private async request(endpoint: string, options: RequestInit = {}): Promise<ApiResponse> {
-    const response = await fetch(`${BASE_URL}/${ECOSYSTEM}/${endpoint}`, {
-      ...options,
-      headers: {
-        ...options.headers,
-        'apiKey': this.apiKey,
-      },
-    });
-
-    const responseData = await response.json();
-    return {
-      succeeded: response.ok,
-      response: responseData,
-    };
+    this.request = createApiClient(ECOSYSTEM, apiKey);
   }
 
   /**
    * Returns a list with the names of the EVM blockchains currently supported by this API. 
-   * Use the provided chain names when calling other endpoints.
+   * Use the provided chain name when calling other methods.
    * @returns {Promise<Chain[]>} A promise that resolves to an array of chains.
    */
   public async getChains(): Promise<Chain[]> {
