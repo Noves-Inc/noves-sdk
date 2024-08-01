@@ -4,13 +4,15 @@ import { Chain, DescribeTransaction, HistoryData, PageOptions, Transaction } fro
 import { createApiClient } from '../utils/apiUtils';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
+import { TransactionsPage } from './transactionsPage';
+import { constructUrl, parseUrl } from '../utils/urlUtils';
 
 const ECOSYSTEM = 'svm';
 
 /**
  * Class representing the SVM translation module.
  */
-export class Translate {
+export class TranslateSVM {
   private request: ReturnType<typeof createApiClient>;
 
   /**
@@ -35,14 +37,14 @@ export class Translate {
     return result.response;
   }
 
-   /**
-   * Returns all of the available transaction information for the signature requested.
-   * @param {string} chain - The chain name. Defaults to solana.
-   * @param {string} signature - The signature.
-   * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
-   * @throws {TransactionError} If there are validation errors in the request.
-   */
-   public async getTransaction(chain: string = 'solana', signature: string): Promise<Transaction> {
+  /**
+  * Returns all of the available transaction information for the signature requested.
+  * @param {string} chain - The chain name. Defaults to solana.
+  * @param {string} signature - The signature.
+  * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
+  * @throws {TransactionError} If there are validation errors in the request.
+  */
+  public async getTransaction(chain: string = 'solana', signature: string): Promise<Transaction> {
     try {
       const result = await this.request(`${chain}/tx/${signature}`);
       return result.response;
@@ -60,16 +62,15 @@ export class Translate {
   /**
    * Returns a list of translated transactions for the given account address.
    * The list is sorted by block height, with the most recent transactions appearing first.
+   * For Pagination use Transactions() method.
    * @param {string} chain - The chain name.
    * @param {string} accountAddress - The account address.
-   * @param {number} [pageNumber=1] - The page number (default: 1).
-   * @param {number} [pageSize=10] - The page size (default: 10). Max Size is 100.
    * @returns {Promise<Transaction[]>} A promise that resolves to an array of transaction details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTransactions(chain: string = 'solana', accountAddress: string, pageNumber: number = 1, pageSize: number = 10): Promise<Transaction[]> {
+  public async getTransactions(chain: string = 'solana', accountAddress: string): Promise<Transaction[]> {
     try {
-      const endpoint = `${chain}/txs/${accountAddress}?pageNumber=${pageNumber}&pageSize=${pageSize}`;
+      const endpoint = `${chain}/txs/${accountAddress}`;
       const result = await this.request(endpoint);
 
       return result.response.items;
@@ -87,22 +88,31 @@ export class Translate {
   }
 
   /**
-   * Utility endpoint for Bitcoin. Returns a list of derived addresses for the given xpub address.
-   * @param {string} xpub - The xpub address to derive BTC addresses from.
-   * @returns {Promise<String[]>} A promise that resolves to an array of derived addresses.
-   * @throws {TransactionError} If there are validation errors in the request.
+   * Get a pagination object to iterate over transactions pages.
+   * @param {string} chain - The chain name.
+   * @param {string} accountAddress - The account address.
+   * @param {PageOptions} pageOptions - The page options object.
+   * @returns {Promise<TransactionsPage<Transaction>>} A promise that resolves to a TransactionsPage instance.
    */
-  public async getAddressesByXpub(xpub: string): Promise<String[]> {
+  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<Transaction>> {
     try {
-      const result = await this.request(`btc/txs/addresses/${xpub}`);
-      return result.response;
+      const endpoint = `${chain}/txs/${accountAddress}`;
+      const url = constructUrl(endpoint, pageOptions);
+      const result = await this.request(url);
+
+      const initialData = {
+        chain: chain,
+        walletAddress: accountAddress,
+        transactions: result.response.items,
+        currentPageKeys: pageOptions,
+        nextPageKeys: result.response.hasNextPage ? parseUrl(result.response.nextPageUrl) : null,
+      };
+      return new TransactionsPage(this, initialData);
     } catch (error) {
       if (error instanceof Response) {
         const errorResponse = await error.json();
         if (errorResponse.status === 400 && errorResponse.errors) {
           throw new TransactionError(errorResponse.errors);
-        } else if (errorResponse.status === 500) {
-          throw new TransactionError({ general: ['Internal server error occurred'] });
         }
       }
       throw error;
@@ -115,4 +125,4 @@ export class Translate {
  * @param {string} apiKey - The API key to authenticate requests.
  * @returns {TranslateSVM} An instance of TranslateSVM.
  */
-export const TranslateSVM = (apiKey: string) => new Translate(apiKey);
+//export const TranslateSVM = (apiKey: string) => new Translate(apiKey);

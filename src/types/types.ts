@@ -13,38 +13,49 @@ export interface Chain {
  * Represents the available options for a page of transactions.
  * 
  * @interface PageOptions
+ * 
+ * @property startBlock - The starting block number to filter by.
+ * @property endBlock - The ending block number to filter by.
+ * @property startTimestamp - The starting timestamp for the transaction page in milliseconds.
+ * @property endTimestamp - The ending timestamp for the transaction page in milliseconds.
+ * @property sort - The sort order for the transaction page. Valid options are 'desc' (descending) or 'asc' (ascending).
+ * @property viewAsAccountAddress - The account address to view transactions from.
+ * @property liveData - Whether to retrieve live data or paginate through historical data. Defaults to false.
+ * @property ignoreTransactions - The transaction used for starting the next page.
+ * @property pageNumber - The page number to retrieve. This will not work on EVM chains.
+ * @property pagesize - The number of transactions to retrieve per page. Defaults to 10. EVM max size is 50. SVM and UTXO is 100.
  */
 export interface PageOptions {
     /**
-     * The starting block number for the transaction page. (Optional)
+     * The starting block number to filter by. (Optional)
      */
     startBlock?: number;
-  
+
     /**
-     * The ending block number for the transaction page. (Optional)
+     * The ending block number to filter by. (Optional)
      */
     endBlock?: number;
-  
+
     /**
      * The starting timestamp for the transaction page in milliseconds. (Optional)
      */
     startTimestamp?: number;
-  
+
     /**
      * The ending timestamp for the transaction page in milliseconds. (Optional)
      */
     endTimestamp?: number;
-  
+
     /**
      * The sort order for the transaction page. Valid options are 'desc' (descending) or 'asc' (ascending). (Optional)
      */
     sort?: 'desc' | 'asc';
-  
+
     /**
      * The account address to view transactions from. (Optional)
      */
     viewAsAccountAddress?: string;
-  
+
     /**
      * Whether to retrieve live data or paginate through historical data. Defaults to false. (Optional)
      */
@@ -54,8 +65,19 @@ export interface PageOptions {
      * The transaction used for starting the next page. (Optional)
      */
     ignoreTransactions?: string;
+
+    /**
+     * The page number to retrieve. This will not work on EVM chains. (Optional)
+     */
+    pageNumber?: number;
+
+    /**
+     * The number of transactions to retrieve per page. Defaults to 10. (Optional)
+     * EVM max size is 50. SVM and UTXO is 100.
+     */
+    pagesize?: number;
 }
-  
+
 export interface Transaction {
     txTypeVersion: number;
     chain: string;
@@ -63,14 +85,14 @@ export interface Transaction {
     classificationData: ClassificationData;
     rawTransactionData: RawTransactionData;
 }
-  
+
 export interface ClassificationData {
     type: string;
     description: string;
     sent: SentReceived[];
     received: SentReceived[];
 }
-  
+
 export interface SentReceived {
     action: string;
     amount: string;
@@ -79,31 +101,31 @@ export interface SentReceived {
     token?: Token;
     nft?: Nft;
 }
-  
+
 export interface Token {
     symbol: string;
     name: string;
     decimals: number;
     address: string;
 }
-  
+
 export interface Nft {
     name: string;
     id: number;
     symbol: string;
     address: string;
 }
-  
+
 export interface From {
     name: string | null;
     address: string;
 }
-  
+
 export interface To {
     name: string | null;
     address: string;
 }
-  
+
 export interface RawTransactionData {
     transactionHash: string;
     fromAddress: string;

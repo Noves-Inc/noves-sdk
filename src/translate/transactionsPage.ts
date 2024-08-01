@@ -1,7 +1,8 @@
 // src/translate/TransactionsPage.ts
 
 import { Transaction, PageOptions } from '../types/types';
-import { Translate } from './translateEVM';
+import { TranslateEVM } from './translateEVM';
+import { TranslateSVM } from './translateSVM';
 
 /**
  * This class manages the state of transactions and provides methods for pagination.
@@ -9,7 +10,7 @@ import { Translate } from './translateEVM';
  * @class
  */
 export class TransactionsPage<T> {
-  private translate: Translate;
+  private translate: TranslateEVM | TranslateSVM;
   private walletAddress: string;
   private chain: string;
   private transactions: T[];
@@ -20,10 +21,10 @@ export class TransactionsPage<T> {
 
   /**
    * Creates an instance of TransactionsPage.
-   * @param {Translate} translate - The Translate instance for making API requests.
+   * @param {TranslateEVM | TranslateSVM} translate - The Translate instance for making API requests.
    * @param {Object} initialData - The initial data for the transactions page.
    */
-  constructor(translate: Translate, initialData: any) {
+  constructor(translate: TranslateEVM | TranslateSVM, initialData: any) {
     this.translate = translate;
     this.walletAddress = initialData.walletAddress;
     this.chain = initialData.chain;
@@ -93,7 +94,7 @@ export class TransactionsPage<T> {
     }
     const response = await this.translate.Transactions(this.chain, this.walletAddress, this.nextPageKeys);
     this.transactions = response.transactions as T[];
-    
+
     this.previousPageKeys = this.currentPageKeys;
     this.currentPageKeys = this.nextPageKeys;
     this.nextPageKeys = response.nextPageKeys;
@@ -102,4 +103,6 @@ export class TransactionsPage<T> {
 
     return true;
   }
+
+
 }

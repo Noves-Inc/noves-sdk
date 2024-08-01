@@ -11,18 +11,18 @@ describe('TranslateEVM', () => {
   if (!apiKey) {
     throw new Error('API_KEY environment variable is not set');
   }
-  const translate = TranslateEVM(apiKey);
+  const translate = new TranslateEVM(apiKey);
 
   beforeEach(() => {
     nock.cleanAll();
   });
 
   it('should throw an error if API key is not provided', () => {
-    expect(() => TranslateEVM('')).toThrow('API key is required');
+    expect(() => new TranslateEVM('')).toThrow('API key is required');
   });
 
   it('should fetch chains successfully', async () => {
-    const mockChains = [{"ecosystem": "evm", "evmChainId": 42161, "name": "arbitrum"}, {"ecosystem": "evm", "evmChainId": 42170, "name": "arbitrum-nova"}];
+    const mockChains = [{ "ecosystem": "evm", "evmChainId": 42161, "name": "arbitrum" }, { "ecosystem": "evm", "evmChainId": 42170, "name": "arbitrum-nova" }];
 
     nock(BASE_URL)
       .get('/evm/chains')
@@ -35,12 +35,12 @@ describe('TranslateEVM', () => {
 
   it('should handle invalid API key format', async () => {
     const invalidApiKey = 'invalid-key';
-    const translateEVMWithInvalidKey = TranslateEVM(invalidApiKey);
-  
+    const translateEVMWithInvalidKey = new TranslateEVM(invalidApiKey);
+
     nock(BASE_URL)
       .get('/evm/chains')
       .reply(403, { error: 'Forbidden' });
-  
+
     const response = await translateEVMWithInvalidKey.getChains();
     expect(response).toEqual({
       message: "Invalid API Key"
@@ -48,7 +48,7 @@ describe('TranslateEVM', () => {
   });
 
   it('should fetch a chain successfully', async () => {
-    const mockChain = {"ecosystem": "evm", "evmChainId": 1, "name": "eth"};
+    const mockChain = { "ecosystem": "evm", "evmChainId": 1, "name": "eth" };
 
     nock(BASE_URL)
       .get('/evm/chains')
@@ -68,12 +68,12 @@ describe('TranslateEVM', () => {
       .get(`/evm/chain`)
       .reply(200, { succeeded: true, response: mockChains });
 
-      try {
-        await translate.getChain('nonexistent');
-      } catch (error: any) {
-        expect(error).toBeInstanceOf(ChainNotFoundError);
-        expect(error.message).toBe('Chain with name "nonexistent" not found.');
-      }
+    try {
+      await translate.getChain('nonexistent');
+    } catch (error: any) {
+      expect(error).toBeInstanceOf(ChainNotFoundError);
+      expect(error.message).toBe('Chain with name "nonexistent" not found.');
+    }
   });
 
   it('should fetch a transaction successfully', async () => {
@@ -173,7 +173,7 @@ describe('TranslateEVM', () => {
     const paging: PageOptions = {
       startBlock: 20104079,
       sort: 'desc'
-    } 
+    }
 
     const txEngine = await translate.Transactions('eth', '0xA1EFa0adEcB7f5691605899d13285928AE025844', paging);
     expect(txEngine.getTransactions()).toHaveLength(10)
@@ -189,7 +189,7 @@ describe('TranslateEVM', () => {
 
     const paginator = await translate.Transactions('eth', '0xA1EFa0adEcB7f5691605899d13285928AE025844');
     expect(paginator.getTransactions()).toHaveLength(10)
-    
+
     await paginator.next()
     expect(paginator.getTransactions()).toHaveLength(10)
 

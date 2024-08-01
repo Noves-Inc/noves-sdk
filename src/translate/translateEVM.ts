@@ -12,7 +12,7 @@ const ECOSYSTEM = 'evm';
 /**
  * Class representing the EVM translation module.
  */
-export class Translate {
+export class TranslateEVM {
   private request: ReturnType<typeof createApiClient>;
 
   /**
@@ -204,4 +204,4 @@ export class Translate {
  * @param {string} apiKey - The API key to authenticate requests.
  * @returns {TranslateEVM} An instance of TranslateEVM.
  */
-export const TranslateEVM = (apiKey: string) => new Translate(apiKey);
+//export const TranslateEVM = (apiKey: string) => new TranslateEVM(apiKey);
