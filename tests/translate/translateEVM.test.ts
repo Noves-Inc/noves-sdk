@@ -4,6 +4,8 @@ import { ChainNotFoundError } from '../../src/errors/ChainNotFoundError';
 import { TransactionError } from '../../src/errors/TransactionError';
 import { PageOptions } from '../../src';
 
+import { Translate } from '../../src';
+
 const BASE_URL = 'https://translate.noves.fi';
 
 describe('TranslateEVM', () => {

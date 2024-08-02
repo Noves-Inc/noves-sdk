@@ -60,34 +60,6 @@ export class TranslateSVM {
   }
 
   /**
-   * Returns a list of translated transactions for the given account address.
-   * The list is sorted by block height, with the most recent transactions appearing first.
-   * For Pagination use Transactions() method.
-   * @param {string} chain - The chain name.
-   * @param {string} accountAddress - The account address.
-   * @returns {Promise<Transaction[]>} A promise that resolves to an array of transaction details.
-   * @throws {TransactionError} If there are validation errors in the request.
-   */
-  public async getTransactions(chain: string = 'solana', accountAddress: string): Promise<Transaction[]> {
-    try {
-      const endpoint = `${chain}/txs/${accountAddress}`;
-      const result = await this.request(endpoint);
-
-      return result.response.items;
-    } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        } else if (errorResponse.status === 500) {
-          throw new TransactionError({ general: ['Internal server error occurred'] });
-        }
-      }
-      throw error;
-    }
-  }
-
-  /**
    * Get a pagination object to iterate over transactions pages.
    * @param {string} chain - The chain name.
    * @param {string} accountAddress - The account address.

@@ -1,8 +1,9 @@
 // src/translate/TransactionsPage.ts
 
-import { Transaction, PageOptions } from '../types/types';
+import { PageOptions } from '../types/types';
 import { TranslateEVM } from './translateEVM';
 import { TranslateSVM } from './translateSVM';
+import { TranslateUTXO } from './translateUTXO';
 
 /**
  * This class manages the state of transactions and provides methods for pagination.
@@ -10,7 +11,7 @@ import { TranslateSVM } from './translateSVM';
  * @class
  */
 export class TransactionsPage<T> {
-  private translate: TranslateEVM | TranslateSVM;
+  private translate: TranslateEVM | TranslateSVM | TranslateUTXO;
   private walletAddress: string;
   private chain: string;
   private transactions: T[];
@@ -21,10 +22,10 @@ export class TransactionsPage<T> {
 
   /**
    * Creates an instance of TransactionsPage.
-   * @param {TranslateEVM | TranslateSVM} translate - The Translate instance for making API requests.
+   * @param {TranslateEVM | TranslateSVM | TranslateUTXO} translate - The Translate instance for making API requests.
    * @param {Object} initialData - The initial data for the transactions page.
    */
-  constructor(translate: TranslateEVM | TranslateSVM, initialData: any) {
+  constructor(translate: TranslateEVM | TranslateSVM | TranslateUTXO, initialData: any) {
     this.translate = translate;
     this.walletAddress = initialData.walletAddress;
     this.chain = initialData.chain;
@@ -103,6 +104,4 @@ export class TransactionsPage<T> {
 
     return true;
   }
-
-
 }

@@ -6,6 +6,7 @@ import { TransactionsPage } from './transactionsPage';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
+import { HistoryPage } from './historyPage';
 
 const ECOSYSTEM = 'evm';
 
@@ -93,33 +94,6 @@ export class TranslateEVM {
       const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
       const result = await this.request(`${validatedChain}/tx/${txHash}`);
       return result.response;
-    } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Returns a list of the available transaction information for the chain and wallet requested without pagination.
-   * For Pagination use Transactions() method.
-   * @param {string} chain - The chain name.
-   * @param {string} walletAddress - The wallet address.
-   * @param {PageOptions} pageOptions - The page options.
-   * @returns {Promise<Transaction[]>} A promise that resolves to the transaction details.
-   * @throws {TransactionError} If there are validation errors in the request.
-   */
-  public async getTransactions(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<Transaction[]> {
-    try {
-      const endpoint = `${chain}/txs/${walletAddress}`;
-      const url = constructUrl(endpoint, pageOptions);
-      const result = await this.request(url);
-
-      return result.response.items;
     } catch (error) {
       if (error instanceof Response) {
         const errorResponse = await error.json();

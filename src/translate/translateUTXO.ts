@@ -1,16 +1,18 @@
 // src/translate/translateUTXO.ts
 
-import { Chain, Transaction } from '../types/types';
+import { Chain, PageOptions, Transaction } from '../types/types';
 import { createApiClient } from '../utils/apiUtils';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
+import { constructUrl, parseUrl } from '../utils/urlUtils';
+import { TransactionsPage } from './transactionsPage';
 
 const ECOSYSTEM = 'utxo';
 
 /**
  * Class representing the UTXO translation module.
  */
-export class Translate {
+export class TranslateUTXO {
   private request: ReturnType<typeof createApiClient>;
 
   /**
@@ -51,28 +53,31 @@ export class Translate {
   }
 
   /**
-   * Returns a list of translated transactions for the given account address.
-   * The list is sorted by block height, with the most recent transactions appearing first.
-   * @param {string} chain - The chain name.
-   * @param {string} accountAddress - The account address.
-   * @param {number} [pageNumber=1] - The page number (default: 1).
-   * @param {number} [pageSize=10] - The page size (default: 10). Max Size is 100.
-   * @returns {Promise<Transaction[]>} A promise that resolves to an array of transaction details.
-   * @throws {TransactionError} If there are validation errors in the request.
-   */
-  public async getTransactions(chain: string, accountAddress: string, pageNumber: number = 1, pageSize: number = 10): Promise<Transaction[]> {
+ * Get a pagination object to iterate over transactions pages.
+ * @param {string} chain - The chain name.
+ * @param {string} accountAddress - The account address.
+ * @param {PageOptions} pageOptions - The page options object.
+ * @returns {Promise<TransactionsPage<Transaction>>} A promise that resolves to a TransactionsPage instance.
+ */
+  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<Transaction>> {
     try {
-      const endpoint = `${chain}/txs/${accountAddress}?pageNumber=${pageNumber}&pageSize=${pageSize}`;
-      const result = await this.request(endpoint);
+      const endpoint = `${chain}/txs/${accountAddress}`;
+      const url = constructUrl(endpoint, pageOptions);
+      const result = await this.request(url);
 
-      return result.response.items;
+      const initialData = {
+        chain: chain,
+        walletAddress: accountAddress,
+        transactions: result.response.items,
+        currentPageKeys: pageOptions,
+        nextPageKeys: result.response.hasNextPage ? parseUrl(result.response.nextPageUrl) : null,
+      };
+      return new TransactionsPage(this, initialData);
     } catch (error) {
       if (error instanceof Response) {
         const errorResponse = await error.json();
         if (errorResponse.status === 400 && errorResponse.errors) {
           throw new TransactionError(errorResponse.errors);
-        } else if (errorResponse.status === 500) {
-          throw new TransactionError({ general: ['Internal server error occurred'] });
         }
       }
       throw error;
@@ -108,4 +113,4 @@ export class Translate {
  * @param {string} apiKey - The API key to authenticate requests.
  * @returns {TranslateUTXO} An instance of TranslateUTXO.
  */
-export const TranslateUTXO = (apiKey: string) => new Translate(apiKey);
+//export const TranslateUTXO = (apiKey: string) => new Translate(apiKey);
