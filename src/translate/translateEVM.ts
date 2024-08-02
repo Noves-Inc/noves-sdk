@@ -6,7 +6,6 @@ import { TransactionsPage } from './transactionsPage';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
-import { HistoryPage } from './historyPage';
 
 const ECOSYSTEM = 'evm';
 
