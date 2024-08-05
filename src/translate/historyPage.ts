@@ -1,13 +1,14 @@
-// src/translate/TransactionsPage.ts
+// src/translate/historyPage.ts
 
 import { Pagination } from './pagination';
+import { TranslateEVM } from './translateEVM';
 
 /**
  * Pagination object for transactions.
  * 
  * @class
  */
-export class TransactionsPage<T> extends Pagination<T>{
+export class HistoryPage<T> extends Pagination<T>{
 
   /**
    * Fetch the next page of transactions and update internal state.
@@ -17,7 +18,7 @@ export class TransactionsPage<T> extends Pagination<T>{
     if (!this.nextPageKeys) {
       return false
     }
-    const response = await this.translate.Transactions(this.chain, this.walletAddress, this.nextPageKeys);
+    const response = await (this.translate as TranslateEVM).History(this.chain, this.walletAddress, this.nextPageKeys);
     this.transactions = response.getTransactions() as T[];
 
     this.previousPageKeys = this.currentPageKeys;

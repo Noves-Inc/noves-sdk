@@ -11,7 +11,7 @@ import { TranslateUTXO } from './translateUTXO';
  * @abstract
  * @class
  */
-export abstract class Paging<T> {
+export abstract class Pagination<T> {
     protected translate: TranslateEVM | TranslateSVM | TranslateUTXO;
     protected walletAddress: string;
     protected chain: string;
@@ -25,7 +25,7 @@ export abstract class Paging<T> {
         this.translate = translate;
         this.walletAddress = initialData.walletAddress;
         this.chain = initialData.chain;
-        this.transactions = [];
+        this.transactions = initialData.transactions;
         this.currentPageKeys = initialData.currentPageKeys;
         this.nextPageKeys = initialData.nextPageKeys;
         this.previousPageKeys = null;

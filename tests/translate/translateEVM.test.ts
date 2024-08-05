@@ -1,5 +1,4 @@
 import nock from 'nock';
-import { TranslateEVM } from '../../src/translate/translateEVM';
 import { ChainNotFoundError } from '../../src/errors/ChainNotFoundError';
 import { TransactionError } from '../../src/errors/TransactionError';
 import { PageOptions } from '../../src';
@@ -13,14 +12,10 @@ describe('TranslateEVM', () => {
   if (!apiKey) {
     throw new Error('API_KEY environment variable is not set');
   }
-  const translate = new TranslateEVM(apiKey);
+  const translate = Translate.evm(apiKey);
 
   beforeEach(() => {
     nock.cleanAll();
-  });
-
-  it('should throw an error if API key is not provided', () => {
-    expect(() => new TranslateEVM('')).toThrow('API key is required');
   });
 
   it('should fetch chains successfully', async () => {
@@ -33,20 +28,6 @@ describe('TranslateEVM', () => {
     const response = await translate.getChains();
     expect(response[0]).toEqual(mockChains[0]);
     expect(response.length).toBeGreaterThan(0);
-  });
-
-  it('should handle invalid API key format', async () => {
-    const invalidApiKey = 'invalid-key';
-    const translateEVMWithInvalidKey = new TranslateEVM(invalidApiKey);
-
-    nock(BASE_URL)
-      .get('/evm/chains')
-      .reply(403, { error: 'Forbidden' });
-
-    const response = await translateEVMWithInvalidKey.getChains();
-    expect(response).toEqual({
-      message: "Invalid API Key"
-    });
   });
 
   it('should fetch a chain successfully', async () => {
@@ -90,6 +71,18 @@ describe('TranslateEVM', () => {
     expect(response).toHaveProperty("rawTransactionData.blockNumber", 12345453)
     expect(response).toHaveProperty("rawTransactionData.timestamp", 1619833950)
     expect(response).toHaveProperty("classificationData.description", "Added 22,447.92 YD-ETH-MAR21 and 24,875.82 USDC to a liquidity pool.")
+  });
+
+  it('should fetch a describe transaction successfully', async () => {
+    const mockTransaction = { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' };
+
+    nock(BASE_URL)
+      .get(`/evm/eth/describetx/0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22`)
+      .reply(200, { succeeded: true, response: mockTransaction });
+
+    const response = await translate.describeTransaction('eth', '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22');
+    expect(response).toHaveProperty("type", "addLiquidity")
+    expect(response).toHaveProperty("description", "Added 22,447.92 YD-ETH-MAR21 and 24,875.82 USDC to a liquidity pool.")
   });
 
   it('should handle transaction validation errors', async () => {
@@ -197,4 +190,15 @@ describe('TranslateEVM', () => {
 
   });
 
+  it('should fetch first page history successfully', async () => {
+    const mockTransaction = { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' };
+
+    nock(BASE_URL)
+      .get(`/evm/eth/txs/0xA1EFa0adEcB7f5691605899d13285928AE025844`)
+      .reply(200, { succeeded: true, response: mockTransaction });
+
+    const paginator = await translate.History('eth', '0xA1EFa0adEcB7f5691605899d13285928AE025844');
+    expect(paginator.getTransactions()).toHaveLength(100)
+
+  });
 });

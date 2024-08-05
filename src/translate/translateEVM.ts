@@ -6,6 +6,7 @@ import { TransactionsPage } from './transactionsPage';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
+import { HistoryPage } from './historyPage';
 
 const ECOSYSTEM = 'evm';
 
@@ -64,7 +65,7 @@ export class TranslateEVM {
    */
   public async describeTransaction(chain: string, txHash: string, viewAsAccountAddress?: string): Promise<DescribeTransaction> {
     try {
-      let endpoint = `${chain}/tx/${txHash}`;
+      let endpoint = `${chain}/describeTx/${txHash}`;
       if (viewAsAccountAddress) {
         endpoint += `?viewAsAccountAddress=${encodeURIComponent(viewAsAccountAddress)}`;
       }
@@ -146,7 +147,7 @@ export class TranslateEVM {
    * @param {PageOptions} pageOptions - The page options object.
    * @returns {Promise<TransactionsPage>} A promise that resolves to a TransactionsPage instance.
    */
-  public async History(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<HistoryData>> {
+  public async History(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<HistoryPage<HistoryData>> {
     try {
       const endpoint = `${chain}/history/${walletAddress}`;
       const url = constructUrl(endpoint, pageOptions);

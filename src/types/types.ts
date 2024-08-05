@@ -75,7 +75,7 @@ export interface PageOptions {
      * The number of transactions to retrieve per page. Defaults to 10. (Optional)
      * EVM max size is 50. SVM and UTXO is 100.
      */
-    pagesize?: number;
+    pageSize?: number;
 }
 
 export interface Transaction {
