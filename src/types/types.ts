@@ -147,3 +147,50 @@ export interface DescribeTransaction {
     type: string;
     description: string;
 }
+
+export interface BalancesData {
+    balance: string;
+    token: Token;
+}
+
+/**
+ * The unsigned transaction object, modeled after the standard format used by multiple EVM wallets.
+ * 
+ * @interface UnsignedTransaction
+ * 
+ */
+export interface UnsignedTransaction {
+    from: string | null;
+    to: string | null;
+    data: string | null;
+    value: string | null;
+    gas: string | null;
+    gasPrice: string | null;
+    maxFeePerGas: string | null;
+    maxPriorityFeePerGas: string | null;
+    type: string | null;
+}
+
+export interface StateDiff {
+    [key: string]: string;
+}
+
+export interface StateOverrides {
+    [key: string]: {
+        stateDiff: StateDiff;
+    };
+}
+
+export interface UserOperation {
+    sender: string | null;
+    nonce: number;
+    initCode: string | null;
+    callData: string | null;
+    callGasLimit: number;
+    verificationGasLimit: number;
+    preVerificationGas: number;
+    maxFeePerGas: number;
+    maxPriorityFeePerGas: number;
+    paymasterAndData: string | null;
+    signature: string | null;
+}

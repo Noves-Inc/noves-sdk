@@ -146,6 +146,27 @@ describe('TranslateEVM', () => {
     }
   });
 
+  it('should fetch token balances successfully', async () => {
+    const mockBalance = {
+      "balance": "0",
+      "token": {
+        "symbol": "WETH",
+        "name": "Wrapped Ether",
+        "decimals": 18,
+        "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+      }
+    };
+
+    nock(BASE_URL)
+      .get(`/evm/eth/tokens/balancesOf/0x9B1054d24dC31a54739B6d8950af5a7dbAa56815`)
+      .reply(200, { succeeded: true, response: mockBalance });
+
+    const tokens = ["0xc18360217d8f7ab5e7c516566761ea12ce7f9d72", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"]
+
+    const response = await translate.getTokenBalances('eth', '0x9B1054d24dC31a54739B6d8950af5a7dbAa56815', tokens);
+    expect(response).toHaveLength(2)
+  });
+
   it('should fetch first page transactions successfully', async () => {
     const mockTransaction = { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' };
 

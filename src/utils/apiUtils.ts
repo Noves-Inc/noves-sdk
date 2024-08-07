@@ -1,6 +1,7 @@
 import { ApiResponse } from '../types/types';
 
-const BASE_URL = 'https://translate.noves.fi';
+const TRANSLATE_URL = 'https://translate.noves.fi';
+const FORESIGHT_URL = 'https://foresight.noves.fi';
 
 /**
  * Make a request to the API.
@@ -10,18 +11,43 @@ const BASE_URL = 'https://translate.noves.fi';
  * @returns {Promise<ApiResponse>} The response from the API.
  * @throws Will throw an error if the network response is not ok.
  */
-export function createApiClient(ecosystem: string, apiKey: string) {
+export function createTranslateClient(ecosystem: string, apiKey: string) {
   return async function request(
     endpoint: string,
     method: string = 'GET',
     options: RequestInit = {}
   ): Promise<ApiResponse> {
-    const response = await fetch(`${BASE_URL}/${ecosystem}/${endpoint}`, {
+    const response = await fetch(`${TRANSLATE_URL}/${ecosystem}/${endpoint}`, {
       ...options,
       method,
       headers: {
         ...options.headers,
         'apiKey': apiKey,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const responseData = await response.json();
+    return {
+      succeeded: response.ok,
+      response: responseData,
+    };
+  };
+}
+
+export function createForesightClient(apiKey: string) {
+  return async function request(
+    endpoint: string,
+    method: string = 'GET',
+    options: RequestInit = {}
+  ): Promise<ApiResponse> {
+    const response = await fetch(`${FORESIGHT_URL}/evm/${endpoint}`, {
+      ...options,
+      method,
+      headers: {
+        ...options.headers,
+        'apiKey': apiKey,
+        'Content-Type': 'application/json',
       },
     });
 

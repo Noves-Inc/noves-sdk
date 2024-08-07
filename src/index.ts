@@ -2,6 +2,8 @@ import { TranslateEVM } from './translate/translateEVM';
 import { TranslateUTXO } from './translate/translateUTXO';
 import { TranslateSVM } from './translate/translateSVM';
 
+export { Foresight } from './foresight/foresight';
+
 /**
  * Translate object provides access to different blockchain translation services.
  */

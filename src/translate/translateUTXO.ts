@@ -1,7 +1,7 @@
 // src/translate/translateUTXO.ts
 
 import { Chain, PageOptions, Transaction } from '../types/types';
-import { createApiClient } from '../utils/apiUtils';
+import { createTranslateClient } from '../utils/apiUtils';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
@@ -13,7 +13,7 @@ const ECOSYSTEM = 'utxo';
  * Class representing the UTXO translation module.
  */
 export class TranslateUTXO {
-  private request: ReturnType<typeof createApiClient>;
+  private request: ReturnType<typeof createTranslateClient>;
 
   /**
    * Create a TranslateUTXO instance.
@@ -24,7 +24,7 @@ export class TranslateUTXO {
     if (!apiKey) {
       throw new Error('API key is required');
     }
-    this.request = createApiClient(ECOSYSTEM, apiKey);
+    this.request = createTranslateClient(ECOSYSTEM, apiKey);
   }
 
   /**
@@ -107,10 +107,3 @@ export class TranslateUTXO {
     }
   }
 }
-
-/**
- * Create a TranslateUTXO instance.
- * @param {string} apiKey - The API key to authenticate requests.
- * @returns {TranslateUTXO} An instance of TranslateUTXO.
- */
-//export const TranslateUTXO = (apiKey: string) => new Translate(apiKey);

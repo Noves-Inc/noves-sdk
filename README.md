@@ -46,6 +46,6 @@ npm install @noves/noves-sdk
 First, import and initialize the SDK with your API key:
 
 ```typescript
-import { TranslateEVM } from "@noves/noves-sdk";
-const translate = new TranslateEVM("YOUR_API_KEY");
+import { Translate } from "@noves/noves-sdk";
+const translate = new Translate.evm("YOUR_API_KEY");
 ```

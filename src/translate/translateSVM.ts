@@ -1,7 +1,7 @@
 // src/translate/translateSVM.ts
 
-import { Chain, DescribeTransaction, HistoryData, PageOptions, Transaction } from '../types/types';
-import { createApiClient } from '../utils/apiUtils';
+import { Chain, PageOptions, Transaction } from '../types/types';
+import { createTranslateClient } from '../utils/apiUtils';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
 import { TransactionsPage } from './transactionsPage';
@@ -13,7 +13,7 @@ const ECOSYSTEM = 'svm';
  * Class representing the SVM translation module.
  */
 export class TranslateSVM {
-  private request: ReturnType<typeof createApiClient>;
+  private request: ReturnType<typeof createTranslateClient>;
 
   /**
    * Create a TranslateSVM instance.
@@ -24,7 +24,7 @@ export class TranslateSVM {
     if (!apiKey) {
       throw new Error('API key is required');
     }
-    this.request = createApiClient(ECOSYSTEM, apiKey);
+    this.request = createTranslateClient(ECOSYSTEM, apiKey);
   }
 
   /**
@@ -91,10 +91,3 @@ export class TranslateSVM {
     }
   }
 }
-
-/**
- * Create a TranslateSVM instance.
- * @param {string} apiKey - The API key to authenticate requests.
- * @returns {TranslateSVM} An instance of TranslateSVM.
- */
-//export const TranslateSVM = (apiKey: string) => new Translate(apiKey);
