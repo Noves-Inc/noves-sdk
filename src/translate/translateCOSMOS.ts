@@ -1,22 +1,19 @@
-// src/translate/translateSVM.ts
-
 import { Chain, PageOptions, Transaction } from '../types/types';
 import { createTranslateClient } from '../utils/apiUtils';
-import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
 import { TransactionsPage } from './transactionsPage';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
 
-const ECOSYSTEM = 'svm';
+const ECOSYSTEM = 'cosmos';
 
 /**
- * Class representing the SVM translation module.
+ * Class representing the COSMOS translation module.
  */
-export class TranslateSVM {
+export class TranslateCOSMOS {
   private request: ReturnType<typeof createTranslateClient>;
 
   /**
-   * Create a TranslateSVM instance.
+   * Create a TranslateCOSMOS instance.
    * @param {string} apiKey - The API key to authenticate requests.
    * @throws Will throw an error if the API key is not provided.
    */
@@ -28,7 +25,7 @@ export class TranslateSVM {
   }
 
   /**
-   * Returns a list with the names of the SVM blockchains currently supported by this API. 
+   * Returns a list with the names of the COSMOS blockchains currently supported by this API. 
    * Use the provided chain name when calling other methods.
    * @returns {Promise<Chain[]>} A promise that resolves to an array of chains.
    */
@@ -38,15 +35,15 @@ export class TranslateSVM {
   }
 
   /**
-  * Returns all of the available transaction information for the signature requested.
-  * @param {string} chain - The chain name. Defaults to solana.
-  * @param {string} signature - The signature.
-  * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
-  * @throws {TransactionError} If there are validation errors in the request.
-  */
-  public async getTransaction(chain: string = 'solana', signature: string): Promise<Transaction> {
+   * Returns all of the available transaction information for the signature requested.
+   * @param {string} chain - The chain name.
+   * @param {string} txHash - The transaction signature.
+   * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async getTransaction(chain: string, txHash: string): Promise<Transaction> {
     try {
-      const result = await this.request(`${chain}/tx/${signature}`);
+      const result = await this.request(`${chain}/tx/${txHash}`);
       return result.response;
     } catch (error) {
       if (error instanceof Response) {
@@ -80,30 +77,6 @@ export class TranslateSVM {
         nextPageKeys: result.response.hasNextPage ? parseUrl(result.response.nextPageUrl) : null,
       };
       return new TransactionsPage(this, initialData);
-    } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
-      }
-      throw error;
-    }
-  }
-
-  /**
-  * Returns a list of the available SPL token account addresses for the chain and wallet requested.
-  * @param {string} accountAddress - The account address.
-  * @param {string} chain - The chain name. Defaults to solana.
-  * @param {number} pageNumber - The page number. Defaults to 1.
-  * @param {number} pageSize - The page size. Defaults to 100.
-  * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
-  * @throws {TransactionError} If there are validation errors in the request.
-  */
-  public async getSplTokens(accountAddress: string, chain: string = 'solana', pageNumber: number = 1, pageSize: number = 100): Promise<Transaction> {
-    try {
-      const result = await this.request(`${chain}/splAccounts/${accountAddress}`);
-      return result.response;
     } catch (error) {
       if (error instanceof Response) {
         const errorResponse = await error.json();

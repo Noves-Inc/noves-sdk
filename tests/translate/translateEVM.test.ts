@@ -180,11 +180,22 @@ describe('TranslateEVM', () => {
   });
 
   it('should fetch first page transactions with custom paging successfully', async () => {
-    const mockTransaction = { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' };
+    const mockTransactions = [
+      { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' },
+      { id: '2', hash: '0x2cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa33' }
+    ];
 
     nock(BASE_URL)
       .get(`/evm/eth/txs/0xA1EFa0adEcB7f5691605899d13285928AE025844`)
-      .reply(200, { succeeded: true, response: mockTransaction });
+      .query(true)
+      .reply(200, { 
+        succeeded: true, 
+        response: {
+          items: mockTransactions,
+          hasNextPage: true,
+          nextPageUrl: 'https://api.example.com/next-page'
+        }
+      });
 
     const paging: PageOptions = {
       startBlock: 20104079,
@@ -192,8 +203,8 @@ describe('TranslateEVM', () => {
     }
 
     const txEngine = await translate.Transactions('eth', '0xA1EFa0adEcB7f5691605899d13285928AE025844', paging);
-    expect(txEngine.getTransactions()).toHaveLength(10)
-    expect(txEngine.getCurrentPageKeys()).toEqual(paging)
+    expect(txEngine.getTransactions()).toHaveLength(10);
+    expect(txEngine.getCurrentPageKeys()).toEqual(paging);
   });
 
   it('should fetch a page and then the second one using the next method successfully', async () => {
