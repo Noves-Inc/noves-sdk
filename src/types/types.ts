@@ -194,3 +194,44 @@ export interface UserOperation {
     paymasterAndData: string | null;
     signature: string | null;
 }
+
+export interface Pricing {
+    chain: string;
+    block: string;
+    token: {
+        address: string | null;
+        symbol: string | null;
+        name: string | null;
+    };
+    price: {
+        amount: number | null;
+        currency: string | null;
+        status: string | null;
+    };
+    pricedBy: string | null;
+    priceType: string | null;
+    priceStatus: string | null;
+}
+
+export interface PoolPricing {
+    chain: string | null;
+    exchange: {
+        name: string | null;
+    };
+    poolAddress: string | null;
+    baseToken: {
+        address: string | null;
+        symbol: string | null;
+        name: string | null;
+        decimals: number | null;
+    };
+    quoteToken: {
+        address: string | null;
+        symbol: string | null;
+        name: string | null;
+        decimals: number | null;
+    };
+    price: {
+        amount: string | null;
+    };
+}

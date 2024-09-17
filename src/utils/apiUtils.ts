@@ -2,6 +2,7 @@ import { ApiResponse } from '../types/types';
 
 const TRANSLATE_URL = 'https://translate.noves.fi';
 const FORESIGHT_URL = 'https://foresight.noves.fi';
+const PRICING_URL = 'https://pricing.noves.fi';
 
 /**
  * Make a request to the API.
@@ -41,7 +42,31 @@ export function createForesightClient(apiKey: string) {
     method: string = 'GET',
     options: RequestInit = {}
   ): Promise<ApiResponse> {
-    const response = await fetch(`${FORESIGHT_URL}/evm/${endpoint}`, {
+    const response = await fetch(`${FORESIGHT_URL}//${endpoint}`, {
+      ...options,
+      method,
+      headers: {
+        ...options.headers,
+        'apiKey': apiKey,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const responseData = await response.json();
+    return {
+      succeeded: response.ok,
+      response: responseData,
+    };
+  };
+}
+
+export function createPricingClient(ecosystem: string, apiKey: string) {
+  return async function request(
+    endpoint: string,
+    method: string = 'GET',
+    options: RequestInit = {}
+  ): Promise<ApiResponse> {
+    const response = await fetch(`${PRICING_URL}/${ecosystem}/${endpoint}`, {
       ...options,
       method,
       headers: {

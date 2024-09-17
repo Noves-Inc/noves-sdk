@@ -1,6 +1,11 @@
 import { TranslateEVM } from './translate/translateEVM';
 import { TranslateUTXO } from './translate/translateUTXO';
 import { TranslateSVM } from './translate/translateSVM';
+import { TranslateCOSMOS } from './translate/translateCOSMOS';
+
+import { PricingEVM } from './pricing/pricingEVM';
+import { PricingMove } from './pricing/pricingMove';
+import { PricingCosmos } from './pricing/pricingCosmos';
 
 export { Foresight } from './foresight/foresight';
 
@@ -28,6 +33,40 @@ export const Translate = {
      * @returns A new TranslateUTXO instance.
      */
     utxo: (apiKey: string) => new TranslateUTXO(apiKey),
+
+    /**
+     * Creates a new instance of TranslateCOSMOS for Cosmos based blockchain.
+     * @param apiKey - The API key for authentication.
+     * @returns A new TranslateCOSMOS instance.
+     */
+    cosmos: (apiKey: string) => new TranslateCOSMOS(apiKey),
+    
+};
+
+/**
+ * Pricing object provides access to different blockchain pricing services.
+ */
+export const Pricing = {
+    /**
+     * Creates a new instance of PricingEVM for Ethereum Virtual Machine (EVM) based blockchains.
+     * @param apiKey - The API key for authentication.
+     * @returns A new PricingEVM instance.
+     */
+    evm: (apiKey: string) => new PricingEVM(apiKey),
+
+    /**
+     * Creates a new instance of PricingMove for Move based blockchain.
+     * @param apiKey - The API key for authentication.
+     * @returns A new PricingMove instance.
+     */
+    move: (apiKey: string) => new PricingMove(apiKey),
+
+    /**
+     * Creates a new instance of PricingCosmos for Cosmos based blockchain.
+     * @param apiKey - The API key for authentication.
+     * @returns A new PricingCosmos instance.
+     */
+    cosmos: (apiKey: string) => new PricingCosmos(apiKey),
 };
 
 export * from "./types/types"
