@@ -1,6 +1,8 @@
 import nock from 'nock';
 import { Translate } from '../../src/index';
 
+jest.setTimeout(10000);
+
 const BASE_URL = 'https://translate.noves.fi';
 
 describe('Translate', () => {

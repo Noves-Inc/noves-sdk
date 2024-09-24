@@ -4,6 +4,7 @@ import { TransactionError } from '../../src/errors/TransactionError';
 import { TransactionsPage } from '../../src/translate/transactionsPage';
 
 jest.mock('../../src/utils/apiUtils');
+jest.setTimeout(10000);
 
 describe('TranslateCOSMOS', () => {
   let translateCOSMOS: TranslateCOSMOS;

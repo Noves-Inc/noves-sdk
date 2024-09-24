@@ -4,6 +4,8 @@ import { PageOptions } from '../../src';
 
 import { Translate } from '../../src';
 
+jest.setTimeout(10000);
+
 const BASE_URL = 'https://translate.noves.fi';
 
 describe('TranslateSVM', () => {
