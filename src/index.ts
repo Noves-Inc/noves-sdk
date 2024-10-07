@@ -2,7 +2,7 @@ import { TranslateEVM } from './translate/translateEVM';
 import { TranslateUTXO } from './translate/translateUTXO';
 import { TranslateSVM } from './translate/translateSVM';
 import { TranslateCOSMOS } from './translate/translateCOSMOS';
-
+import { TranslateTVM } from './translate/translateTVM';
 import { PricingEVM } from './pricing/pricingEVM';
 import { PricingMove } from './pricing/pricingMove';
 import { PricingCosmos } from './pricing/pricingCosmos';
@@ -40,7 +40,13 @@ export const Translate = {
      * @returns A new TranslateCOSMOS instance.
      */
     cosmos: (apiKey: string) => new TranslateCOSMOS(apiKey),
-    
+
+    /**
+     * Creates a new instance of TranslateTVM for TVM based blockchain.
+     * @param apiKey - The API key for authentication.
+     * @returns A new TranslateTVM instance.
+     */
+    tvm: (apiKey: string) => new TranslateTVM(apiKey),
 };
 
 /**

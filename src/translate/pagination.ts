@@ -5,7 +5,7 @@ import { TranslateEVM } from './translateEVM';
 import { TranslateSVM } from './translateSVM';
 import { TranslateUTXO } from './translateUTXO';
 import { TranslateCOSMOS } from './translateCOSMOS';
-
+import { TranslateTVM } from './translateTVM';
 /**
  * Abstract class for managing the state of transactions and providing methods for pagination.
  * 
@@ -13,7 +13,7 @@ import { TranslateCOSMOS } from './translateCOSMOS';
  * @class
  */
 export abstract class Pagination<T> {
-    protected translate: TranslateEVM | TranslateSVM | TranslateUTXO | TranslateCOSMOS;
+    protected translate: TranslateEVM | TranslateSVM | TranslateUTXO | TranslateCOSMOS | TranslateTVM;
     protected walletAddress: string;
     protected chain: string;
     protected transactions: T[];
@@ -22,7 +22,7 @@ export abstract class Pagination<T> {
     protected previousPageKeys: PageOptions | null;
     protected pageKeys: PageOptions[];
 
-    constructor(translate: TranslateEVM | TranslateSVM | TranslateUTXO | TranslateCOSMOS, initialData: any) {
+    constructor(translate: TranslateEVM | TranslateSVM | TranslateUTXO | TranslateCOSMOS | TranslateTVM, initialData: any) {
         this.translate = translate;
         this.walletAddress = initialData.walletAddress;
         this.chain = initialData.chain;
