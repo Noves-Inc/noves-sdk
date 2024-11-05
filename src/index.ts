@@ -3,6 +3,8 @@ import { TranslateUTXO } from './translate/translateUTXO';
 import { TranslateSVM } from './translate/translateSVM';
 import { TranslateCOSMOS } from './translate/translateCOSMOS';
 import { TranslateTVM } from './translate/translateTVM';
+import { TranslatePOLKADOT } from './translate/translatePOLKADOT';
+
 import { PricingEVM } from './pricing/pricingEVM';
 import { PricingMove } from './pricing/pricingMove';
 import { PricingCosmos } from './pricing/pricingCosmos';
@@ -47,6 +49,13 @@ export const Translate = {
      * @returns A new TranslateTVM instance.
      */
     tvm: (apiKey: string) => new TranslateTVM(apiKey),
+
+    /**
+     * Creates a new instance of TranslatePOLKADOT for Polkadot based blockchain.
+     * @param apiKey - The API key for authentication.
+     * @returns A new TranslatePOLKADOT instance.
+     */
+    polkadot: (apiKey: string) => new TranslatePOLKADOT(apiKey),
 };
 
 /**
