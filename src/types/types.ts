@@ -151,6 +151,13 @@ export interface DescribeTransaction {
 export interface BalancesData {
     balance: string;
     token: Token;
+    usdValue: number | null;
+}
+
+export interface BalancesResponse {
+    accountAddress: string;
+    balances: BalancesData[];
+    timestamp: number;
 }
 
 /**

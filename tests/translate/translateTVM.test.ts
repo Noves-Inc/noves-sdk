@@ -19,6 +19,8 @@ describe('TranslateTVM', () => {
 
     beforeEach(() => {
         nock.cleanAll();
+        // Add a 1-second delay between test runs to avoid rate limiting
+        return new Promise(resolve => setTimeout(resolve, 1000));
     });
 
     it('should fetch chains successfully', async () => {
@@ -26,6 +28,12 @@ describe('TranslateTVM', () => {
             {
                 ecosystem: "tvm",
                 name: "tron",
+                nativeCoin: {
+                    address: "TRX",
+                    decimals: 6,
+                    name: "TRX",
+                    symbol: "TRX"
+                }
             },
         ];
 
@@ -39,7 +47,16 @@ describe('TranslateTVM', () => {
     });
 
     it('should fetch a chain successfully', async () => {
-        const mockChain = { "ecosystem": "tvm", "name": "tron" };
+        const mockChain = { 
+            "ecosystem": "tvm", 
+            "name": "tron",
+            nativeCoin: {
+                address: "TRX",
+                decimals: 6,
+                name: "TRX",
+                symbol: "TRX"
+            }
+        };
 
         nock(BASE_URL)
             .get('/tvm/chains')
@@ -51,8 +68,16 @@ describe('TranslateTVM', () => {
 
     it('should throw ChainNotFoundError when chain is not found', async () => {
         const mockChains = [
-            { ecosystem: 'tvm', name: 'tron' },
-            { ecosystem: 'tvm', name: 'troncoin' }
+            { 
+                "ecosystem": "tvm", 
+                "name": "tron",
+                "nativeCoin": {
+                    "address": "TRX",
+                    "decimals": 6,
+                    "name": "TRX",
+                    "symbol": "TRX"
+                }
+            }
         ];
 
         nock(BASE_URL)
@@ -108,21 +133,167 @@ describe('TranslateTVM', () => {
     });
 
     it('should fetch first page transactions successfully', async () => {
+        const mockChains = [
+            {
+                name: "tron",
+                nativeCoin: {
+                    symbol: "TRX",
+                    name: "Tron",
+                    decimals: 6,
+                    address: "TRX"
+                }
+            }
+        ];
+
         const mockTransactions = {
             items: [
-                { hash: '97264395BD65A255A262389F74F5D05C3BAEB7FE9F4C4F8C49B96D8D8E9BFE00' },
-                { hash: 'A8264395BD65A255A262389F74F5D05C3BAEB7FE9F4C4F8C49B96D8D8E9BFEBB' }
+                {
+                    txTypeVersion: 2,
+                    chain: "tron",
+                    accountAddress: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR",
+                    classificationData: {
+                        type: "receiveToken",
+                        source: {
+                            type: "human"
+                        },
+                        description: "Received 0.000001 TRX.",
+                        protocol: {
+                            name: null
+                        },
+                        sent: [],
+                        received: [
+                            {
+                                action: "received",
+                                from: {
+                                    name: null,
+                                    address: "TVXk9LFfNUJvtoX8tWFuVLUyPUMN1M3JVC"
+                                },
+                                to: {
+                                    name: "This wallet",
+                                    address: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR"
+                                },
+                                amount: "0.000001",
+                                token: {
+                                    symbol: "TRX",
+                                    name: "Tron",
+                                    decimals: 6,
+                                    address: "TRX"
+                                }
+                            }
+                        ]
+                    },
+                    rawTransactionData: {
+                        transactionHash: "5a07965ab7bb7c4d0856c67a0301e9c6e4ee8713dc4e82d24d8af52ae6eedb6a",
+                        fromAddress: "TVXk9LFfNUJvtoX8tWFuVLUyPUMN1M3JVC",
+                        toAddress: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR",
+                        blockNumber: 69937362,
+                        gas: 0,
+                        gasUsed: 0,
+                        gasPrice: 210,
+                        transactionFee: {
+                            amount: "0",
+                            token: {
+                                symbol: "TRX",
+                                name: "Tron",
+                                decimals: 6,
+                                address: "TRX"
+                            }
+                        },
+                        timestamp: 1740464547
+                    }
+                },
+                {
+                    txTypeVersion: 2,
+                    chain: "tron",
+                    accountAddress: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR",
+                    classificationData: {
+                        type: "sendToken",
+                        source: {
+                            type: "human"
+                        },
+                        description: "Sent 5 TRX.",
+                        protocol: {
+                            name: null
+                        },
+                        sent: [
+                            {
+                                action: "sent",
+                                from: {
+                                    name: "This wallet",
+                                    address: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR"
+                                },
+                                to: {
+                                    name: null,
+                                    address: "TS3PArVTgWb1HZahsoEprG3Fjh8t526JVC"
+                                },
+                                amount: "5",
+                                token: {
+                                    symbol: "TRX",
+                                    name: "Tron",
+                                    decimals: 6,
+                                    address: "TRX"
+                                }
+                            },
+                            {
+                                action: "paidGas",
+                                from: {
+                                    name: "This wallet",
+                                    address: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR"
+                                },
+                                to: {
+                                    name: null,
+                                    address: null
+                                },
+                                amount: "0",
+                                token: {
+                                    symbol: "TRX",
+                                    name: "Tron",
+                                    decimals: 6,
+                                    address: "TRX"
+                                }
+                            }
+                        ],
+                        received: []
+                    },
+                    rawTransactionData: {
+                        transactionHash: "8972836dbcf54474b0c9ee1dc2b1dc2cd13cc1d3a3f9c7cf1103f7174209e26f",
+                        fromAddress: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR",
+                        toAddress: "TS3PArVTgWb1HZahsoEprG3Fjh8t526JVC",
+                        blockNumber: 69937339,
+                        gas: 0,
+                        gasUsed: 0,
+                        gasPrice: 210,
+                        transactionFee: {
+                            amount: "0",
+                            token: {
+                                symbol: "TRX",
+                                name: "Tron",
+                                decimals: 6,
+                                address: "TRX"
+                            }
+                        },
+                        timestamp: 1740464478
+                    }
+                }
             ],
+            pageSize: 10,
             hasNextPage: true,
-            nextPageUrl: 'https://api.example.com/next-page'
+            nextPageUrl: "https://translate.noves.fi/tvm/tron/txs/TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR?startBlock=1&endBlock=66312567&pageSize=10&ignoreTransactions=67f73147f4aa61bb9fc3e52453c65afa1e6b8e2b48313bc8f65f66ab032b5663&viewAsAccountAddress=&sort=desc&viewAsTransactionSender=False"
         };
 
         nock(BASE_URL)
+            .get('/tvm/chains')
+            .reply(200, mockChains);
+
+        nock(BASE_URL)
             .get('/tvm/tron/txs/TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR')
-            .reply(200, { succeeded: true, response: mockTransactions });
+            .query(true)
+            .reply(200, mockTransactions);
 
         const paginator = await translate.Transactions('tron', 'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR');
-        expect(paginator.getTransactions()).toHaveLength(10)
+        const transactions = paginator.getTransactions();
+        expect(transactions[0]).toEqual(mockTransactions.items[0]);
+        expect(transactions[1]).toEqual(mockTransactions.items[1]);
     });
 
     it('should fetch first page transactions with custom paging successfully', async () => {

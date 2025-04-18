@@ -1,6 +1,6 @@
 // src/translate/translateEVM.ts
 
-import { BalancesData, Chain, DescribeTransaction, HistoryData, PageOptions, Transaction } from '../types/types';
+import { BalancesData, BalancesResponse, Chain, DescribeTransaction, HistoryData, PageOptions, Transaction } from '../types/types';
 import { createTranslateClient } from '../utils/apiUtils';
 import { TransactionsPage } from './transactionsPage';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
@@ -106,24 +106,34 @@ export class TranslateEVM {
   }
 
   /**
-   * Returns the token balances that the account adddress had as of a given block.
-   * If no block is passed, defaults to current block.
-   * The list of tokens to check is passed in the JSON payload.
+   * Returns the token balances for the account address as of a given block.
+   * If tokens array is provided, it will fetch balances for specific tokens (POST request).
+   * If tokens array is not provided, it will fetch all token balances (GET request).
    * @param {string} chain - The chain name.
    * @param {string} accountAddress - The account address.
-   * @param {string[]} tokens - The array of tokens to check.
-   * @param {number} block - The block number. OPTIONAL
-   * @returns {Promise<BalancesData[]>} A promise that resolves to the transaction details.
+   * @param {string[]} [tokens] - Optional array of token addresses to check.
+   * @param {number} [block] - Optional block number. Defaults to current block.
+   * @returns {Promise<BalancesResponse>} A promise that resolves to the balances data.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTokenBalances(chain: string, accountAddress: string, tokens: string[], block?: number): Promise<BalancesData[]> {
+  public async getTokenBalances(chain: string, accountAddress: string, tokens?: string[], block?: number): Promise<BalancesResponse> {
     try {
       const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
       let endpoint = `${validatedChain}/tokens/balancesOf/${accountAddress}`;
+      
+      // Add block parameter if provided
       if (block) {
         endpoint += `?block=${block}`;
       }
-      const result = await this.request(endpoint, "POST", { body: JSON.stringify(tokens) });
+
+      // If tokens array is provided, use POST request
+      if (tokens) {
+        const result = await this.request(endpoint, "POST", { body: JSON.stringify(tokens) });
+        return result.response;
+      }
+      
+      // If no tokens array, use GET request
+      const result = await this.request(endpoint);
       return result.response;
     } catch (error) {
       if (error instanceof Response) {

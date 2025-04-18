@@ -1,8 +1,7 @@
 import nock from 'nock';
 import { ChainNotFoundError } from '../../src/errors/ChainNotFoundError';
 import { TransactionError } from '../../src/errors/TransactionError';
-import { PageOptions } from '../../src';
-
+import { PageOptions } from '../../src/types/types';
 import { Translate } from '../../src';
 
 jest.setTimeout(10000);
@@ -18,10 +17,35 @@ describe('TranslateEVM', () => {
 
   beforeEach(() => {
     nock.cleanAll();
+    // Add a 1-second delay between test runs to avoid rate limiting
+    return new Promise(resolve => setTimeout(resolve, 1000));
   });
 
   it('should fetch chains successfully', async () => {
-    const mockChains = [{ "ecosystem": "evm", "evmChainId": 42161, "name": "arbitrum" }, { "ecosystem": "evm", "evmChainId": 42170, "name": "arbitrum-nova" }];
+    const mockChains = [
+      { 
+        "ecosystem": "evm", 
+        "evmChainId": 42161, 
+        "name": "arbitrum",
+        "nativeCoin": {
+          "address": "ETH",
+          "decimals": 18,
+          "name": "ETH",
+          "symbol": "ETH"
+        }
+      }, 
+      { 
+        "ecosystem": "evm", 
+        "evmChainId": 42170, 
+        "name": "arbitrum-nova",
+        "nativeCoin": {
+          "address": "ETH",
+          "decimals": 18,
+          "name": "ETH",
+          "symbol": "ETH"
+        }
+      }
+    ];
 
     nock(BASE_URL)
       .get('/evm/chains')
@@ -33,7 +57,17 @@ describe('TranslateEVM', () => {
   });
 
   it('should fetch a chain successfully', async () => {
-    const mockChain = { "ecosystem": "evm", "evmChainId": 1, "name": "eth" };
+    const mockChain = { 
+      "ecosystem": "evm", 
+      "evmChainId": 1, 
+      "name": "eth",
+      "nativeCoin": {
+        "address": "ETH",
+        "decimals": 18,
+        "name": "ETH",
+        "symbol": "ETH"
+      }
+    };
 
     nock(BASE_URL)
       .get('/evm/chains')
@@ -148,25 +182,111 @@ describe('TranslateEVM', () => {
     }
   });
 
-  it('should fetch token balances successfully', async () => {
-    const mockBalance = {
-      "balance": "0",
-      "token": {
-        "symbol": "WETH",
-        "name": "Wrapped Ether",
-        "decimals": 18,
-        "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
-      }
-    };
+  it('should fetch token balances successfully with specific tokens (POST)', async () => {
+    const tokens = [
+        '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+        '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72'
+    ];
+
+    const mockBalances = [
+        {
+            balance: "129.1960665220077568",
+            token: {
+                address: "0xc18360217d8f7ab5e7c516566761ea12ce7f9d72",
+                decimals: 18,
+                name: "Ethereum Name Service",
+                symbol: "ENS"
+            }
+        },
+        {
+            balance: "0",
+            token: {
+                address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                decimals: 18,
+                name: "Wrapped Ether",
+                symbol: "WETH"
+            }
+        }
+    ];
 
     nock(BASE_URL)
-      .get(`/evm/eth/tokens/balancesOf/0x9B1054d24dC31a54739B6d8950af5a7dbAa56815`)
-      .reply(200, { succeeded: true, response: mockBalance });
+        .post('/evm/eth/tokens/balancesOf/0x9B1054d24dC31a54739B6d8950af5a7dbAa56815')
+        .reply(200, { succeeded: true, response: mockBalances });
 
-    const tokens = ["0xc18360217d8f7ab5e7c516566761ea12ce7f9d72", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"]
+    const result = await translate.getTokenBalances('eth', '0x9B1054d24dC31a54739B6d8950af5a7dbAa56815', tokens);
+    
+    // Sort both arrays by token address to ensure consistent comparison
+    const sortedResult = Array.isArray(result) ? result : result.balances;
+    const sortedExpected = mockBalances.sort((a, b) => a.token.address.localeCompare(b.token.address));
+    
+    expect(sortedResult.sort((a, b) => a.token.address.localeCompare(b.token.address))).toEqual(sortedExpected);
+  });
 
-    const response = await translate.getTokenBalances('eth', '0x9B1054d24dC31a54739B6d8950af5a7dbAa56815', tokens);
-    expect(response).toHaveLength(2)
+  describe('getTokenBalances', () => {
+    const mockBalances = {
+        accountAddress: '0x9B1054d24dC31a54739B6d8950af5a7dbAa56815',
+        balances: [
+            {
+                balance: "0.000400181543331181",
+                token: {
+                    address: "0x15b7c0c907e4c6b9adaaaabc300c08991d6cea05",
+                    decimals: 18,
+                    name: "Gelato Network Token",
+                    price: "0.042912867526937931",
+                    symbol: "GEL"
+                },
+                usdValue: "0.000017172937555697"
+            }
+        ],
+        timestamp: 1744985177
+    };
+
+    it('should fetch all token balances', async () => {
+        const mockResponse = {
+            response: mockBalances
+        };
+
+        nock(BASE_URL)
+            .get('/evm/eth/tokens/balancesOf/0x9B1054d24dC31a54739B6d8950af5a7dbAa56815')
+            .reply(200, mockResponse);
+
+        const result = await translate.getTokenBalances('eth', '0x9B1054d24dC31a54739B6d8950af5a7dbAa56815');
+        
+        // Check that the response has the expected structure
+        expect(result).toHaveProperty('accountAddress');
+        expect(result).toHaveProperty('balances');
+        expect(result).toHaveProperty('timestamp');
+        
+        // Check that the GEL token balance is present
+        const gelBalance = result.balances.find(b => b.token.symbol === 'GEL');
+        expect(gelBalance).toBeDefined();
+        expect(gelBalance?.balance).toBe("0.000400181543331181");
+        expect(gelBalance?.token.name).toBe("Gelato Network Token");
+    });
+  });
+
+  it('should fetch token balances with block number successfully', async () => {
+    const mockBalances = [
+        {
+            balance: "0",
+            token: {
+                address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+                decimals: 18,
+                name: "Wrapped Ether",
+                symbol: "WETH"
+            }
+        }
+    ];
+
+    const blockNumber = 12345678;
+    const tokens = ["0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"];
+
+    nock(BASE_URL)
+      .post(`/evm/eth/tokens/balancesOf/0x9B1054d24dC31a54739B6d8950af5a7dbAa56815?block=${blockNumber}`, tokens)
+      .reply(200, { response: mockBalances });
+
+    const result = await translate.getTokenBalances('eth', '0x9B1054d24dC31a54739B6d8950af5a7dbAa56815', tokens, blockNumber);
+    expect(result).toEqual(mockBalances);
   });
 
   it('should fetch first page transactions successfully', async () => {
@@ -234,5 +354,22 @@ describe('TranslateEVM', () => {
     const paginator = await translate.History('eth', '0xA1EFa0adEcB7f5691605899d13285928AE025844');
     expect(paginator.getTransactions()).toHaveLength(100)
 
+  });
+
+  it('should handle API errors gracefully', async () => {
+    nock(BASE_URL)
+        .get('/evm/eth/tokens/balancesOf/0x9B1054d24dC31a54739B6d8950af5a7dbAa56815')
+        .reply(500, { 
+            status: 500,
+            errors: {
+                message: 'Internal server error'
+            }
+        });
+
+    try {
+        await translate.getTokenBalances('eth', '0x9B1054d24dC31a54739B6d8950af5a7dbAa56815');
+    } catch (error: any) {
+        expect(error.message).toContain('Internal server error');
+    }
   });
 });

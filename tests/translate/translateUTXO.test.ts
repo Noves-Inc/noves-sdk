@@ -23,11 +23,23 @@ describe('TranslateUTXO', () => {
     const mockChains = [
       {
         "name": "avalanche-p-chain",
-        "ecosystem": "utxo"
+        "ecosystem": "utxo",
+        "nativeCoin": {
+          "address": "AVAX",
+          "decimals": 9,
+          "name": "AVAX",
+          "symbol": "AVAX"
+        }
       },
       {
         "name": "avalanche-x-chain",
-        "ecosystem": "utxo"
+        "ecosystem": "utxo",
+        "nativeCoin": {
+          "address": "AVAX",
+          "decimals": 9,
+          "name": "AVAX",
+          "symbol": "AVAX"
+        }
       }
     ];
 

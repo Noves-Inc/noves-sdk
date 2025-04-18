@@ -20,7 +20,18 @@ describe('TranslateSVM', () => {
   });
 
   it('should fetch chains successfully', async () => {
-    const mockChains = [{ "ecosystem": "svm", "name": "solana" }];
+    const mockChains = [
+      { 
+        "ecosystem": "svm", 
+        "name": "solana",
+        "nativeCoin": {
+          "address": "SOL",
+          "decimals": 9,
+          "name": "SOL",
+          "symbol": "SOL"
+        }
+      }
+    ];
 
     nock(BASE_URL)
       .get('/svm/chains')

@@ -288,34 +288,63 @@ const txDescription = await translate.describeTransaction(
 
 ### Token Balances
 
-Query token balances for any address across multiple tokens in a single call. This is particularly useful for portfolio tracking or wallet applications.
+Query token balances for any address. You can either get all token balances or specific token balances:
 
 ```typescript
-// Define the tokens you want to check
+// Get all token balances for an address
+const allBalances = await translate.getTokenBalances(
+  "eth",
+  "0x9B1054d24dC31a54739B6d8950af5a7dbAa56815"
+);
+// Returns a BalancesResponse object with all token balances for the address
+// {
+//   accountAddress: "0x9B1054d24dC31a54739B6d8950af5a7dbAa56815",
+//   balances: [
+//     {
+//       balance: "1000000000000000000",
+//       token: {
+//         symbol: "WETH",
+//         name: "Wrapped Ether",
+//         decimals: 18,
+//         address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+//       }
+//     }
+//   ],
+//   timestamp: 1744985177
+// }
+
+// Get specific token balances
 const tokens = [
   "0xc18360217d8f7ab5e7c516566761ea12ce7f9d72", // ENS
   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // WETH
 ];
-
-// Get token balances for an address
-const balances = await translate.getTokenBalances(
+const specificBalances = await translate.getTokenBalances(
   "eth",
   "0x9B1054d24dC31a54739B6d8950af5a7dbAa56815",
   tokens
 );
-// Returns detailed balance information for each token:
+// Returns an array of balances for the specified tokens
 // [
 //   {
-//     balance: "1000000000000000000", // Raw balance
+//     balance: "1000000000000000000",
 //     token: {
 //       symbol: "WETH",
 //       name: "Wrapped Ether",
 //       decimals: 18,
 //       address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 //     }
-//   },
-//   // ... other token balances
+//   }
 // ]
+
+// Get balances at a specific block
+const historicalBalances = await translate.getTokenBalances(
+  "eth",
+  "0x9B1054d24dC31a54739B6d8950af5a7dbAa56815",
+  undefined, // Get all balances
+  12345678  // Block number
+);
+// Returns token balances as of the specified block
+// Same response format as above, depending on whether tokens are specified
 ```
 
 ### Pagination Examples
