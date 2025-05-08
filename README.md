@@ -57,9 +57,3 @@ For detailed documentation, please visit our [Documentation Site](https://docs.n
 ### Examples
 
 Check out our [examples directory](docs/examples/) for complete code samples.
-
-## 🔗 Links
-
-- [API Documentation](https://docs.noves.fi/reference/translate-api-quickstart)
-- [Getting Started Guide](https://docs.noves.fi/reference/translate-api-quickstart)
-- [Noves Platform](https://app.noves.fi)
