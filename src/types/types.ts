@@ -254,3 +254,42 @@ export interface TransactionTypes {
   subcategory?: string;
   protocol?: string;
 }
+
+/**
+ * Interface representing a Cosmos token balance
+ */
+export interface CosmosTokenBalance {
+  token: {
+    symbol: string;
+    name: string;
+    decimals: number;
+    address: string;
+  };
+  balance: string;
+}
+
+/**
+ * Interface representing a Cosmos balances response
+ */
+export interface CosmosBalancesResponse {
+  accountAddress: string;
+  balances: CosmosTokenBalance[];
+}
+
+/**
+ * Interface representing a Cosmos transaction job
+ */
+export interface CosmosTransactionJob {
+  jobId: string;
+  status: 'pending' | 'completed' | 'failed';
+  pageId?: string;
+}
+
+/**
+ * Interface representing a Cosmos transaction job response
+ */
+export interface CosmosTransactionJobResponse {
+  items: Transaction[];
+  hasNextPage: boolean;
+  nextPageUrl?: string;
+}
