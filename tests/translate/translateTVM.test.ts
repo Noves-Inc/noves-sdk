@@ -33,7 +33,8 @@ describe('TranslateTVM', () => {
                     decimals: 6,
                     name: "TRX",
                     symbol: "TRX"
-                }
+                },
+                tier: 0
             },
         ];
 
@@ -55,7 +56,8 @@ describe('TranslateTVM', () => {
                 decimals: 6,
                 name: "TRX",
                 symbol: "TRX"
-            }
+            },
+            tier: 0
         };
 
         nock(BASE_URL)

@@ -107,6 +107,7 @@ export interface Token {
     name: string;
     decimals: number;
     address: string;
+    price?: string | null;
 }
 
 export interface Nft {
@@ -151,7 +152,7 @@ export interface DescribeTransaction {
 export interface BalancesData {
     balance: string;
     token: Token;
-    usdValue: number | null;
+    usdValue: string | null;
 }
 
 export interface BalancesResponse {
@@ -241,4 +242,15 @@ export interface PoolPricing {
     price: {
         amount: string | null;
     };
+}
+
+/**
+ * Represents a transaction type definition from the API
+ */
+export interface TransactionTypes {
+  type: string;
+  description: string;
+  category: string;
+  subcategory?: string;
+  protocol?: string;
 }

@@ -29,7 +29,8 @@ describe('TranslateUTXO', () => {
           "decimals": 9,
           "name": "AVAX",
           "symbol": "AVAX"
-        }
+        },
+        "tier": 2
       },
       {
         "name": "avalanche-x-chain",
@@ -39,7 +40,8 @@ describe('TranslateUTXO', () => {
           "decimals": 9,
           "name": "AVAX",
           "symbol": "AVAX"
-        }
+        },
+        "tier": 2
       }
     ];
 

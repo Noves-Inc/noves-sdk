@@ -29,7 +29,8 @@ describe('TranslateSVM', () => {
           "decimals": 9,
           "name": "SOL",
           "symbol": "SOL"
-        }
+        },
+        "tier": 1
       }
     ];
 

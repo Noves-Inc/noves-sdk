@@ -1,6 +1,6 @@
 // src/translate/translateEVM.ts
 
-import { BalancesData, BalancesResponse, Chain, DescribeTransaction, HistoryData, PageOptions, Transaction } from '../types/types';
+import { BalancesData, BalancesResponse, Chain, DescribeTransaction, HistoryData, PageOptions, Transaction, TransactionTypes } from '../types/types';
 import { createTranslateClient } from '../utils/apiUtils';
 import { TransactionsPage } from './transactionsPage';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
@@ -113,10 +113,10 @@ export class TranslateEVM {
    * @param {string} accountAddress - The account address.
    * @param {string[]} [tokens] - Optional array of token addresses to check.
    * @param {number} [block] - Optional block number. Defaults to current block.
-   * @returns {Promise<BalancesResponse>} A promise that resolves to the balances data.
+   * @returns {Promise<BalancesData[]>} A promise that resolves to the balances data.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTokenBalances(chain: string, accountAddress: string, tokens?: string[], block?: number): Promise<BalancesResponse> {
+  public async getTokenBalances(chain: string, accountAddress: string, tokens?: string[], block?: number): Promise<BalancesData[]> {
     try {
       const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
       let endpoint = `${validatedChain}/tokens/balancesOf/${accountAddress}`;
@@ -211,5 +211,15 @@ export class TranslateEVM {
       }
       throw error;
     }
+  }
+
+  /**
+   * Returns a list of all available transaction types that can be returned by the API.
+   * This is useful for understanding what types of transactions can be classified.
+   * @returns {Promise<{transactionTypes: TransactionTypes[], version: number}>} A promise that resolves to an object containing transaction types and version.
+   */
+  public async getTxTypes(): Promise<{transactionTypes: TransactionTypes[], version: number}> {
+    const result = await this.request('txTypes');
+    return result.response;
   }
 }

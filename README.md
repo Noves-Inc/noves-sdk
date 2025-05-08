@@ -20,6 +20,7 @@ This is the **official SDK** for interacting with the [Noves API](https://docs.n
   - [Pagination Examples](#pagination-examples)
   - [Transaction History](#transaction-history)
   - [Error Handling](#error-handling)
+  - [Get Transaction Types](#get-transaction-types)
 - [API Reference](#api-reference)
 - [Support](#support)
 
@@ -425,6 +426,35 @@ try {
 }
 ```
 
+### Get Transaction Types
+
+You can get a list of available transaction types using the `getTxTypes` method:
+
+```typescript
+// Get all available transaction types
+const txTypes = await translate.getTxTypes();
+
+// Example response:
+{
+  transactionTypes: [
+    {
+      type: 'swap',
+      description: 'Swap tokens',
+      category: 'dex',
+      subcategory: 'swap',
+      protocol: 'uniswap'
+    },
+    {
+      type: 'transfer',
+      description: 'Transfer tokens',
+      category: 'token',
+      subcategory: 'transfer'
+    }
+  ],
+  version: 1
+}
+```
+
 ## API Reference
 
 ### TranslateEVM Class
@@ -440,6 +470,7 @@ The main class for interacting with EVM-compatible blockchains.
 - `getTokenBalances(chain: string, accountAddress: string, tokens: string[], block?: number)`: Returns token balances
 - `Transactions(chain: string, walletAddress: string, pageOptions?: PageOptions)`: Returns paginated transaction list
 - `History(chain: string, walletAddress: string, pageOptions?: PageOptions)`: Returns paginated transaction history
+- `getTxTypes()`: Returns a list of available transaction types
 
 ### Pagination Classes
 
