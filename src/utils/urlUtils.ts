@@ -24,7 +24,10 @@ export function constructUrl(endpoint: string, params?: PageOptions): string {
 }
 
 export function parseUrl(urlString: string): PageOptions {
-    const url = new URL(urlString);
+    // Add a base URL for relative URLs
+    const baseUrl = 'https://translate.noves.fi';
+    const fullUrl = urlString.startsWith('http') ? urlString : `${baseUrl}${urlString}`;
+    const url = new URL(fullUrl);
     const params: PageOptions = {};
 
     const keys: Array<keyof PageOptions> = [
@@ -35,11 +38,12 @@ export function parseUrl(urlString: string): PageOptions {
         'sort',
         'viewAsAccountAddress',
         'liveData',
-        'ignoreTransactions'
+        'ignoreTransactions',
+        'pageNumber'
       ];
     
       keys.forEach(key => {
-        const value = url.searchParams.get(key);
+        const value = url.searchParams.get(key === 'pageNumber' ? 'page' : key);
         if (value !== null) {
           if (key === 'sort') {
             params[key] = value as 'desc' | 'asc';

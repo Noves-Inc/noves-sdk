@@ -33,8 +33,22 @@ export class TranslateUTXO {
    * @returns {Promise<Chain[]>} A promise that resolves to an array of chains.
    */
   public async getChains(): Promise<Chain[]> {
-    const result = await this.request('chains');
-    return result.response;
+    try {
+      const result = await this.request('chains');
+      if (!result || !result.response) {
+        throw new TransactionError({ general: ['Invalid response format'] });
+      }
+      return result.response;
+    } catch (error) {
+      if (error instanceof Response) {
+        const errorResponse = await error.json();
+        if (errorResponse.status === 500) {
+          throw new TransactionError({ general: ['Internal server error occurred'] });
+        }
+        throw new TransactionError({ general: [errorResponse.error || 'Failed to fetch chains'] });
+      }
+      throw error;
+    }
   }
 
   /**
@@ -44,26 +58,44 @@ export class TranslateUTXO {
    * @throws {ChainNotFoundError} Will throw an error if the chain is not found.
    */
   public async getChain(name: string): Promise<Chain> {
-    const result = await this.request('chains');
-    const chain = result.response.find((chain: Chain) => chain.name.toLowerCase() === name.toLowerCase());
-    if (!chain) {
-      throw new ChainNotFoundError(name);
+    try {
+      const result = await this.request('chains');
+      if (!result || !result.response) {
+        throw new TransactionError({ general: ['Invalid response format'] });
+      }
+      const chain = result.response.find((chain: Chain) => chain.name.toLowerCase() === name.toLowerCase());
+      if (!chain) {
+        throw new ChainNotFoundError(name);
+      }
+      return chain;
+    } catch (error) {
+      if (error instanceof ChainNotFoundError) {
+        throw error;
+      }
+      if (error instanceof Response) {
+        const errorResponse = await error.json();
+        throw new TransactionError({ general: [errorResponse.error || 'Failed to fetch chain'] });
+      }
+      throw error;
     }
-    return chain;
   }
 
   /**
- * Get a pagination object to iterate over transactions pages.
- * @param {string} chain - The chain name.
- * @param {string} accountAddress - The account address.
- * @param {PageOptions} pageOptions - The page options object.
- * @returns {Promise<TransactionsPage<Transaction>>} A promise that resolves to a TransactionsPage instance.
- */
+   * Get a pagination object to iterate over transactions pages.
+   * @param {string} chain - The chain name.
+   * @param {string} accountAddress - The account address.
+   * @param {PageOptions} pageOptions - The page options object.
+   * @returns {Promise<TransactionsPage<Transaction>>} A promise that resolves to a TransactionsPage instance.
+   */
   public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<Transaction>> {
     try {
       const endpoint = `${chain}/txs/${accountAddress}`;
       const url = constructUrl(endpoint, pageOptions);
       const result = await this.request(url);
+
+      if (!result || !result.response || !Array.isArray(result.response.items)) {
+        throw new TransactionError({ general: ['Invalid response format'] });
+      }
 
       const initialData = {
         chain: chain,
@@ -79,6 +111,7 @@ export class TranslateUTXO {
         if (errorResponse.status === 400 && errorResponse.errors) {
           throw new TransactionError(errorResponse.errors);
         }
+        throw new TransactionError({ general: [errorResponse.error || 'Failed to fetch transactions'] });
       }
       throw error;
     }
@@ -92,7 +125,10 @@ export class TranslateUTXO {
    */
   public async getAddressesByXpub(xpub: string): Promise<String[]> {
     try {
-      const result = await this.request(`btc/txs/addresses/${xpub}`);
+      const result = await this.request(`btc/addresses/${xpub}`);
+      if (!result || !result.response || !Array.isArray(result.response)) {
+        throw new TransactionError({ general: ['Invalid response format'] });
+      }
       return result.response;
     } catch (error) {
       if (error instanceof Response) {
@@ -102,6 +138,34 @@ export class TranslateUTXO {
         } else if (errorResponse.status === 500) {
           throw new TransactionError({ general: ['Internal server error occurred'] });
         }
+        throw new TransactionError({ general: [errorResponse.error || 'Failed to fetch addresses'] });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Returns all of the available transaction information for the chain and transaction hash requested.
+   * @param {string} chain - The chain name.
+   * @param {string} txHash - The transaction hash.
+   * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async getTransaction(chain: string, txHash: string): Promise<Transaction> {
+    try {
+      const endpoint = `${chain}/tx/${txHash}`;
+      const result = await this.request(endpoint);
+      if (!result || !result.response || typeof result.response !== 'object') {
+        throw new TransactionError({ general: ['Invalid response format'] });
+      }
+      return result.response;
+    } catch (error) {
+      if (error instanceof Response) {
+        const errorResponse = await error.json();
+        if (errorResponse.status === 400 && errorResponse.errors) {
+          throw new TransactionError(errorResponse.errors);
+        }
+        throw new TransactionError({ general: [errorResponse.error || 'Failed to fetch transaction'] });
       }
       throw error;
     }

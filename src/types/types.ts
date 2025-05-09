@@ -81,6 +81,11 @@ export interface PageOptions {
      * Whether to view transactions as the sender. (Optional)
      */
     viewAsTransactionSender?: boolean;
+
+    /**
+     * The page number to retrieve. This will not work on EVM chains. (Optional)
+     */
+    page?: number;
 }
 
 export interface Transaction {

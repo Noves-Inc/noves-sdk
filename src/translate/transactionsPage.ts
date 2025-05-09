@@ -8,23 +8,23 @@ import { PageOptions } from '../types/types';
  * 
  * @class
  */
-export class TransactionsPage<T> extends Pagination<T>{
-  protected transactions: T[] = [];
+export class TransactionsPage<T> extends Pagination<T> {
+  private currentIndex: number = 0;
+  protected blockNumber?: number;
+  protected tokenAddress?: string;
 
-  /**
-   * Get the current page of transactions.
-   * @returns {T[]} The current page of transactions.
-   */
-  public getTransactions(): T[] {
-    return this.transactions || [];
-  }
-
-  /**
-   * Get the next page keys.
-   * @returns {PageOptions | null} The next page keys or null if there is no next page.
-   */
-  public getNextPageKeys(): PageOptions | null {
-    return this.nextPageKeys;
+  constructor(translate: any, initialData: { 
+    chain: string; 
+    transactions: T[]; 
+    currentPageKeys: PageOptions; 
+    nextPageKeys: PageOptions | null;
+    walletAddress?: string;
+    blockNumber?: number;
+    tokenAddress?: string;
+  }) {
+    super(translate, initialData);
+    this.blockNumber = initialData.blockNumber;
+    this.tokenAddress = initialData.tokenAddress;
   }
 
   /**
@@ -37,7 +37,17 @@ export class TransactionsPage<T> extends Pagination<T>{
     }
 
     try {
-      const response = await this.translate.Transactions(this.chain, this.walletAddress, this.nextPageKeys);
+      let response;
+      if (this.walletAddress) {
+        response = await this.translate.Transactions(this.chain, this.walletAddress, this.nextPageKeys);
+      } else if (this.blockNumber !== undefined) {
+        response = await (this.translate as any).getBlockTransactions(this.chain, this.blockNumber, this.nextPageKeys);
+      } else if (this.tokenAddress) {
+        response = await (this.translate as any).getTokenHolders(this.chain, this.tokenAddress, this.nextPageKeys);
+      } else {
+        return false;
+      }
+
       if (!response || !response.getTransactions) {
         return false;
       }
@@ -52,6 +62,7 @@ export class TransactionsPage<T> extends Pagination<T>{
       this.currentPageKeys = this.nextPageKeys;
       this.nextPageKeys = response.getNextPageKeys();
       this.pageKeys.push(this.currentPageKeys);
+      this.currentIndex = 0;
 
       return true;
     } catch (error) {
@@ -60,18 +71,28 @@ export class TransactionsPage<T> extends Pagination<T>{
   }
 
   /**
-   * Get the previous page keys.
-   * @returns {PageOptions | null} The previous page keys or null if there is no previous page.
+   * Implements the async iterator protocol.
+   * @returns {AsyncIterator<T>} An async iterator for the transactions.
    */
-  public getPreviousPageKeys(): PageOptions | null {
-    return this.previousPageKeys;
-  }
+  public async *[Symbol.asyncIterator](): AsyncIterator<T> {
+    while (true) {
+      // Yield current transaction if available
+      if (this.currentIndex < this.transactions.length) {
+        yield this.transactions[this.currentIndex++];
+        continue;
+      }
 
-  /**
-   * Get all page keys.
-   * @returns {PageOptions[]} All page keys.
-   */
-  public getPageKeys(): PageOptions[] {
-    return this.pageKeys;
+      // Try to fetch next page if available
+      if (this.nextPageKeys) {
+        const hasNext = await this.next();
+        if (!hasNext) {
+          break;
+        }
+        continue;
+      }
+
+      // No more transactions
+      break;
+    }
   }
 }
