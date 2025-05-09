@@ -43,10 +43,44 @@ export function createTranslateClient(ecosystem: string, apiKey: string) {
       },
     });
 
-    const responseData = await response.json();
+    // Handle rate limiting
+    if (response.status === 429) {
+      return {
+        succeeded: false,
+        response: { message: 'Rate limit exceeded' }
+      };
+    }
+
+    // Handle unauthorized
+    if (response.status === 401) {
+      return {
+        succeeded: false,
+        response: { message: 'Unauthorized' }
+      };
+    }
+
+    let responseData;
+    try {
+      responseData = await response.json();
+    } catch (error) {
+      // Handle empty or invalid JSON responses
+      return {
+        succeeded: false,
+        response: { message: 'Invalid response format' }
+      };
+    }
+
+    // Handle error responses
+    if (!response.ok) {
+      return {
+        succeeded: false,
+        response: responseData
+      };
+    }
+
     return {
-      succeeded: response.ok,
-      response: responseData,
+      succeeded: true,
+      response: responseData
     };
   };
 }
@@ -70,7 +104,7 @@ export function createForesightClient(apiKey: string) {
     const responseData = await response.json();
     return {
       succeeded: response.ok,
-      response: responseData,
+      response: responseData
     };
   };
 }
@@ -94,7 +128,7 @@ export function createPricingClient(ecosystem: string, apiKey: string) {
     const responseData = await response.json();
     return {
       succeeded: response.ok,
-      response: responseData,
+      response: responseData
     };
   };
 }

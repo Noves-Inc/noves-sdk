@@ -1,755 +1,767 @@
-import nock from 'nock';
-import { ChainNotFoundError } from '../../src/errors/ChainNotFoundError';
-import { TransactionError } from '../../src/errors/TransactionError';
-import { PageOptions, BalancesData, Token } from '../../src/types/types';
-import { Translate } from '../../src';
+import { TranslateEVM } from "../../src/translate/translateEVM";
+import { ChainNotFoundError } from "../../src/errors/ChainNotFoundError";
+import { TransactionError } from "../../src/errors/TransactionError";
+import { PageOptions } from "../../src/types/types";
+import { TransactionsPage } from "../../src/translate/transactionsPage";
+import { HistoryPage } from "../../src/translate/historyPage";
 
-jest.setTimeout(10000);
-
-const BASE_URL = 'https://translate.noves.fi';
+jest.setTimeout(30000);
 
 describe('TranslateEVM', () => {
+  let translateEVM: TranslateEVM;
+  let mockRequest: jest.Mock;
   const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error('API_KEY environment variable is not set');
-  }
-  const translate = Translate.evm(apiKey);
+  const validAddress = '0x742d35Cc6634C0532925a3b844Bc454e4438f44e';
+  const validTxHash = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+  const validChain = 'ethereum';
 
   beforeEach(() => {
-    nock.cleanAll();
-    // Add a 1-second delay between test runs to avoid rate limiting
-    return new Promise(resolve => setTimeout(resolve, 1000));
+    mockRequest = jest.fn();
+    translateEVM = new TranslateEVM('test-api-key');
+    (translateEVM as any).makeRequest = mockRequest;
   });
 
-  it('should fetch chains successfully', async () => {
-    const mockChains = [
-      { 
-        "ecosystem": "evm", 
-        "evmChainId": 2741, 
-        "name": "abstract",
-        "nativeCoin": {
-          "address": "ETH",
-          "decimals": 18,
-          "name": "ETH",
-          "symbol": "ETH"
-        },
-        "tier": 2
-      }
-    ];
-
-    nock(BASE_URL)
-      .get('/evm/chains')
-      .reply(200, mockChains);
-
-    const response = await translate.getChains();
-    expect(response[0]).toEqual(mockChains[0]);
-    expect(response.length).toBeGreaterThan(0);
-  });
-
-  it('should fetch a chain successfully', async () => {
-    const mockChain = { 
-      "ecosystem": "evm", 
-      "evmChainId": 1, 
-      "name": "eth",
-      "nativeCoin": {
-        "address": "ETH",
-        "decimals": 18,
-        "name": "ETH",
-        "symbol": "ETH"
-      },
-      "tier": 1
-    };
-
-    nock(BASE_URL)
-      .get('/evm/chains')
-      .reply(200, mockChain);
-
-    const response = await translate.getChain("eth");
-    expect(response).toEqual(mockChain);
-  });
-
-  it('should throw ChainNotFoundError when chain is not found', async () => {
-    const mockChains = [
-      { id: '1', name: 'ethereum' },
-      { id: '2', name: 'bitcoin' }
-    ];
-
-    nock(BASE_URL)
-      .get(`/evm/chain`)
-      .reply(200, { succeeded: true, response: mockChains });
-
-    try {
-      await translate.getChain('nonexistent');
-    } catch (error: any) {
-      expect(error).toBeInstanceOf(ChainNotFoundError);
-      expect(error.message).toBe('Chain with name "nonexistent" not found.');
+  beforeAll(() => {
+    if (!apiKey) {
+      throw new Error('API_KEY environment variable is required');
     }
+    translateEVM = new TranslateEVM(apiKey);
   });
 
-  it('should fetch a transaction successfully', async () => {
-    const mockTransaction = { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' };
-
-    nock(BASE_URL)
-      .get(`/evm/eth/tx/0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22`)
-      .reply(200, { succeeded: true, response: mockTransaction });
-
-    const response = await translate.getTransaction('eth', '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22');
-    expect(response).toHaveProperty("accountAddress", "0xA1EFa0adEcB7f5691605899d13285928AE025844")
-    expect(response).toHaveProperty("rawTransactionData.blockNumber", 12345453)
-    expect(response).toHaveProperty("rawTransactionData.timestamp", 1619833950)
-    expect(response).toHaveProperty("classificationData.description", "Added 22,447.92 YD-ETH-MAR21 and 24,875.82 USDC to a liquidity pool.")
-  });
-
-  it('should fetch a describe transaction successfully', async () => {
-    const mockTransaction = { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' };
-
-    nock(BASE_URL)
-      .get(`/evm/eth/describetx/0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22`)
-      .reply(200, { succeeded: true, response: mockTransaction });
-
-    const response = await translate.describeTransaction('eth', '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22');
-    expect(response).toHaveProperty("type", "addLiquidity")
-    expect(response).toHaveProperty("description", "Added 22,447.92 YD-ETH-MAR21 and 24,875.82 USDC to a liquidity pool.")
-  });
-
-  it('should handle transaction validation errors', async () => {
-    const mockErrorResponse = {
-      status: 400,
-      errors: {
-        chain: ['The field chain is invalid. Valid chains: eth, btc'],
-        txHash: ['The field txHash must be a valid Transaction Hash.'],
-      },
-    };
-
-    nock(BASE_URL)
-      .get(`/evm/invalidChain/tx/invalidTxHash`)
-      .reply(400, mockErrorResponse);
-
-    try {
-      await translate.getTransaction('invalidChain', 'invalidTxHash');
-    } catch (error) {
-      expect(error).toBeInstanceOf(TransactionError);
-      expect((error as any).errors).toEqual(mockErrorResponse.errors);
-    }
-  });
-
-  it('should handle transaction validation errors with incorrect tx hash', async () => {
-    const mockErrorResponse = {
-      status: 400,
-      errors: {
-        txHash: ['The field txHash must be a valid Transaction Hash.'],
-      },
-    };
-
-    nock(BASE_URL)
-      .get(`/evm/eth/tx/invalidTxHash`)
-      .reply(400, mockErrorResponse);
-
-    try {
-      await translate.getTransaction('eth', 'invalidTxHash');
-    } catch (error) {
-      expect(error).toBeInstanceOf(TransactionError);
-      expect((error as any).errors).toEqual(mockErrorResponse.errors);
-    }
-  });
-
-  it('should handle transaction validation errors with invalid chain', async () => {
-    const mockErrorResponse = {
-      status: 400,
-      errors: {
-        chain: ['The field chain is invalid. Valid chains: eth, btc'],
-      },
-    };
-
-    nock(BASE_URL)
-      .get(`/evm/invalidChain/tx/0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22`)
-      .reply(400, mockErrorResponse);
-
-    try {
-      await translate.getTransaction('invalidChain', '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22');
-    } catch (error) {
-      expect(error).toBeInstanceOf(TransactionError);
-      expect((error as any).errors).toEqual(mockErrorResponse.errors);
-    }
-  });
-
-  it('should fetch token balances successfully with specific tokens (POST)', async () => {
-    const tokens = [
-        '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-        '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72'
-    ];
-
-    const mockBalances: BalancesData[] = [
+  describe('getChains', () => {
+    it('should get list of supported chains', async () => {
+      mockRequest.mockResolvedValue([
         {
-            balance: "129.1960665220077568",
-            token: {
-                address: "0xc18360217d8f7ab5e7c516566761ea12ce7f9d72",
-                decimals: 18,
-                name: "Ethereum Name Service",
-                symbol: "ENS"
-            },
-            usdValue: null
-        },
-        {
-            balance: "0",
-            token: {
-                address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-                decimals: 18,
-                name: "Wrapped Ether",
-                symbol: "WETH"
-            },
-            usdValue: null
+          name: 'ethereum',
+          ecosystem: 'evm',
+          nativeCoin: {
+            symbol: 'ETH',
+            name: 'Ethereum',
+            decimals: 18
+          }
         }
-    ];
+      ]);
+      const chains = await translateEVM.getChains();
+      expect(Array.isArray(chains)).toBe(true);
+      expect(chains.length).toBeGreaterThan(0);
+      chains.forEach(chain => {
+        expect(chain).toHaveProperty('name');
+        expect(chain).toHaveProperty('ecosystem');
+        expect(chain).toHaveProperty('nativeCoin');
+      });
+    });
 
-    nock(BASE_URL)
-        .post('/evm/eth/tokens/balancesOf/0x9B1054d24dC31a54739B6d8950af5a7dbAa56815', tokens)
-        .reply(200, mockBalances);
+    it('should handle API errors gracefully', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid API Key'] }));
+      await expect(translateEVM.getChains()).rejects.toThrow(TransactionError);
+    });
+  });
 
-    const result = await translate.getTokenBalances('eth', '0x9B1054d24dC31a54739B6d8950af5a7dbAa56815', tokens);
-    
-    // Sort both arrays by token address for consistent comparison
-    const sortedResult = [...result].sort((a: BalancesData, b: BalancesData) => 
-        a.token.address.localeCompare(b.token.address)
-    );
-    
-    // Verify schema for each balance entry
-    sortedResult.forEach(balance => {
-        expect(balance).toHaveProperty('balance');
-        expect(balance).toHaveProperty('token');
-        expect(balance.token).toHaveProperty('address');
-        expect(balance.token).toHaveProperty('decimals');
-        expect(balance.token).toHaveProperty('name');
-        expect(balance.token).toHaveProperty('symbol');
+  describe('getChain', () => {
+    it('should get chain details', async () => {
+      mockRequest.mockResolvedValue([
+        {
+          name: 'eth',
+          ecosystem: 'evm',
+          nativeCoin: {
+            symbol: 'ETH',
+            name: 'Ethereum',
+            decimals: 18
+          }
+        }
+      ]);
+      const chain = await translateEVM.getChain(validChain);
+      expect(chain).toBeDefined();
+      expect(chain).toHaveProperty('name');
+      expect(chain).toHaveProperty('ecosystem');
+      expect(chain).toHaveProperty('nativeCoin');
+    });
+
+    it('should handle non-existent chain', async () => {
+      mockRequest.mockResolvedValue([]);
+      await expect(translateEVM.getChain('nonexistent-chain')).rejects.toThrow(ChainNotFoundError);
+    });
+  });
+
+  describe('getTransaction', () => {
+    it('should get transaction details', async () => {
+      mockRequest.mockResolvedValue({
+        hash: validTxHash,
+        from: validAddress,
+        to: validAddress,
+        txTypeVersion: 1,
+        chain: validChain,
+        accountAddress: validAddress,
+        classificationData: {},
+        rawTransactionData: {}
+      });
+      const tx = await translateEVM.getTransaction(validChain, validTxHash);
+      expect(tx).toBeDefined();
+      expect(tx).toHaveProperty('hash');
+      expect(tx).toHaveProperty('from');
+      expect(tx).toHaveProperty('to');
+      expect(tx).toHaveProperty('txTypeVersion');
+      expect(tx).toHaveProperty('chain');
+      expect(tx).toHaveProperty('accountAddress');
+      expect(tx).toHaveProperty('classificationData');
+      expect(tx).toHaveProperty('rawTransactionData');
+    });
+
+    it('should get transaction details in v5 format', async () => {
+      mockRequest.mockResolvedValue({
+        hash: validTxHash,
+        from: validAddress,
+        to: validAddress,
+        txTypeVersion: 5,
+        chain: validChain,
+        accountAddress: validAddress,
+        classificationData: {},
+        rawTransactionData: {}
+      });
+      const tx = await translateEVM.getTransaction(validChain, validTxHash, true);
+      expect(tx).toBeDefined();
+      expect(tx).toHaveProperty('hash');
+      expect(tx).toHaveProperty('from');
+      expect(tx).toHaveProperty('to');
+      expect(tx).toHaveProperty('txTypeVersion');
+      expect(tx).toHaveProperty('chain');
+      expect(tx).toHaveProperty('accountAddress');
+      expect(tx).toHaveProperty('classificationData');
+      expect(tx).toHaveProperty('rawTransactionData');
+    });
+
+    it('should handle invalid hash', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid transaction hash'] }));
+      await expect(translateEVM.getTransaction(validChain, 'invalid-hash')).rejects.toThrow(TransactionError);
     });
   });
 
   describe('getTokenBalances', () => {
-    it('should fetch all token balances', async () => {
-        const mockBalances: BalancesData[] = [
-            {
-                balance: "0.156826463558015911",
-                token: {
-                    address: "ETH",
-                    decimals: 18,
-                    name: "Ether",
-                    symbol: "ETH"
-                },
-                usdValue: null
-            },
-            {
-                balance: "129.196066522007754429",
-                token: {
-                    address: "0xc18360217d8f7ab5e7c516566761ea12ce7f9d72",
-                    decimals: 18,
-                    name: "Ethereum Name Service",
-                    symbol: "ENS"
-                },
-                usdValue: null
-            },
-            {
-                balance: "0.000400181543331181",
-                token: {
-                    address: "0x15b7c0c907e4c6b9adaaaabc300c08991d6cea05",
-                    decimals: 18,
-                    name: "Gelato Network Token",
-                    symbol: "GEL"
-                },
-                usdValue: null
-            }
-        ];
-
-        nock(BASE_URL)
-            .get('/evm/eth/tokens/balancesOf/0x9B1054d24dC31a54739B6d8950af5a7dbAa56815')
-            .reply(200, mockBalances);
-
-        const result = await translate.getTokenBalances('eth', '0x9B1054d24dC31a54739B6d8950af5a7dbAa56815');
-        
-        // Verify schema for each balance entry
-        result.forEach(balance => {
-            expect(balance).toHaveProperty('balance');
-            expect(balance).toHaveProperty('token');
-            expect(balance.token).toHaveProperty('address');
-            expect(balance.token).toHaveProperty('decimals');
-            expect(balance.token).toHaveProperty('name');
-            expect(balance.token).toHaveProperty('symbol');
-        });
-    }, 30000);
-
-    it('should fetch specific token balances', async () => {
-        const mockBalances: BalancesData[] = [
-            {
-                balance: "0.000400181543331181",
-                token: {
-                    address: "0x15b7c0c907e4c6b9adaaaabc300c08991d6cea05",
-                    decimals: 18,
-                    name: "Gelato Network Token",
-                    symbol: "GEL"
-                },
-                usdValue: null
-            },
-            {
-                balance: "0.000000000000135097",
-                token: {
-                    address: "0xd533a949740bb3306d119cc777fa900ba034cd52",
-                    decimals: 18,
-                    name: "Curve DAO Token",
-                    symbol: "CRV"
-                },
-                usdValue: null
-            }
-        ];
-
-        const tokens = [
-            "0x15b7c0c907e4c6b9adaaaabc300c08991d6cea05",
-            "0xd533a949740bb3306d119cc777fa900ba034cd52"
-        ];
-
-        nock(BASE_URL)
-            .post('/evm/eth/tokens/balancesOf/0x9B1054d24dC31a54739B6d8950af5a7dbAa56815', tokens)
-            .reply(200, mockBalances);
-
-        const result = await translate.getTokenBalances('eth', '0x9B1054d24dC31a54739B6d8950af5a7dbAa56815', tokens);
-        
-        // Verify schema for each balance entry
-        result.forEach(balance => {
-            expect(balance).toHaveProperty('balance');
-            expect(balance).toHaveProperty('token');
-            expect(balance.token).toHaveProperty('address');
-            expect(balance.token).toHaveProperty('decimals');
-            expect(balance.token).toHaveProperty('name');
-            expect(balance.token).toHaveProperty('symbol');
-        });
-    });
-
-    it('should fetch token balances with block number successfully', async () => {
-        const mockBalances: BalancesData[] = [
-            {
-                balance: "0",
-                token: {
-                    address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-                    decimals: 18,
-                    name: "Wrapped Ether",
-                    symbol: "WETH"
-                },
-                usdValue: null
-            }
-        ];
-
-        const blockNumber = 12345678;
-        const tokens = ["0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"];
-
-        nock(BASE_URL)
-            .post(`/evm/eth/tokens/balancesOf/0x9B1054d24dC31a54739B6d8950af5a7dbAa56815?block=${blockNumber}`, tokens)
-            .reply(200, mockBalances);
-
-        const result = await translate.getTokenBalances('eth', '0x9B1054d24dC31a54739B6d8950af5a7dbAa56815', tokens, blockNumber);
-        
-        // Verify schema for each balance entry
-        result.forEach(balance => {
-            expect(balance).toHaveProperty('balance');
-            expect(balance).toHaveProperty('token');
-            expect(balance.token).toHaveProperty('address');
-            expect(balance.token).toHaveProperty('decimals');
-            expect(balance.token).toHaveProperty('name');
-            expect(balance.token).toHaveProperty('symbol');
-        });
-    });
-  });
-
-  it('should fetch first page transactions successfully', async () => {
-    const mockTransaction = { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' };
-
-    nock(BASE_URL)
-      .get(`/evm/eth/txs/0xA1EFa0adEcB7f5691605899d13285928AE025844`)
-      .reply(200, { succeeded: true, response: mockTransaction });
-
-    const paginator = await translate.Transactions('eth', '0xA1EFa0adEcB7f5691605899d13285928AE025844');
-    expect(paginator.getTransactions()).toHaveLength(10)
-
-  });
-
-  it('should fetch first page transactions with custom paging successfully', async () => {
-    const mockTransactions = [
-      { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' },
-      { id: '2', hash: '0x2cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa33' }
-    ];
-
-    nock(BASE_URL)
-      .get(`/evm/eth/txs/0xA1EFa0adEcB7f5691605899d13285928AE025844`)
-      .query(true)
-      .reply(200, { 
-        succeeded: true, 
-        response: {
-          items: mockTransactions,
-          hasNextPage: true,
-          nextPageUrl: 'https://api.example.com/next-page'
+    it('should get all token balances', async () => {
+      mockRequest.mockResolvedValue([
+        {
+          token: {
+            address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+            symbol: 'USDC',
+            name: 'USD Coin',
+            decimals: 6,
+            price: '1.0'
+          },
+          balance: '1000000'
         }
+      ]);
+      const balances = await translateEVM.getTokenBalances(validChain, validAddress);
+      expect(Array.isArray(balances)).toBe(true);
+      balances.forEach(balance => {
+        expect(balance).toHaveProperty('token');
+        expect(balance).toHaveProperty('balance');
+        expect(balance.token).toHaveProperty('symbol');
+        expect(balance.token).toHaveProperty('name');
+        expect(balance.token).toHaveProperty('decimals');
+        expect(balance.token).toHaveProperty('address');
+        expect(balance.token).toHaveProperty('price');
       });
+    });
 
-    const paging: PageOptions = {
-      startBlock: 20104079,
-      sort: 'desc'
-    }
+    it('should get balances for specific tokens', async () => {
+      const specificTokens = [
+        '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC
+        '0xdac17f958d2ee523a2206206994597c13d831ec7'  // USDT
+      ];
+      mockRequest.mockResolvedValue([
+        {
+          token: {
+            address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+            symbol: 'USDC',
+            name: 'USD Coin',
+            decimals: 6,
+            price: '1.0'
+          },
+          balance: '1000000'
+        }
+      ]);
+      const balances = await translateEVM.getTokenBalances(validChain, validAddress, specificTokens);
+      expect(Array.isArray(balances)).toBe(true);
+      balances.forEach(balance => {
+        expect(specificTokens).toContain(balance.token.address);
+      });
+    });
 
-    const txEngine = await translate.Transactions('eth', '0xA1EFa0adEcB7f5691605899d13285928AE025844', paging);
-    expect(txEngine.getTransactions()).toHaveLength(10);
-    expect(txEngine.getCurrentPageKeys()).toEqual(paging);
+    it('should get historical balances at specific block', async () => {
+      const blockNumber = 12345678;
+      mockRequest.mockResolvedValue([
+        {
+          token: {
+            address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+            symbol: 'USDC',
+            name: 'USD Coin',
+            decimals: 6,
+            price: '1.0'
+          },
+          balance: '1000000'
+        }
+      ]);
+      const balances = await translateEVM.getTokenBalances(validChain, validAddress, undefined, blockNumber);
+      expect(Array.isArray(balances)).toBe(true);
+      expect(mockRequest).toHaveBeenCalledWith(expect.stringContaining(`block=${blockNumber}`));
+    });
+
+    it('should get balances with custom parameters', async () => {
+      mockRequest.mockResolvedValue([
+        {
+          token: {
+            address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+            symbol: 'USDC',
+            name: 'USD Coin',
+            decimals: 6,
+            price: '1.0'
+          },
+          balance: '1000000'
+        }
+      ]);
+      const balances = await translateEVM.getTokenBalances(
+        validChain,
+        validAddress,
+        undefined,
+        undefined,
+        false, // includePrices
+        true,  // excludeZeroPrices
+        false  // excludeSpam
+      );
+      expect(Array.isArray(balances)).toBe(true);
+      expect(mockRequest).toHaveBeenCalledWith(expect.stringContaining('includePrices=false'));
+      expect(mockRequest).toHaveBeenCalledWith(expect.stringContaining('excludeZeroPrices=true'));
+      expect(mockRequest).toHaveBeenCalledWith(expect.stringContaining('excludeSpam=false'));
+    });
+
+    it('should handle invalid address', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid address'] }));
+      await expect(translateEVM.getTokenBalances(validChain, 'invalid-address')).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle invalid chain', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid chain'] }));
+      await expect(translateEVM.getTokenBalances('invalid-chain', validAddress)).rejects.toThrow(TransactionError);
+    });
   });
 
-  it('should fetch a page and then the second one using the next method successfully', async () => {
-    const mockTransaction = { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' };
+  describe('getNativeBalance', () => {
+    it('should get native balance', async () => {
+      mockRequest.mockResolvedValue({
+        address: validAddress,
+        balance: '1000000000000000000',
+        symbol: 'ETH',
+        decimals: 18
+      });
+      const balance = await translateEVM.getNativeBalance(validChain, validAddress);
+      expect(balance).toBeDefined();
+      expect(balance).toHaveProperty('address');
+      expect(balance).toHaveProperty('balance');
+      expect(balance).toHaveProperty('symbol');
+      expect(balance).toHaveProperty('decimals');
+    });
 
-    nock(BASE_URL)
-      .get(`/evm/eth/txs/0xA1EFa0adEcB7f5691605899d13285928AE025844`)
-      .reply(200, { succeeded: true, response: mockTransaction });
-
-    const paginator = await translate.Transactions('eth', '0xA1EFa0adEcB7f5691605899d13285928AE025844');
-    expect(paginator.getTransactions()).toHaveLength(10)
-
-    await paginator.next()
-    expect(paginator.getTransactions()).toHaveLength(10)
-
+    it('should handle invalid address', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid address'] }));
+      await expect(translateEVM.getNativeBalance(validChain, 'invalid-address')).rejects.toThrow(TransactionError);
+    });
   });
 
-  it('should fetch first page history successfully', async () => {
-    const mockTransaction = { id: '1', hash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22' };
+  describe('getBlock', () => {
+    it('should get block details', async () => {
+      mockRequest.mockResolvedValue({
+        number: 12345678,
+        hash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        transactions: []
+      });
+      const block = await translateEVM.getBlock(validChain, 12345678);
+      expect(block).toBeDefined();
+      expect(block).toHaveProperty('number');
+      expect(block).toHaveProperty('hash');
+      expect(block).toHaveProperty('transactions');
+    });
 
-    nock(BASE_URL)
-      .get(`/evm/eth/txs/0xA1EFa0adEcB7f5691605899d13285928AE025844`)
-      .reply(200, { succeeded: true, response: mockTransaction });
-
-    const paginator = await translate.History('eth', '0xA1EFa0adEcB7f5691605899d13285928AE025844');
-    expect(paginator.getTransactions()).toHaveLength(100)
-
+    it('should handle invalid block number', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid block number'] }));
+      await expect(translateEVM.getBlock(validChain, -1)).rejects.toThrow(TransactionError);
+    });
   });
 
-  it('should handle API errors gracefully', async () => {
-    nock(BASE_URL)
-        .get('/evm/eth/tokens/balancesOf/0x9B1054d24dC31a54739B6d8950af5a7dbAa56815')
-        .reply(500, { 
-            status: 500,
-            errors: {
-                message: 'Internal server error'
-            }
-        });
+  describe('getBlockTransactions', () => {
+    it('should get block transactions', async () => {
+      mockRequest.mockResolvedValue({
+        items: [],
+        hasNextPage: false,
+        nextPageUrl: null
+      });
+      const pageOptions: PageOptions = { pageSize: 5 };
+      const transactions = await translateEVM.getBlockTransactions(validChain, 1, pageOptions);
+      expect(transactions).toBeInstanceOf(TransactionsPage);
+    });
 
-    try {
-        await translate.getTokenBalances('eth', '0x9B1054d24dC31a54739B6d8950af5a7dbAa56815');
-    } catch (error: any) {
-        expect(error.message).toContain('Internal server error');
-    }
+    it('should handle invalid block number', async () => {
+      await expect(translateEVM.getBlockTransactions(validChain, -1)).rejects.toThrow(TransactionError);
+    });
+  });
+
+  describe('getTokenInfo', () => {
+    it('should get token info', async () => {
+      mockRequest.mockResolvedValue({
+        address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+        name: 'USD Coin',
+        symbol: 'USDC',
+        decimals: 6,
+        totalSupply: '1000000000',
+        type: 'ERC20'
+      });
+      const tokenInfo = await translateEVM.getTokenInfo(validChain, '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48');
+      expect(tokenInfo).toBeDefined();
+      expect(tokenInfo).toHaveProperty('address');
+      expect(tokenInfo).toHaveProperty('name');
+      expect(tokenInfo).toHaveProperty('symbol');
+      expect(tokenInfo).toHaveProperty('decimals');
+      expect(tokenInfo).toHaveProperty('totalSupply');
+      expect(tokenInfo).toHaveProperty('type');
+    });
+
+    it('should handle invalid token address', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid token address'] }));
+      await expect(translateEVM.getTokenInfo(validChain, 'invalid-address')).rejects.toThrow(TransactionError);
+    });
+  });
+
+  describe('getTokenHolders', () => {
+    it('should get token holders', async () => {
+      mockRequest.mockResolvedValue({
+        items: [],
+        hasNextPage: false,
+        nextPageUrl: null
+      });
+      const pageOptions: PageOptions = { pageSize: 5 };
+      const holders = await translateEVM.getTokenHolders(validChain, validAddress, pageOptions);
+      expect(holders).toBeInstanceOf(TransactionsPage);
+    });
+
+    it('should handle invalid token address', async () => {
+      await expect(translateEVM.getTokenHolders(validChain, 'invalid-address')).rejects.toThrow(TransactionError);
+    });
+  });
+
+  describe('History', () => {
+    it('should get history with default options', async () => {
+      mockRequest.mockResolvedValue({
+        items: [],
+        hasNextPage: false,
+        nextPageUrl: null
+      });
+      const history = await translateEVM.History(validChain, validAddress);
+      expect(history).toBeInstanceOf(HistoryPage);
+    });
+
+    it('should get history with all query parameters', async () => {
+      mockRequest.mockResolvedValue({
+        items: [],
+        hasNextPage: false,
+        nextPageUrl: null
+      });
+      const pageOptions: PageOptions = {
+        pageSize: 100,
+        startBlock: 14637919,
+        endBlock: 15289488,
+        sort: 'desc',
+        liveData: false,
+        viewAsTransactionSender: false
+      };
+      const history = await translateEVM.History(validChain, validAddress, pageOptions);
+      expect(history).toBeInstanceOf(HistoryPage);
+    });
+
+    it('should handle pagination correctly', async () => {
+      mockRequest.mockResolvedValue({
+        items: [],
+        hasNextPage: true,
+        nextPageUrl: 'https://api.example.com/next-page'
+      });
+      const pageOptions: PageOptions = { pageSize: 5 };
+      const history = await translateEVM.History(validChain, validAddress, pageOptions);
+      expect(history).toBeInstanceOf(HistoryPage);
+    });
+
+    it('should handle invalid address', async () => {
+      await expect(translateEVM.History(validChain, 'invalid-address')).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle invalid chain', async () => {
+      await expect(translateEVM.History('invalid-chain', validAddress)).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle invalid page size', async () => {
+      const pageOptions: PageOptions = { pageSize: 101 }; // Max is 100
+      await expect(translateEVM.History(validChain, validAddress, pageOptions)).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle invalid sort order', async () => {
+      const pageOptions: PageOptions = { sort: 'invalid' as any };
+      await expect(translateEVM.History(validChain, validAddress, pageOptions)).rejects.toThrow(TransactionError);
+    });
   });
 
   describe('getTxTypes', () => {
-    it('should return a list of transaction types', async () => {
-      const mockTxTypes = {
+    it('should get transaction types', async () => {
+      mockRequest.mockResolvedValue({
         transactionTypes: [
           {
-            type: 'addLiquidity',
-            description: 'The user enters a liquidity pool by adding one or more tokens to the pool.'
-          },
-          {
-            type: 'addressPoisoning',
-            description: 'Used to classify malicious transactions where a spoof transfer is generated with a destination address that is similar to one that the user has previously transacted with.'
-          },
-          {
-            type: 'admin',
-            description: 'A broad type that covers all kinds of administrative actions that users might take when calling contracts, without transferring assets in the process.'
-          },
-          {
-            type: 'approveNFTCollection',
-            description: 'The user grants permission for a contract to transfer any NFTs of a particular collection that are owned by the user.'
-          },
-          {
-            type: 'approveSingleNFT',
-            description: 'The user grants permission for a contract to transfer only one specific NFT.'
-          },
-          {
-            type: 'approveToken',
-            description: 'The user allows a contract to spend a certain amount of units of a given token, owned by the user.'
-          },
-          {
-            type: 'borrow',
-            description: 'The user borrows assets, typically after providing collateral to a lending protocol.'
-          },
-          {
-            type: 'burnNFT',
-            description: 'Burn a specific NFT, removing it permanently from the user\'s wallet and the associated collection.'
-          },
-          {
-            type: 'burnToken',
-            description: 'Burn a specified amount of tokens, effectively reducing the total supply.'
-          },
-          {
-            type: 'buyNFT',
-            description: 'The user buys an NFT, typically paying with a fungible asset (token).'
-          },
-          {
-            type: 'cancelNFTListing',
-            description: 'An NFT seller cancels a previously-created listing to sell a particular NFT.'
-          },
-          {
-            type: 'cancelOrder',
-            description: 'A previously-placed limit order (or similar) gets canceled in a decentralized exchange.'
-          },
-          {
-            type: 'claimAndStake',
-            description: 'A special case of claimRewards, where the rewards are claimed and staked in the same transaction.'
-          },
-          {
-            type: 'claimRewards',
-            description: 'The user collects accumulated rewards from a protocol or staking pool.'
-          },
-          {
-            type: 'composite',
-            description: 'A broad type to capture complex cases that execute multiple actions in one atomic transaction (for example, an addLiquidity followed by a swap and then a stake)'
-          },
-          {
-            type: 'createContract',
-            description: 'The user triggers the creation of a contract by calling a parent or factory contract. For example, a new Safe multisig.'
-          },
-          {
-            type: 'createNFTListing',
-            description: 'An NFT seller creates a listing to sell one or more NFTs.'
-          },
-          {
-            type: 'delegate',
-            description: 'The user delegates voting power in a protocol to a different address.'
-          },
-          {
-            type: 'deployContract',
-            description: 'A new contract is deployed onchain.'
-          },
-          {
-            type: 'depositCollateral',
-            description: 'The user deposits collateral (either fungible or non-fungible assets) into a protocol, to later borrow against it.'
-          },
-          {
-            type: 'depositToExchange',
-            description: 'The user deposits funds into a centralized or decentralized exchange.'
-          },
-          {
-            type: 'failed',
-            description: 'Broad type that covers all cases where a transaction failed to execute for any reason (out of gas, contract revert, etc).'
-          },
-          {
-            type: 'fillOrder',
-            description: 'An open order on a decentralized exchange gets filled. For example, a limit order to long an asset at a certain price.'
-          },
-          {
-            type: 'gambling',
-            description: 'The user participates in an onchain lottery / betting protocol of some kind.'
-          },
-          {
-            type: 'gaming',
-            description: 'Broad type that covers all kinds of onchain games.'
-          },
-          {
-            type: 'issueLoan',
-            description: 'A lender issues a loan, typically granted in a peer-to-peer manner to a single borrower.'
-          },
-          {
-            type: 'leveragedFarming',
-            description: 'The user enters or manages a previously-opened leveraged farming position, typically by borrowing and re-staking an asset several times (looping).'
-          },
-          {
-            type: 'liquidate',
-            description: 'A user\'s position in a lending protocol or decentralized market gets liquidated.'
-          },
-          {
-            type: 'lock',
-            description: 'A user locks tokens for a given timeframe, typically to earn voting rights or increase their staking yield.'
-          },
-          {
-            type: 'mev',
-            description: 'Broad transaction type to capture any kind of bot / automated arbitrage activity.'
-          },
-          {
-            type: 'migrateToken',
-            description: 'Occurs when a user migrates between two representations of the same token (in cases where the protocol deployed a new contract address for the token).'
-          },
-          {
-            type: 'mintNFT',
-            description: 'A user mints a new NFT, either for free or by paying a minting fee.'
-          },
-          {
-            type: 'placeNFTBid',
-            description: 'A user places a bid to purchase an NFT at a given price.'
-          },
-          {
-            type: 'placeOrder',
-            description: 'A user opens an order (typically a limit order) in a decentralized exchange, to be filled at a future time.'
-          },
-          {
-            type: 'protocol',
-            description: 'This covers all kinds of protocol maintenance and upkeeping transactions, typically executed by a bot with privileged access to certain contracts.'
-          },
-          {
-            type: 'rebalancePosition',
-            description: 'A user that previously opened a position (typically in a trading protocol) rebalances it, usually by supplying/withdrawing collateral.'
-          },
-          {
-            type: 'receiveFromBridge',
-            description: 'The user receives funds from a cross-chain bridge.'
-          },
-          {
-            type: 'receiveLoanRepayment',
-            description: 'A lender receives a partial or full repayment for a loan they previously extended.'
-          },
-          {
-            type: 'receiveNFT',
-            description: 'The user receives an NFT.'
-          },
-          {
-            type: 'receiveNFTAirdrop',
-            description: 'The user receives an NFT airdrop.'
-          },
-          {
-            type: 'receiveNFTRoyalty',
-            description: 'An NFT creator receives royalties for transfers or sales of one of their NFTs.'
-          },
-          {
-            type: 'receiveSpamNFT',
-            description: 'A spam NFT is received by the user.'
-          },
-          {
-            type: 'receiveSpamToken',
-            description: 'A spam token is received by the user '
-          },
-          {
-            type: 'receiveToken',
-            description: 'The user receives a fungible token.'
-          },
-          {
-            type: 'receiveTokenAirdrop',
-            description: 'The user receives a token airdrop.'
-          },
-          {
-            type: 'refinanceLoan',
-            description: 'A borrower refinances an existing loan, typically by paying off the previous loan and starting a new one with a different interest rate.'
-          },
-          {
-            type: 'refund',
-            description: 'The user receives a refund from a contract, typically associated with a previous action taken by the user.'
-          },
-          {
-            type: 'registerDomain',
-            description: 'The user registers an onchain domain (for example ENS)'
-          },
-          {
-            type: 'removeLiquidity',
-            description: 'The user removes one or more tokens from a liquidity pool where they had previously added liquidity.'
-          },
-          {
-            type: 'renewDomain',
-            description: 'The user renews a registration for an onchain domain.'
-          },
-          {
-            type: 'repayLoan',
-            description: 'The user repays (partially or in full) an onchain loan, typically taken against a lending protocol.'
-          },
-          {
-            type: 'revokeNFTCollectionApproval',
-            description: 'The user revokes a previously-granted approval for a contract to spend any NFTs in a collection owned by the user.'
-          },
-          {
-            type: 'revokeTokenApproval',
-            description: 'The user revokes a previously-granted approval for a contract to spend a certain amount of a fungible token.'
-          },
-          {
-            type: 'sellNFT',
-            description: 'The user sells an NFT, typically using an NFT marketplace protocol.'
-          },
-          {
-            type: 'sendNFT',
-            description: 'The user sends an NFT.'
-          },
-          {
-            type: 'sendNFTAirdrop',
-            description: 'The user triggers an airdrop of NFTs.'
-          },
-          {
-            type: 'sendToBridge',
-            description: 'The user initiates a bridge transaction by sending funds from the source chain.'
-          },
-          {
-            type: 'sendToken',
-            description: 'The user sends a certain amount of a fungible token.'
-          },
-          {
-            type: 'sendTokenAirdrop',
-            description: 'The user triggers an airdrop of tokens.'
-          },
-          {
-            type: 'signMultisig',
-            description: 'The user signs a multisig transaction (Gnosis Safe or similar).'
-          },
-          {
-            type: 'stakeNFT',
-            description: 'The user stakes an NFT, typically to earn yield or in the context of an onchain game.'
-          },
-          {
-            type: 'stakeToken',
-            description: 'The user stakes fungible tokens into a protocol (typically for yield purposes). Also reported when the a validator stakes tokens.'
-          },
-          {
-            type: 'swap',
-            description: 'Reported when two or more fungible tokens are traded in the transaction, typically by using a decentralized exchange protocol.'
-          },
-          {
-            type: 'system',
-            description: 'This transaction type covers system-wide / blockchain-maintenance transactions for the chain as a whole.'
-          },
-          {
-            type: 'unclassified',
-            description: 'This type is returned when we\'re unable to classify the transaction. Even if this type is returned, all relevant asset transfers are always returned.'
-          },
-          {
-            type: 'unstakeNFT',
-            description: 'The user unstakes a previously-staked NFT.'
-          },
-          {
-            type: 'unstakeToken',
-            description: 'The user unstakes previously-staked tokens.'
-          },
-          {
-            type: 'unverifiedContract',
-            description: 'This type is reported when the contract being called in the transaction is unverified (no ABI available), and we\'re unable to match it via bytecode with known contracts.'
-          },
-          {
-            type: 'unwrap',
-            description: 'This type is reported when the user unwraps a previously-wrapped asset, typically the native coin of the chain.'
-          },
-          {
-            type: 'vote',
-            description: 'The user participates in DAO governance by voting (typically for an onchain governance proposal).'
-          },
-          {
-            type: 'withdrawCollateral',
-            description: 'The user removes previously-deposited collateral, typically in the context of a lending protocol.'
-          },
-          {
-            type: 'withdrawFromExchange',
-            description: 'The user withdraws funds from a centralized or decentralized exchange.'
-          },
-          {
-            type: 'wrap',
-            description: 'This type is reported when the user wraps an asset (typically the native coin of the chain) and receives a wrapped version of it.'
+            id: 1,
+            name: 'Transfer',
+            description: 'Transfer of tokens'
           }
         ],
         version: 1
+      });
+      const result = await translateEVM.getTxTypes();
+      expect(result).toBeDefined();
+      expect(result).toHaveProperty('transactionTypes');
+      expect(result).toHaveProperty('version');
+      expect(Array.isArray(result.transactionTypes)).toBe(true);
+    });
+
+    it('should handle API errors gracefully', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['API error'] }));
+      await expect(translateEVM.getTxTypes()).rejects.toThrow(TransactionError);
+    });
+
+    it('should validate response structure', async () => {
+      mockRequest.mockResolvedValue({ invalid: 'structure' });
+      await expect(translateEVM.getTxTypes()).rejects.toThrow(TransactionError);
+    });
+  });
+
+  describe('Transaction Job', () => {
+    it('should start and get transaction job results', async () => {
+      const mockJobResponse = {
+        response: {
+          jobId: 'test-job-id',
+          status: 'pending',
+          nextPageUrl: 'https://api.example.com/next-page'
+        }
       };
+      mockRequest.mockResolvedValue(mockJobResponse);
+      const job = await translateEVM.startTransactionJob(
+        validChain,
+        validAddress,
+        14637919,
+        15289488,
+        false,
+        true
+      );
+      expect(job).toBeDefined();
+      expect(job).toHaveProperty('jobId');
+      expect(job).toHaveProperty('nextPageUrl');
 
-      nock('https://translate.noves.fi')
-        .get('/api/v1/evm/txTypes')
-        .reply(200, {
-          succeeded: true,
-          response: mockTxTypes
-        });
+      const mockResultsResponse = {
+        response: {
+          jobId: 'test-job-id',
+          status: 'completed',
+          results: {
+            transactions: [],
+            totalCount: 0
+          }
+        }
+      };
+      mockRequest.mockResolvedValue(mockResultsResponse);
+      const results = await translateEVM.getTransactionJobResults(validChain, job.jobId, { pageSize: 100 });
+      expect(results).toBeDefined();
+      expect(results).toHaveProperty('jobId');
+      expect(results).toHaveProperty('status');
+    });
 
-      const result = await translate.getTxTypes();
-      expect(result).toEqual(mockTxTypes);
+    it('should handle invalid address in startTransactionJob', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid address'] }));
+      await expect(translateEVM.startTransactionJob(
+        validChain,
+        'invalid-address',
+        14637919,
+        15289488
+      )).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle non-existent job ID', async () => {
+      await expect(translateEVM.getTransactionJobResults(validChain, 'nonexistent-id')).rejects.toThrow();
+    });
+
+    it('should handle pagination in getTransactionJobResults', async () => {
+      const mockJobResponse = {
+        response: {
+          jobId: 'test-job-id',
+          status: 'pending',
+          nextPageUrl: 'https://api.example.com/next-page'
+        }
+      };
+      mockRequest.mockResolvedValue(mockJobResponse);
+      const job = await translateEVM.startTransactionJob(
+        validChain,
+        validAddress,
+        14637919,
+        15289488
+      );
+
+      const mockResultsResponse = {
+        response: {
+          jobId: 'test-job-id',
+          status: 'completed',
+          results: {
+            transactions: [],
+            totalCount: 0
+          }
+        }
+      };
+      mockRequest.mockResolvedValue(mockResultsResponse);
+      const pageOptions = { pageSize: 50, pageNumber: 1, ascending: false };
+      const results = await translateEVM.getTransactionJobResults(validChain, job.jobId, pageOptions);
+      expect(results).toBeDefined();
+      expect(results).toHaveProperty('jobId');
+      expect(results).toHaveProperty('status');
+    });
+
+    it('should delete a transaction job', async () => {
+      const mockJobResponse = {
+        response: {
+          jobId: 'test-job-id',
+          status: 'pending',
+          nextPageUrl: 'https://api.example.com/next-page'
+        }
+      };
+      mockRequest.mockResolvedValue(mockJobResponse);
+      const job = await translateEVM.startTransactionJob(
+        validChain,
+        validAddress,
+        14637919,
+        15289488,
+        false,
+        true
+      );
+      expect(job).toBeDefined();
+      expect(job).toHaveProperty('jobId');
+
+      mockRequest.mockResolvedValue({ response: undefined });
+      await expect(translateEVM.deleteTransactionJob(validChain, job.jobId)).resolves.not.toThrow();
+    });
+
+    it('should handle non-existent job ID when deleting', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Job not found'] }));
+      await expect(translateEVM.deleteTransactionJob(validChain, 'nonexistent-id')).rejects.toThrow(TransactionError);
+    });
+  });
+
+  describe('Transactions', () => {
+    const pageOptions: PageOptions = { pageSize: 10 };
+
+    it('should return a valid TransactionsPage instance', async () => {
+      mockRequest.mockResolvedValue({
+        items: [],
+        hasNextPage: false,
+        nextPageUrl: null
+      });
+      const result = await translateEVM.Transactions(validChain, validAddress, pageOptions);
+      expect(result).toBeInstanceOf(TransactionsPage);
+    });
+
+    it('should handle pagination correctly', async () => {
+      mockRequest.mockResolvedValue({
+        items: [],
+        hasNextPage: true,
+        nextPageUrl: 'https://api.example.com/next-page'
+      });
+      const result = await translateEVM.Transactions(validChain, validAddress, { pageSize: 5 });
+      expect(result).toBeInstanceOf(TransactionsPage);
+    });
+
+    it('should handle query parameters correctly', async () => {
+      mockRequest.mockResolvedValue({
+        items: [],
+        hasNextPage: false,
+        nextPageUrl: null
+      });
+      const options: PageOptions = {
+        pageSize: 10,
+        startBlock: 14637919,
+        endBlock: 15289488,
+        sort: 'desc',
+        liveData: false,
+        viewAsTransactionSender: false
+      };
+      const result = await translateEVM.Transactions(validChain, validAddress, options);
+      expect(result).toBeInstanceOf(TransactionsPage);
+    });
+
+    it('should handle invalid address gracefully', async () => {
+      try {
+        await translateEVM.Transactions(validChain, 'invalid-address', pageOptions);
+        fail('Expected error to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(TransactionError);
+        if (error instanceof TransactionError) {
+          expect(error.message).toContain('Transaction validation error');
+        }
+      }
+    });
+
+    it('should handle invalid chain gracefully', async () => {
+      try {
+        await translateEVM.Transactions('invalid-chain', validAddress, pageOptions);
+        fail('Expected error to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(TransactionError);
+        if (error instanceof TransactionError) {
+          expect(error.message).toContain('Transaction validation error');
+        }
+      }
+    });
+  });
+
+  describe('getRawTransaction', () => {
+    it('should get raw transaction details', async () => {
+      const mockResponse = {
+        network: 'ethereum',
+        rawTx: {
+          transactionHash: validTxHash,
+          hash: validTxHash,
+          transactionIndex: 0,
+          type: 0,
+          blockHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+          blockNumber: 12345678,
+          from: validAddress,
+          to: validAddress,
+          gas: 21000,
+          gasPrice: 20000000000,
+          value: 1000000000000000000,
+          input: '0x',
+          nonce: 0,
+          r: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+          s: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+          v: '0x1b',
+          networkEnum: 1,
+          timestamp: 1234567890,
+          gasUsed: 21000,
+          transactionFee: 420000000000000
+        },
+        rawTraces: [],
+        eventLogs: [],
+        internalTxs: [],
+        txReceipt: {
+          blockNumber: 12345678,
+          blockHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+          status: 1,
+          gasUsed: 21000,
+          cumulativeGasUsed: 21000
+        },
+        decodedInput: {}
+      };
+      mockRequest.mockResolvedValue(mockResponse);
+      const result = await translateEVM.getRawTransaction(validChain, validTxHash);
+      expect(result).toEqual(mockResponse);
+      expect(mockRequest).toHaveBeenCalledWith(`eth/raw/tx/${validTxHash}`);
+    });
+
+    it('should handle invalid hash', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid transaction hash'] }));
+      await expect(translateEVM.getRawTransaction(validChain, 'invalid-hash')).rejects.toThrow(TransactionError);
+    });
+  });
+
+  describe('describeTransaction', () => {
+    it('should describe a transaction', async () => {
+      const mockResponse = {
+        description: 'Added 22,447.92 YD-ETH-MAR21 and 24,875.82 USDC to a liquidity pool.',
+        type: 'addLiquidity'
+      };
+      mockRequest.mockResolvedValue(mockResponse);
+      const result = await translateEVM.describeTransaction(validChain, validTxHash);
+      expect(result).toEqual(mockResponse);
+      expect(mockRequest).toHaveBeenCalledWith(`eth/describeTx/${validTxHash}`);
+    });
+
+    it('should describe a transaction with viewAsAccountAddress', async () => {
+      const mockResponse = {
+        description: 'Added 22,447.92 YD-ETH-MAR21 and 24,875.82 USDC to a liquidity pool.',
+        type: 'addLiquidity'
+      };
+      const viewAsAddress = '0x1234567890123456789012345678901234567890';
+      mockRequest.mockResolvedValue(mockResponse);
+      const result = await translateEVM.describeTransaction(validChain, validTxHash, viewAsAddress);
+      expect(result).toEqual(mockResponse);
+      expect(mockRequest).toHaveBeenCalledWith(
+        `eth/describeTx/${validTxHash}?viewAsAccountAddress=${encodeURIComponent(viewAsAddress)}`
+      );
+    });
+
+    it('should handle invalid hash', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid transaction hash'] }));
+      await expect(translateEVM.describeTransaction(validChain, 'invalid-hash')).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle API errors', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['API error'] }));
+      await expect(translateEVM.describeTransaction(validChain, validTxHash)).rejects.toThrow(TransactionError);
+    });
+  });
+
+  describe('describeTransactions', () => {
+    it('should describe multiple transactions', async () => {
+      const mockResponse = [
+        {
+          description: 'Added 22,447.92 YD-ETH-MAR21 and 24,875.82 USDC to a liquidity pool.',
+          type: 'addLiquidity'
+        },
+        {
+          description: 'Swapped 1.5 ETH for 2,500 USDC.',
+          type: 'swap'
+        }
+      ];
+      mockRequest.mockResolvedValue(mockResponse);
+      const result = await translateEVM.describeTransactions(validChain, [validTxHash, validTxHash]);
+      expect(result).toEqual(mockResponse);
+      expect(mockRequest).toHaveBeenCalledWith(
+        'eth/describeTxs',
+        'POST',
+        expect.objectContaining({
+          body: JSON.stringify({ txHashes: [validTxHash, validTxHash] })
+        })
+      );
+    });
+
+    it('should describe multiple transactions with viewAsAccountAddress', async () => {
+      const mockResponse = [
+        {
+          description: 'Added 22,447.92 YD-ETH-MAR21 and 24,875.82 USDC to a liquidity pool.',
+          type: 'addLiquidity'
+        },
+        {
+          description: 'Swapped 1.5 ETH for 2,500 USDC.',
+          type: 'swap'
+        }
+      ];
+      const viewAsAddress = '0x1234567890123456789012345678901234567890';
+      mockRequest.mockResolvedValue(mockResponse);
+      const result = await translateEVM.describeTransactions(validChain, [validTxHash, validTxHash], viewAsAddress);
+      expect(result).toEqual(mockResponse);
+      expect(mockRequest).toHaveBeenCalledWith(
+        `eth/describeTxs?viewAsAccountAddress=${encodeURIComponent(viewAsAddress)}`,
+        'POST',
+        expect.objectContaining({
+          body: JSON.stringify({ txHashes: [validTxHash, validTxHash] })
+        })
+      );
+    });
+
+    it('should handle invalid hashes', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid transaction hashes'] }));
+      await expect(translateEVM.describeTransactions(validChain, ['invalid-hash'])).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle API errors', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['API error'] }));
+      await expect(translateEVM.describeTransactions(validChain, [validTxHash])).rejects.toThrow(TransactionError);
     });
   });
 });

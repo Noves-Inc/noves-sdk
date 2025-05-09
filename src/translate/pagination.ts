@@ -19,7 +19,7 @@ export abstract class Pagination<T> {
     protected chain: string;
     protected transactions: T[];
     protected currentPageKeys: PageOptions;
-    protected nextPageKeys: PageOptions;
+    protected nextPageKeys: PageOptions | null;
     protected previousPageKeys: PageOptions | null;
     protected pageKeys: PageOptions[];
 
@@ -27,22 +27,30 @@ export abstract class Pagination<T> {
         this.translate = translate;
         this.walletAddress = initialData.walletAddress;
         this.chain = initialData.chain;
-        this.transactions = initialData.transactions;
+        this.transactions = initialData.transactions || [];
         this.currentPageKeys = initialData.currentPageKeys;
         this.nextPageKeys = initialData.nextPageKeys;
         this.previousPageKeys = null;
         this.pageKeys = [initialData.currentPageKeys];
     }
 
+    /**
+     * Get the current page of transactions.
+     * @returns {T[]} The current page of transactions.
+     */
     public getTransactions(): T[] {
-        return this.transactions;
+        return this.transactions || [];
     }
 
     public getCurrentPageKeys(): PageOptions {
         return this.currentPageKeys;
     }
 
-    public getNextPageKeys(): PageOptions {
+    /**
+     * Get the next page keys.
+     * @returns {PageOptions | null} The next page keys or null if there is no next page.
+     */
+    public getNextPageKeys(): PageOptions | null {
         return this.nextPageKeys;
     }
 

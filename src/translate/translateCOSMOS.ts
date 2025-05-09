@@ -1,29 +1,24 @@
 import { Chain, PageOptions, Transaction, CosmosBalancesResponse, CosmosTransactionJob, CosmosTransactionJobResponse } from '../types/types';
-import { createTranslateClient } from '../utils/apiUtils';
 import { TransactionError } from '../errors/TransactionError';
 import { TransactionsPage } from './transactionsPage';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
 import { validateCosmosAddress } from '../utils/cosmosUtils';
 import { CosmosAddressError, CosmosTransactionJobError } from '../errors/CosmosError';
+import { BaseTranslate } from './baseTranslate';
 
 const ECOSYSTEM = 'cosmos';
 
 /**
  * Class representing the COSMOS translation module.
  */
-export class TranslateCOSMOS {
-  private request: ReturnType<typeof createTranslateClient>;
-
+export class TranslateCOSMOS extends BaseTranslate {
   /**
    * Create a TranslateCOSMOS instance.
    * @param {string} apiKey - The API key to authenticate requests.
    * @throws Will throw an error if the API key is not provided.
    */
   constructor(apiKey: string) {
-    if (!apiKey) {
-      throw new Error('API key is required');
-    }
-    this.request = createTranslateClient(ECOSYSTEM, apiKey);
+    super(ECOSYSTEM, apiKey);
   }
 
   /**
@@ -32,8 +27,8 @@ export class TranslateCOSMOS {
    * @returns {Promise<Chain[]>} A promise that resolves to an array of chains.
    */
   public async getChains(): Promise<Chain[]> {
-    const result = await this.request('chains');
-    return result.response;
+    const result = await this.makeRequest('chains');
+    return Array.isArray(result) ? result : [];
   }
 
   /**
@@ -45,16 +40,12 @@ export class TranslateCOSMOS {
    */
   public async getTransaction(chain: string, txHash: string): Promise<Transaction> {
     try {
-      const result = await this.request(`${chain}/tx/${txHash}`);
-      return result.response;
+      return await this.makeRequest(`${chain}/tx/${txHash}`);
     } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
+      if (error instanceof TransactionError) {
+        throw error;
       }
-      throw error;
+      throw new TransactionError({ message: [error instanceof Error ? error.message : 'Failed to get transaction'] });
     }
   }
 
@@ -69,24 +60,21 @@ export class TranslateCOSMOS {
     try {
       const endpoint = `${chain}/txs/${accountAddress}`;
       const url = constructUrl(endpoint, pageOptions);
-      const result = await this.request(url);
+      const result = await this.makeRequest(url);
 
       const initialData = {
         chain: chain,
         walletAddress: accountAddress,
-        transactions: result.response.items,
+        transactions: result.items || [],
         currentPageKeys: pageOptions,
-        nextPageKeys: result.response.hasNextPage ? parseUrl(result.response.nextPageUrl) : null,
+        nextPageKeys: result.hasNextPage ? parseUrl(result.nextPageUrl) : null,
       };
       return new TransactionsPage(this, initialData);
     } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
+      if (error instanceof TransactionError) {
+        throw error;
       }
-      throw error;
+      throw new TransactionError({ message: [error instanceof Error ? error.message : 'Failed to get transactions'] });
     }
   }
 
@@ -107,16 +95,12 @@ export class TranslateCOSMOS {
     }
 
     try {
-      const result = await this.request(`${chain}/tokens/balancesOf/${accountAddress}`);
-      return result.response;
+      return await this.makeRequest(`${chain}/tokens/balancesOf/${accountAddress}`);
     } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
+      if (error instanceof TransactionError) {
+        throw error;
       }
-      throw error;
+      throw new TransactionError({ message: [error instanceof Error ? error.message : 'Failed to get token balances'] });
     }
   }
 
@@ -124,31 +108,31 @@ export class TranslateCOSMOS {
    * Start a transaction job for an account
    * @param {string} chain - The chain name
    * @param {string} accountAddress - The account address
+   * @param {number} startBlock - The start block
+   * @param {number} endBlock - The end block
    * @returns {Promise<CosmosTransactionJob>} A promise that resolves to the job details
    * @throws {CosmosAddressError} If the account address is invalid
    * @throws {TransactionError} If there are validation errors in the request
    */
   public async startTransactionJob(
     chain: string,
-    accountAddress: string
+    accountAddress: string,
+    startBlock: number = 0,
+    endBlock: number = 0
   ): Promise<CosmosTransactionJob> {
     if (!validateCosmosAddress(accountAddress)) {
       throw new CosmosAddressError(accountAddress);
     }
 
     try {
-      const result = await this.request(`${chain}/txs/job/start`, 'POST', {
-        body: JSON.stringify({ accountAddress })
+      return await this.makeRequest(`${chain}/txs/job/start`, 'POST', {
+        body: JSON.stringify({ accountAddress, startBlock, endBlock })
       });
-      return result.response;
     } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
+      if (error instanceof TransactionError) {
+        throw error;
       }
-      throw error;
+      throw new TransactionError({ message: [error instanceof Error ? error.message : 'Failed to start transaction job'] });
     }
   }
 
@@ -165,8 +149,7 @@ export class TranslateCOSMOS {
     pageId: string
   ): Promise<CosmosTransactionJobResponse> {
     try {
-      const result = await this.request(`${chain}/txs/job/${pageId}`);
-      const response = result.response;
+      const response = await this.makeRequest(`${chain}/txs/job/${pageId}`);
 
       if (response.status === 'failed') {
         throw new CosmosTransactionJobError(pageId, response.status);
@@ -174,13 +157,13 @@ export class TranslateCOSMOS {
 
       return response;
     } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
+      if (error instanceof CosmosTransactionJobError) {
+        throw error;
       }
-      throw error;
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: [error instanceof Error ? error.message : 'Failed to get transaction job results'] });
     }
   }
 }

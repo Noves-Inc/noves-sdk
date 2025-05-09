@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2025-05-15
+
+### Added
+- Enhanced EVM Translate API coverage:
+    - New `describeTransactions` method for batch transaction description
+    - New `getBlockTransactions` method for retrieving block transactions
+    - New `getTokenHolders` method with pagination support
+    - New `startTransactionJob` and `getTransactionJobResults` methods for async transaction processing
+    - Added v5 format support for transaction retrieval
+- Improved Cosmos Translate API coverage:
+    - Added comprehensive address validation
+    - Enhanced error handling with Cosmos-specific error types
+    - New utility functions for Cosmos address validation
+
+### Changed
+- Enhanced EVM Translate API coverage:
+    - Improved `getTokenBalances` method with additional filtering options
+    - Updated transaction history pagination with new options
+    - Enhanced error handling and validation across all methods
+    - Improved documentation and type definitions
+- Updated Cosmos Translate API coverage:
+    - Improved transaction processing and validation
+    - Enhanced error handling with more specific error types
+    - Updated documentation with detailed examples
+
+### Fixed
+- Fixed address validation in Cosmos Translate API
+- Improved error handling for invalid chain names
+- Fixed pagination issues in transaction history retrieval
+
+
 ## [1.0.6] - 2025-05-08
 
 ### Added

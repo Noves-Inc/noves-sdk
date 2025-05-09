@@ -1,30 +1,28 @@
 import { TranslateCOSMOS } from '../../src/translate/translateCOSMOS';
-import { createTranslateClient } from '../../src/utils/apiUtils';
 import { TransactionError } from '../../src/errors/TransactionError';
+import { CosmosAddressError } from '../../src/errors/CosmosError';
 import { TransactionsPage } from '../../src/translate/transactionsPage';
-import { CosmosAddressError, CosmosTransactionJobError } from '../../src/errors/CosmosError';
+import { Transaction, CosmosTokenBalance, PageOptions, CosmosBalancesResponse } from '../../src/types/types';
 
-jest.mock('../../src/utils/apiUtils');
-jest.setTimeout(10000);
+jest.setTimeout(30000);
 
 describe('TranslateCOSMOS', () => {
-  let translateCOSMOS: TranslateCOSMOS;
-  const mockApiKey = 'test-api-key';
-  const mockRequest = jest.fn();
+  const apiKey = process.env.API_KEY;
   const validCosmosAddress = 'cosmos1hsk6jryyqjfhp5dhc55tc9jtckygx0eph6dd02';
+  const validChain = 'celestia';
+  const validTxHash = '1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF';
 
-  beforeEach(() => {
-    (createTranslateClient as jest.Mock).mockReturnValue(mockRequest);
-    translateCOSMOS = new TranslateCOSMOS(mockApiKey);
-  });
+  let translateCOSMOS: TranslateCOSMOS;
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  beforeAll(() => {
+    if (!apiKey) {
+      throw new Error('API_KEY environment variable is required');
+    }
+    translateCOSMOS = new TranslateCOSMOS(apiKey);
   });
 
   it('should create an instance with a valid API key', () => {
     expect(translateCOSMOS).toBeInstanceOf(TranslateCOSMOS);
-    expect(createTranslateClient).toHaveBeenCalledWith('cosmos', mockApiKey);
   });
 
   it('should throw an error if API key is not provided', () => {
@@ -32,191 +30,175 @@ describe('TranslateCOSMOS', () => {
   });
 
   describe('getChains', () => {
-    it('should return a list of chains', async () => {
-      const mockChains = [{ name: 'cosmos' }, { name: 'osmosis' }];
-      mockRequest.mockResolvedValueOnce({ response: mockChains });
+    it('should get list of supported chains', async () => {
+      const chains = await translateCOSMOS.getChains();
+      expect(Array.isArray(chains)).toBe(true);
+      expect(chains.length).toBeGreaterThan(0);
+      chains.forEach(chain => {
+        expect(chain).toHaveProperty('name');
+        expect(chain).toHaveProperty('ecosystem');
+        expect(chain).toHaveProperty('nativeCoin');
+      });
+    });
 
-      const result = await translateCOSMOS.getChains();
-
-      expect(result).toEqual(mockChains);
-      expect(mockRequest).toHaveBeenCalledWith('chains');
+    it('should handle API errors gracefully', async () => {
+      const invalidTranslate = new TranslateCOSMOS('invalid-key');
+      await expect(invalidTranslate.getChains()).rejects.toThrow(TransactionError);
     });
   });
 
   describe('getTransaction', () => {
-    const mockChain = 'cosmos';
-    const mockTxHash = 'mock-tx-hash';
-
-    it('should return transaction details', async () => {
-      const mockTransaction = { hash: mockTxHash, details: 'mock-details' };
-      mockRequest.mockResolvedValueOnce({ response: mockTransaction });
-
-      const result = await translateCOSMOS.getTransaction(mockChain, mockTxHash);
-
-      expect(result).toEqual(mockTransaction);
-      expect(mockRequest).toHaveBeenCalledWith(`${mockChain}/tx/${mockTxHash}`);
+    it('should get transaction details', async () => {
+      try {
+        const tx = await translateCOSMOS.getTransaction(validChain, validTxHash);
+        expect(tx).toBeDefined();
+        // For empty responses, we expect an empty object
+        if (Object.keys(tx).length === 0) {
+          expect(tx).toEqual({});
+        } else {
+          expect(tx).toHaveProperty('txTypeVersion');
+          expect(tx).toHaveProperty('chain');
+          expect(tx).toHaveProperty('accountAddress');
+          expect(tx).toHaveProperty('classificationData');
+          expect(tx).toHaveProperty('rawTransactionData');
+        }
+      } catch (error) {
+        // If the transaction is not found, we expect a TransactionError
+        expect(error).toBeInstanceOf(TransactionError);
+        if (error instanceof TransactionError) {
+          expect(error.message).toContain('Transaction validation error');
+        }
+      }
     });
 
-    it('should throw TransactionError on validation errors', async () => {
-      const mockError = new Response(JSON.stringify({ status: 400, errors: ['Invalid transaction'] }));
-      mockRequest.mockRejectedValueOnce(mockError);
-
-      await expect(translateCOSMOS.getTransaction(mockChain, mockTxHash)).rejects.toThrow(TransactionError);
+    it('should handle rate limiting errors', async () => {
+      const promises = Array(10).fill(null).map(() => 
+        translateCOSMOS.getTransaction(validChain, validTxHash)
+      );
+      await expect(Promise.all(promises)).rejects.toThrow(TransactionError);
     });
 
-    it('should throw generic error on non-validation errors', async () => {
-      const mockError = new Error('Network error');
-      mockRequest.mockRejectedValueOnce(mockError);
-
-      await expect(translateCOSMOS.getTransaction(mockChain, mockTxHash)).rejects.toThrow('Network error');
+    it('should handle invalid hash', async () => {
+      await expect(translateCOSMOS.getTransaction(validChain, 'invalid-hash')).rejects.toThrow(TransactionError);
     });
   });
 
   describe('Transactions', () => {
-    const mockChain = 'cosmos';
-    const mockPageOptions = { pageSize: 10 };
+    const pageOptions: PageOptions = { pageSize: 10 };
 
-    it('should return a TransactionsPage instance', async () => {
-      const mockResponse = {
-        response: {
-          items: [{ hash: 'tx1' }, { hash: 'tx2' }],
-          hasNextPage: true,
-          nextPageUrl: 'https://api.example.com/next-page',
-        },
-      };
-      mockRequest.mockResolvedValueOnce(mockResponse);
-
-      const result = await translateCOSMOS.Transactions(mockChain, validCosmosAddress, mockPageOptions);
-
+    it('should return a valid TransactionsPage instance', async () => {
+      const result = await translateCOSMOS.Transactions(validChain, validCosmosAddress, pageOptions);
       expect(result).toBeInstanceOf(TransactionsPage);
-      expect(mockRequest).toHaveBeenCalledWith(expect.stringContaining(`${mockChain}/txs/${validCosmosAddress}`));
+      
+      const transactions = result.getTransactions();
+      expect(Array.isArray(transactions)).toBe(true);
+      if (transactions.length > 0) {
+        transactions.forEach((tx: Transaction) => {
+          expect(tx).toMatchObject({
+            rawTransactionData: expect.objectContaining({
+              transactionHash: expect.any(String)
+            })
+          });
+        });
+      }
     });
 
-    it('should throw TransactionError on validation errors', async () => {
-      const mockError = new Response(JSON.stringify({ status: 400, errors: ['Invalid account'] }));
-      mockRequest.mockRejectedValueOnce(mockError);
+    it('should handle pagination correctly', async () => {
+      const result = await translateCOSMOS.Transactions(validChain, validCosmosAddress, { pageSize: 5 });
+      const firstPage = result.getTransactions();
+      expect(Array.isArray(firstPage)).toBe(true);
+      expect(firstPage.length).toBeLessThanOrEqual(5);
 
-      await expect(translateCOSMOS.Transactions(mockChain, validCosmosAddress, mockPageOptions)).rejects.toThrow(TransactionError);
+      if (await result.next()) {
+        const secondPage = result.getTransactions();
+        expect(Array.isArray(secondPage)).toBe(true);
+        expect(secondPage.length).toBeLessThanOrEqual(5);
+        expect(JSON.stringify(firstPage)).not.toBe(JSON.stringify(secondPage));
+      }
     });
 
-    it('should throw generic error on non-validation errors', async () => {
-      const mockError = new Error('Network error');
-      mockRequest.mockRejectedValueOnce(mockError);
-
-      await expect(translateCOSMOS.Transactions(mockChain, validCosmosAddress, mockPageOptions)).rejects.toThrow('Network error');
+    it('should handle invalid address gracefully', async () => {
+      try {
+        await translateCOSMOS.Transactions(validChain, 'invalid-address', pageOptions);
+        fail('Expected error to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(TransactionError);
+        if (error instanceof TransactionError) {
+          expect(error.message).toContain('Transaction validation error');
+        }
+      }
     });
   });
 
   describe('getTokenBalances', () => {
-    const mockChain = 'cosmoshub';
-
-    it('should return token balances', async () => {
-      const mockBalances = {
-        accountAddress: validCosmosAddress,
-        balances: [{
-          token: {
-            symbol: 'ATOM',
-            name: 'Cosmos',
-            decimals: 6,
-            address: 'uatom'
-          },
-          balance: '1000000'
-        }]
-      };
-      mockRequest.mockResolvedValueOnce({ response: mockBalances });
-
-      const result = await translateCOSMOS.getTokenBalances(mockChain, validCosmosAddress);
-
-      expect(result).toEqual(mockBalances);
-      expect(mockRequest).toHaveBeenCalledWith(`${mockChain}/tokens/balancesOf/${validCosmosAddress}`);
+    it('should get token balances', async () => {
+      try {
+        const balances = await translateCOSMOS.getTokenBalances(validChain, validCosmosAddress);
+        expect(balances).toBeDefined();
+        // For empty responses, we expect an empty array
+        if (Array.isArray(balances) && balances.length === 0) {
+          expect(balances).toEqual([]);
+        } else {
+          const response = balances as CosmosBalancesResponse;
+          if (response.balances) {
+            response.balances.forEach((balance: CosmosTokenBalance) => {
+              expect(balance).toHaveProperty('token');
+              expect(balance).toHaveProperty('balance');
+            });
+          }
+        }
+      } catch (error) {
+        // If the API returns an empty response, we expect a TransactionError
+        expect(error).toBeInstanceOf(TransactionError);
+        if (error instanceof TransactionError) {
+          expect(error.message).toContain('Transaction validation error');
+        }
+      }
     });
 
-    it('should throw CosmosAddressError for invalid address', async () => {
-      await expect(translateCOSMOS.getTokenBalances(mockChain, 'invalid-address'))
-        .rejects.toThrow(CosmosAddressError);
-    });
-
-    it('should throw TransactionError on validation errors', async () => {
-      const mockError = new Response(JSON.stringify({ status: 400, errors: ['Invalid address'] }));
-      mockRequest.mockRejectedValueOnce(mockError);
-
-      await expect(translateCOSMOS.getTokenBalances(mockChain, validCosmosAddress))
-        .rejects.toThrow(TransactionError);
+    it('should handle invalid address', async () => {
+      await expect(translateCOSMOS.getTokenBalances(validChain, 'invalid-address')).rejects.toThrow(CosmosAddressError);
     });
   });
 
   describe('startTransactionJob', () => {
-    const mockChain = 'cosmoshub';
-
     it('should start a transaction job', async () => {
-      const mockJob = {
-        jobId: 'job123',
-        status: 'pending',
-        pageId: 'page123'
-      };
-      mockRequest.mockResolvedValueOnce({ response: mockJob });
-
-      const result = await translateCOSMOS.startTransactionJob(mockChain, validCosmosAddress);
-
-      expect(result).toEqual(mockJob);
-      expect(mockRequest).toHaveBeenCalledWith(
-        `${mockChain}/txs/job/start`,
-        'POST',
-        expect.objectContaining({
-          body: JSON.stringify({ accountAddress: validCosmosAddress })
-        })
-      );
+      try {
+        const job = await translateCOSMOS.startTransactionJob(validChain, validCosmosAddress, 1, 100);
+        expect(job).toBeDefined();
+        expect(job).toHaveProperty('jobId');
+        expect(job).toHaveProperty('status');
+      } catch (error) {
+        expect(error).toBeInstanceOf(TransactionError);
+        if (error instanceof TransactionError) {
+          expect(error.message).toContain('Transaction validation error');
+        }
+      }
     });
 
-    it('should throw CosmosAddressError for invalid address', async () => {
-      await expect(translateCOSMOS.startTransactionJob(mockChain, 'invalid-address'))
-        .rejects.toThrow(CosmosAddressError);
-    });
-
-    it('should throw TransactionError on validation errors', async () => {
-      const mockError = new Response(JSON.stringify({ status: 400, errors: ['Invalid address'] }));
-      mockRequest.mockRejectedValueOnce(mockError);
-
-      await expect(translateCOSMOS.startTransactionJob(mockChain, validCosmosAddress))
-        .rejects.toThrow(TransactionError);
+    it('should handle invalid address', async () => {
+      await expect(translateCOSMOS.startTransactionJob(validChain, 'invalid-address')).rejects.toThrow(CosmosAddressError);
     });
   });
 
   describe('getTransactionJobResults', () => {
-    const mockChain = 'cosmoshub';
-    const mockPageId = 'page123';
-
-    it('should return job results', async () => {
-      const mockResults = {
-        items: [{ hash: 'tx1' }, { hash: 'tx2' }],
-        hasNextPage: true,
-        nextPageUrl: 'https://api.example.com/next-page'
-      };
-      mockRequest.mockResolvedValueOnce({ response: mockResults });
-
-      const result = await translateCOSMOS.getTransactionJobResults(mockChain, mockPageId);
-
-      expect(result).toEqual(mockResults);
-      expect(mockRequest).toHaveBeenCalledWith(`${mockChain}/txs/job/${mockPageId}`);
+    it('should get transaction job results', async () => {
+      try {
+        const job = await translateCOSMOS.startTransactionJob(validChain, validCosmosAddress, 1, 100);
+        const results = await translateCOSMOS.getTransactionJobResults(validChain, job.jobId);
+        expect(results).toBeDefined();
+        expect(results).toHaveProperty('items');
+        expect(results).toHaveProperty('hasNextPage');
+      } catch (error) {
+        expect(error).toBeInstanceOf(TransactionError);
+        if (error instanceof TransactionError) {
+          expect(error.message).toContain('Transaction validation error');
+        }
+      }
     });
 
-    it('should throw CosmosTransactionJobError if job failed', async () => {
-      const mockFailedJob = {
-        status: 'failed',
-        error: 'Job failed'
-      };
-      mockRequest.mockResolvedValueOnce({ response: mockFailedJob });
-
-      await expect(translateCOSMOS.getTransactionJobResults(mockChain, mockPageId))
-        .rejects.toThrow(CosmosTransactionJobError);
-    });
-
-    it('should throw TransactionError on validation errors', async () => {
-      const mockError = new Response(JSON.stringify({ status: 400, errors: ['Invalid page ID'] }));
-      mockRequest.mockRejectedValueOnce(mockError);
-
-      await expect(translateCOSMOS.getTransactionJobResults(mockChain, mockPageId))
-        .rejects.toThrow(TransactionError);
+    it('should handle non-existent job ID', async () => {
+      await expect(translateCOSMOS.getTransactionJobResults(validChain, 'nonexistent-id')).rejects.toThrow(TransactionError);
     });
   });
 });

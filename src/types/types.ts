@@ -76,6 +76,11 @@ export interface PageOptions {
      * EVM max size is 50. SVM and UTXO is 100.
      */
     pageSize?: number;
+
+    /**
+     * Whether to view transactions as the sender. (Optional)
+     */
+    viewAsTransactionSender?: boolean;
 }
 
 export interface Transaction {
@@ -88,9 +93,49 @@ export interface Transaction {
 
 export interface ClassificationData {
     type: string;
+    source: {
+        type: string;
+    };
     description: string;
-    sent: SentReceived[];
-    received: SentReceived[];
+    protocol: {
+        name: string | null;
+    };
+    sent: Array<{
+        action: string;
+        from: {
+            name: string | null;
+            address: string;
+        };
+        to: {
+            name: string | null;
+            address: string;
+        };
+        amount: string;
+        token: {
+            symbol: string;
+            name: string;
+            decimals: number;
+            address: string;
+        };
+    }>;
+    received: Array<{
+        action: string;
+        from: {
+            name: string | null;
+            address: string;
+        };
+        to: {
+            name: string | null;
+            address: string;
+        };
+        amount: string;
+        token: {
+            symbol: string;
+            name: string;
+            decimals: number;
+            address: string;
+        };
+    }>;
 }
 
 export interface SentReceived {
@@ -140,7 +185,7 @@ export interface RawTransactionData {
 
 export interface HistoryData {
     transactionHash: string;
-    blockNumber: number;
+    blockNumber: string;
     timestamp: number;
 }
 
@@ -152,7 +197,6 @@ export interface DescribeTransaction {
 export interface BalancesData {
     balance: string;
     token: Token;
-    usdValue: string | null;
 }
 
 export interface BalancesResponse {
@@ -250,9 +294,6 @@ export interface PoolPricing {
 export interface TransactionTypes {
   type: string;
   description: string;
-  category: string;
-  subcategory?: string;
-  protocol?: string;
 }
 
 /**
@@ -292,4 +333,44 @@ export interface CosmosTransactionJobResponse {
   items: Transaction[];
   hasNextPage: boolean;
   nextPageUrl?: string;
+}
+
+/**
+ * Represents a transaction job in the EVM ecosystem.
+ */
+export interface EVMTransactionJob {
+  jobId: string;
+  nextPageUrl: string;
+}
+
+/**
+ * Represents a transaction job response in the EVM ecosystem.
+ */
+export interface EVMTransactionJobResponse {
+  jobId: string;
+  status: 'pending' | 'completed' | 'failed';
+  results?: {
+    transactions: Transaction[];
+    totalCount: number;
+  };
+  error?: string;
+}
+
+export interface TokenHolder {
+  address: string;
+  balance: string;
+  share: number;
+}
+
+/**
+ * Represents a token transfer in the EVM ecosystem.
+ */
+export interface TokenTransfer {
+  token: Token;
+  from: string;
+  to: string;
+  value: string;
+  transactionHash: string;
+  blockNumber: number;
+  blockTimestamp: number;
 }
