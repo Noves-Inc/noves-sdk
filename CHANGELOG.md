@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.9] - 2025-05-09
+
+### Added
+- Enhanced SVM Translate API coverage:
+    - New `getTokenBalances` method for retrieving token balances with price options
+    - New `getTransactionCount` method for account transaction counting
+    - New `getStakingTransactions` method with pagination support
+    - New `getStakingEpoch` method for detailed staking information
+    - New documentation file for SVM API
+    - New examples directory with SVM usage examples
+
+### Changed
+- Enhanced SVM Translate API coverage:
+    - Improved error handling with more specific error messages
+    - Enhanced transaction processing with better type safety
+    - Updated token balance retrieval with price filtering options
+    - Improved URL utilities for better pagination handling
+    - Enhanced test coverage with comprehensive test cases
+- Updated SVM Translate API implementation:
+    - Added async iterator protocol for better transaction iteration
+    - Improved type safety and validation in API responses
+    - Enhanced error handling for invalid response formats
+
+### Fixed
+- Fixed token balance validation in SVM Translate API
+- Improved error handling for API responses
+- Fixed address validation in SVM Translate API
+
 ## [1.0.8] - 2025-05-09
 
 ### Added

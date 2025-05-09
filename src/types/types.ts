@@ -86,6 +86,16 @@ export interface PageOptions {
      * The page number to retrieve. This will not work on EVM chains. (Optional)
      */
     page?: number;
+
+    /**
+     * Whether to include token prices in the response. (Optional)
+     */
+    includePrices?: boolean;
+
+    /**
+     * Whether to exclude tokens with zero prices. (Optional)
+     */
+    excludeZeroPrices?: boolean;
 }
 
 export interface Transaction {
@@ -361,6 +371,13 @@ export interface EVMTransactionJobResponse {
   error?: string;
 }
 
+/**
+ * Represents a response from deleting a transaction job.
+ */
+export interface DeleteTransactionJobResponse {
+  message: string;
+}
+
 export interface TokenHolder {
   address: string;
   balance: string;
@@ -378,4 +395,152 @@ export interface TokenTransfer {
   transactionHash: string;
   blockNumber: number;
   blockTimestamp: number;
+}
+
+/**
+ * Interface representing a SVM token balance
+ */
+export interface SVMTokenBalance {
+  balance: string;
+  usdValue: string;
+  token: {
+    symbol: string;
+    name: string;
+    decimals: number;
+    address: string;
+    price: string;
+  };
+}
+
+/**
+ * Interface representing the transaction count response
+ */
+export interface TransactionCountResponse {
+  chain: string;
+  timestamp: number;
+  account: {
+    address: string;
+    transactionCount: number;
+  };
+}
+
+/**
+ * Interface representing SVM staking transactions response
+ */
+export interface SVMStakingTransactionsResponse {
+  items: Array<{
+    txTypeVersion: number;
+    source: {
+      type: string | null;
+      name: string | null;
+    };
+    timestamp: number;
+    classificationData: {
+      description: string;
+      type: string;
+    };
+    transfers: Array<{
+      action: string;
+      amount: string;
+      token: {
+        decimals: number;
+        address: string;
+        name: string;
+        symbol: string;
+        icon: string | null;
+      };
+      from: {
+        name: string | null;
+        address: string | null;
+        owner: {
+          name: string | null;
+          address: string | null;
+        };
+      };
+      to: {
+        name: string | null;
+        address: string | null;
+        owner: {
+          name: string | null;
+          address: string | null;
+        };
+      };
+    }>;
+    values: Array<{
+      key: string;
+      value: string;
+    }>;
+    rawTransactionData: {
+      signature: string;
+      blockNumber: number;
+      signer: string;
+      interactedAccounts: string[] | null;
+    };
+  }>;
+  numberOfEpochs: number;
+  failedEpochs: string[];
+  nextPageUrl: string | null;
+}
+
+/**
+ * Interface representing SVM staking epoch response
+ */
+export interface SVMStakingEpochResponse {
+  epoch: number;
+  stakingAccount: string;
+  stakedAmount: string;
+  rewards: string;
+  startTimestamp: number;
+  endTimestamp: number;
+  status: 'active' | 'completed';
+  validator: {
+    address: string;
+    name: string | null;
+  };
+}
+
+export interface SolanaTransaction {
+  txTypeVersion: number;
+  source: {
+    type: string | null;
+    name: string | null;
+  };
+  timestamp: number;
+  classificationData: {
+    type: string;
+    description: string | null;
+  };
+  transfers: Array<{
+    action: string;
+    amount: string;
+    token: {
+      decimals: number;
+      address: string;
+      name: string;
+      symbol: string;
+      icon: string | null;
+    };
+    from: {
+      name: string | null;
+      address: string;
+      owner: {
+        name: string | null;
+        address: string | null;
+      };
+    };
+    to: {
+      name: string | null;
+      address: string | null;
+      owner: {
+        name: string | null;
+        address: string | null;
+      };
+    };
+  }>;
+  rawTransactionData: {
+    signature: string;
+    blockNumber: number;
+    signer: string;
+    interactedAccounts: string[];
+  };
 }

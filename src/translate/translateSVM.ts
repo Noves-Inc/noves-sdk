@@ -1,18 +1,106 @@
 // src/translate/translateSVM.ts
 
-import { Chain, PageOptions, Transaction } from '../types/types';
+import { Chain, PageOptions, TransactionTypes, EVMTransactionJob, EVMTransactionJobResponse, DeleteTransactionJobResponse, SVMTokenBalance, TransactionCountResponse, SVMStakingTransactionsResponse, SVMStakingEpochResponse } from '../types/types';
 import { createTranslateClient } from '../utils/apiUtils';
-import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
 import { TransactionsPage } from './transactionsPage';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
+import { BaseTranslate } from './baseTranslate';
 
 const ECOSYSTEM = 'svm';
 
 /**
+ * Interface representing a token in a transfer
+ */
+interface Token {
+  decimals: number;
+  address: string;
+  name: string;
+  symbol: string;
+  icon: string | null;
+}
+
+/**
+ * Interface representing a transaction description
+ */
+interface DescribeTransaction {
+  signature: string;
+  type: string;
+  description: string;
+  timestamp: number;
+  transfers: Transfer[];
+}
+
+/**
+ * Interface representing an account in a transfer
+ */
+interface Account {
+  name: string | null;
+  address: string | null;
+  owner: {
+    name: string | null;
+    address: string | null;
+  };
+}
+
+/**
+ * Interface representing a transfer in a transaction
+ */
+interface Transfer {
+  action: string;
+  amount: string;
+  token: Token;
+  from: Account;
+  to: Account;
+}
+
+/**
+ * Interface representing the raw transaction data
+ */
+interface RawTransactionData {
+  signature: string;
+  blockNumber: number;
+  signer: string;
+  interactedAccounts: string[];
+}
+
+/**
+ * Interface representing the source of the transaction
+ */
+interface Source {
+  type: string;
+  name: string;
+}
+
+/**
+ * Interface representing a Solana transaction response
+ */
+export interface SolanaTransaction {
+  txTypeVersion: number;
+  source: Source;
+  timestamp: number;
+  classificationData: {
+    type: string;
+    description: string | null;
+  };
+  transfers: Transfer[];
+  rawTransactionData: RawTransactionData;
+}
+
+/**
+ * Interface representing SPL accounts response
+ */
+interface SPLAccounts {
+  accountPubkey: string;
+  tokenAccounts: Array<{
+    pubKey: string;
+  }>;
+}
+
+/**
  * Class representing the SVM translation module.
  */
-export class TranslateSVM {
+export class TranslateSVM extends BaseTranslate {
   private request: ReturnType<typeof createTranslateClient>;
 
   /**
@@ -21,6 +109,7 @@ export class TranslateSVM {
    * @throws Will throw an error if the API key is not provided.
    */
   constructor(apiKey: string) {
+    super(ECOSYSTEM, apiKey);
     if (!apiKey) {
       throw new Error('API key is required');
     }
@@ -33,29 +122,36 @@ export class TranslateSVM {
    * @returns {Promise<Chain[]>} A promise that resolves to an array of chains.
    */
   public async getChains(): Promise<Chain[]> {
-    const result = await this.request('chains');
-    return result.response;
+    const result = await this.makeRequest('chains');
+    return result;
   }
 
   /**
-  * Returns all of the available transaction information for the signature requested.
-  * @param {string} chain - The chain name. Defaults to solana.
-  * @param {string} signature - The signature.
-  * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
-  * @throws {TransactionError} If there are validation errors in the request.
-  */
-  public async getTransaction(chain: string = 'solana', signature: string): Promise<Transaction> {
+   * Returns all of the available transaction information for the signature requested.
+   * @param {string} chain - The chain name. Defaults to solana.
+   * @param {string} signature - The transaction signature.
+   * @returns {Promise<SolanaTransaction>} A promise that resolves to the transaction details.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async getTransaction(chain: string = 'solana', signature: string): Promise<SolanaTransaction> {
     try {
-      const result = await this.request(`${chain}/tx/${signature}`);
-      return result.response;
-    } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
+      const result = await this.makeRequest(`${chain}/tx/v5/${signature}`);
+      if (!this.validateResponse(result, [
+        'txTypeVersion',
+        'source',
+        'timestamp',
+        'classificationData',
+        'transfers',
+        'rawTransactionData'
+      ])) {
+        throw new TransactionError({ message: ['Invalid response format'] });
       }
-      throw error;
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to get transaction'] });
     }
   }
 
@@ -64,54 +160,277 @@ export class TranslateSVM {
    * @param {string} chain - The chain name.
    * @param {string} accountAddress - The account address.
    * @param {PageOptions} pageOptions - The page options object.
-   * @returns {Promise<TransactionsPage<Transaction>>} A promise that resolves to a TransactionsPage instance.
+   * @returns {Promise<TransactionsPage<SolanaTransaction>>} A promise that resolves to a TransactionsPage instance.
    */
-  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<Transaction>> {
+  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<SolanaTransaction>> {
     try {
-      const endpoint = `${chain}/txs/${accountAddress}`;
+      const endpoint = `${chain}/txs/v5/${accountAddress}`;
       const url = constructUrl(endpoint, pageOptions);
-      const result = await this.request(url);
+      const result = await this.makeRequest(url);
 
       const initialData = {
         chain: chain,
         walletAddress: accountAddress,
-        transactions: result.response.items,
+        transactions: result.items,
         currentPageKeys: pageOptions,
-        nextPageKeys: result.response.hasNextPage ? parseUrl(result.response.nextPageUrl) : null,
+        nextPageKeys: result.nextPageUrl ? parseUrl(result.nextPageUrl) : null,
       };
       return new TransactionsPage(this, initialData);
     } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
+      if (error instanceof TransactionError) {
+        throw error;
       }
-      throw error;
+      throw new TransactionError({ message: ['Failed to get transactions'] });
     }
   }
 
   /**
-  * Returns a list of the available SPL token account addresses for the chain and wallet requested.
-  * @param {string} accountAddress - The account address.
-  * @param {string} chain - The chain name. Defaults to solana.
-  * @param {number} pageNumber - The page number. Defaults to 1.
-  * @param {number} pageSize - The page size. Defaults to 100.
-  * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
-  * @throws {TransactionError} If there are validation errors in the request.
-  */
-  public async getSplTokens(accountAddress: string, chain: string = 'solana', pageNumber: number = 1, pageSize: number = 100): Promise<Transaction> {
+   * Returns a list of the available SPL token account addresses for the chain and wallet requested.
+   * @param {string} accountAddress - The account address.
+   * @param {string} chain - The chain name. Defaults to solana.
+   * @returns {Promise<SPLAccounts>} A promise that resolves to the SPL accounts data.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async getSplTokens(accountAddress: string, chain: string = 'solana'): Promise<SPLAccounts> {
     try {
-      const result = await this.request(`${chain}/splAccounts/${accountAddress}`);
-      return result.response;
-    } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
+      const result = await this.makeRequest(`${chain}/splAccounts/${accountAddress}`);
+      if (!this.validateResponse(result, ['accountPubkey', 'tokenAccounts'])) {
+        throw new TransactionError({ message: ['Invalid response format'] });
       }
-      throw error;
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to get SPL tokens'] });
+    }
+  }
+
+  /**
+   * Returns a list of all available transaction types that can be returned by the API.
+   * This is useful for understanding what types of transactions can be classified.
+   * @returns {Promise<{transactionTypes: TransactionTypes[], version: number}>} A promise that resolves to an object containing transaction types and version.
+   */
+  public async getTxTypes(): Promise<{transactionTypes: TransactionTypes[], version: number}> {
+    try {
+      const result = await this.makeRequest('txTypes');
+      if (!this.validateResponse(result, ['transactionTypes', 'version'])) {
+        throw new TransactionError({ message: ['Invalid response format'] });
+      }
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to get transaction types'] });
+    }
+  }
+
+  /**
+   * For a list of transactions, returns their descriptions and types.
+   * Useful in cases where you need to describe multiple transactions at once.
+   * @param {string} chain - The chain name.
+   * @param {string[]} signatures - Array of transaction signatures.
+   * @param {string} viewAsAccountAddress - OPTIONAL - Results are returned with the view/perspective of this wallet address.
+   * @returns {Promise<DescribeTransaction[]>} A promise that resolves to an array of transaction descriptions.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async describeTransactions(chain: string, signatures: string[], viewAsAccountAddress?: string): Promise<DescribeTransaction[]> {
+    try {
+      const validatedChain = chain.toLowerCase();
+      let endpoint = `${validatedChain}/describeTxs`;
+      if (viewAsAccountAddress) {
+        endpoint += `?viewAsAccountAddress=${viewAsAccountAddress}`;
+      }
+      const result = await this.makeRequest(endpoint, 'POST', {
+        body: JSON.stringify({ signatures })
+      });
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to describe transactions'] });
+    }
+  }
+
+  /**
+   * Start a transaction job for the given chain and account address.
+   * @param {string} chain - The chain name.
+   * @param {string} accountAddress - The account address.
+   * @param {number} startTimestamp - The start timestamp.
+   * @param {boolean} validateStartTimestamp - Whether to validate the start timestamp.
+   * @returns {Promise<EVMTransactionJob>} A promise that resolves to the transaction job.
+   */
+  public async startTransactionJob(
+    chain: string,
+    accountAddress: string,
+    startTimestamp: number = 0,
+    validateStartTimestamp: boolean = true
+  ): Promise<EVMTransactionJob> {
+    try {
+      const endpoint = `${chain}/txJob`;
+      const result = await this.makeRequest(endpoint, 'POST', {
+        body: JSON.stringify({
+          accountAddress,
+          startTimestamp,
+          validateStartTimestamp
+        })
+      });
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to start transaction job'] });
+    }
+  }
+
+  /**
+   * Get the results of a transaction job.
+   * @param {string} chain - The chain name.
+   * @param {string} jobId - The job ID from the transaction job.
+   * @param {PageOptions} pageOptions - The page options object.
+   * @returns {Promise<EVMTransactionJobResponse>} A promise that resolves to the transaction job results.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async getTransactionJobResults(
+    chain: string,
+    jobId: string,
+    pageOptions: PageOptions = {}
+  ): Promise<EVMTransactionJobResponse> {
+    try {
+      const endpoint = `${chain}/txJob/${jobId}`;
+      const url = constructUrl(endpoint, pageOptions);
+      const result = await this.makeRequest(url);
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to get transaction job results'] });
+    }
+  }
+
+  /**
+   * Delete a transaction job.
+   * @param {string} chain - The chain name.
+   * @param {string} jobId - The job ID to delete.
+   * @returns {Promise<DeleteTransactionJobResponse>} A promise that resolves to the deletion confirmation message.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async deleteTransactionJob(
+    chain: string,
+    jobId: string
+  ): Promise<DeleteTransactionJobResponse> {
+    try {
+      const endpoint = `${chain}/txJob/${jobId}`;
+      const result = await this.makeRequest(endpoint, 'DELETE');
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to delete transaction job'] });
+    }
+  }
+
+  /**
+   * Get token balances for an account address.
+   * @param {string} chain - The chain name.
+   * @param {string} accountAddress - The account address.
+   * @param {boolean} [includePrices=true] - Optional. Whether to include token prices in the response.
+   * @param {boolean} [excludeZeroPrices=false] - Optional. Whether to exclude tokens with zero price.
+   * @returns {Promise<SVMTokenBalance[]>} A promise that resolves to the balances data.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async getTokenBalances(
+    chain: string,
+    accountAddress: string,
+    includePrices: boolean = true,
+    excludeZeroPrices: boolean = false
+  ): Promise<SVMTokenBalance[]> {
+    try {
+      const endpoint = `${chain}/tokenBalances/${accountAddress}`;
+      const url = constructUrl(endpoint, { includePrices, excludeZeroPrices });
+      const result = await this.makeRequest(url);
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to get token balances'] });
+    }
+  }
+
+  /**
+   * Get the transaction count for an account address.
+   * @param {string} chain - The chain name. Defaults to solana.
+   * @param {string} accountAddress - The account address to get transaction count for.
+   * @returns {Promise<TransactionCountResponse>} A promise that resolves to the transaction count data.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async getTransactionCount(chain: string = 'solana', accountAddress: string): Promise<TransactionCountResponse> {
+    try {
+      const endpoint = `${chain}/txCount/${accountAddress}`;
+      const result = await this.makeRequest(endpoint);
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to get transaction count'] });
+    }
+  }
+
+  /**
+   * Get staking transactions for a staking account.
+   * @param {string} chain - The chain name. Defaults to solana.
+   * @param {string} stakingAccount - The staking account address.
+   * @param {PageOptions} pageOptions - Optional pagination options.
+   * @returns {Promise<SVMStakingTransactionsResponse>} A promise that resolves to the staking transactions data.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async getStakingTransactions(
+    chain: string = 'solana',
+    stakingAccount: string,
+    pageOptions: PageOptions = {}
+  ): Promise<SVMStakingTransactionsResponse> {
+    try {
+      const endpoint = `${chain}/stakingTxs/${stakingAccount}`;
+      const url = constructUrl(endpoint, pageOptions);
+      const result = await this.makeRequest(url);
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to get staking transactions'] });
+    }
+  }
+
+  /**
+   * Get staking information for a specific epoch.
+   * @param {string} chain - The chain name. Defaults to solana.
+   * @param {string} stakingAccount - The staking account address.
+   * @param {number} epoch - The epoch number.
+   * @returns {Promise<SVMStakingEpochResponse>} A promise that resolves to the staking epoch data.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async getStakingEpoch(
+    chain: string = 'solana',
+    stakingAccount: string,
+    epoch: number
+  ): Promise<SVMStakingEpochResponse> {
+    try {
+      const endpoint = `${chain}/stakingEpoch/${stakingAccount}/${epoch}`;
+      const result = await this.makeRequest(endpoint);
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to get staking epoch'] });
     }
   }
 }

@@ -1,8 +1,5 @@
 import { TranslateUTXO } from "../../src/translate/translateUTXO";
-import { ChainNotFoundError } from "../../src/errors/ChainNotFoundError";
 import { TransactionError } from "../../src/errors/TransactionError";
-import { PageOptions } from "../../src/types/types";
-import { TransactionsPage } from "../../src/translate/transactionsPage";
 
 jest.setTimeout(10000);
 
