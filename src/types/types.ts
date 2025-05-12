@@ -716,3 +716,140 @@ export interface TVMBalancesJobResponse {
   };
   error?: string;
 }
+
+/**
+ * Represents a Polkadot transaction response from the Translate API.
+ */
+export interface PolkadotTransaction {
+  txTypeVersion: number;
+  chain: string;
+  accountAddress: string | null;
+  block: number;
+  index: number;
+  classificationData: {
+    type: string;
+    description: string;
+  };
+  transfers: Array<{
+    action: string;
+    from: {
+      name: string | null;
+      address: string;
+      owner: {
+        name: string | null;
+        address: string | null;
+      };
+    };
+    to: {
+      name: string | null;
+      address: string | null;
+      owner: {
+        name: string | null;
+        address: string | null;
+      };
+    };
+    amount: string;
+    asset: {
+      name: string;
+      symbol: string;
+      decimals: number;
+    };
+  }>;
+  values: Array<{
+    key: string;
+    value: string;
+  }>;
+  rawTransactionData: {
+    extrinsicIndex: number;
+    blockNumber: number;
+    timestamp: number;
+    from: {
+      name: string | null;
+      address: string;
+      owner: {
+        name: string | null;
+        address: string | null;
+      };
+    };
+    to: {
+      name: string | null;
+      address: string | null;
+      owner: {
+        name: string | null;
+        address: string | null;
+      };
+    };
+  };
+}
+
+/**
+ * Interface representing Polkadot staking rewards response
+ */
+export interface PolkadotStakingRewardsResponse {
+  items: Array<{
+    txTypeVersion: number;
+    chain: string;
+    accountAddress: string;
+    block: number;
+    index: number;
+    classificationData: {
+      type: string;
+      description: string;
+    };
+    transfers: Array<{
+      action: string;
+      from: {
+        name: string | null;
+        address: string;
+        owner: {
+          name: string | null;
+          address: string | null;
+        };
+      };
+      to: {
+        name: string | null;
+        address: string | null;
+        owner: {
+          name: string | null;
+          address: string | null;
+        };
+      };
+      amount: string;
+      asset: {
+        name: string;
+        symbol: string;
+        decimals: number;
+      };
+    }>;
+    values: Array<{
+      key: string;
+      value: string;
+    }>;
+    rawTransactionData: {
+      extrinsicIndex: number;
+      blockNumber: number;
+      timestamp: number;
+      from: {
+        name: string | null;
+        address: string;
+        owner: {
+          name: string | null;
+          address: string | null;
+        };
+      };
+      to: {
+        name: string | null;
+        address: string | null;
+        owner: {
+          name: string | null;
+          address: string | null;
+        };
+      };
+    };
+  }>;
+  nextPageSettings: {
+    hasNextPage: boolean;
+    endTimestamp: number | null;
+    nextPageUrl: string | null;
+  };
+}

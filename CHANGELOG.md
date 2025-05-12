@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.11] - 2025-05-12
+
+### Added
+- Enhanced Polkadot Translate API coverage:
+    - New `describeTransaction` method for single transaction description
+    - New `describeTransactions` method for batch transaction description
+    - New comprehensive type definitions for Polkadot transactions
+    - New documentation file for Polkadot API
+    - New examples directory with Polkadot usage examples
+
+### Changed
+- Enhanced Polkadot Translate API implementation:
+    - Improved error handling with more specific error messages
+    - Enhanced transaction processing with better type safety
+    - Updated transaction retrieval with comprehensive data
+    - Improved URL utilities for better pagination handling
+    - Enhanced test coverage with comprehensive test cases
+- Updated Polkadot Translate API structure:
+    - Added async iterator protocol for better transaction iteration
+    - Improved type safety and validation in API responses
+    - Enhanced error handling for invalid response formats
+    - Refactored base class implementation for better code reuse
+
+### Fixed
+- Fixed transaction validation in Polkadot Translate API
+- Improved error handling for API responses
+- Fixed address validation in Polkadot Translate API
+- Fixed pagination handling in transaction retrieval
+
+
 ## [1.0.10] - 2025-05-12
 
 ### Added
