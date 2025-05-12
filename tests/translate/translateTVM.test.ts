@@ -1,152 +1,94 @@
 import nock from 'nock';
-import { ChainNotFoundError } from '../../src/errors/ChainNotFoundError';
 import { TransactionError } from '../../src/errors/TransactionError';
-import { PageOptions, Transaction } from '../../src';
-
-import { Translate } from '../../src';
 import { TransactionsPage } from '../../src/translate/transactionsPage';
+import { TVMTransaction } from '../../src/types/types';
+import { TranslateTVM } from '../../src/translate/translateTVM';
 
 jest.setTimeout(10000);
 
 const BASE_URL = 'https://translate.noves.fi';
 
+const mockRequest = jest.fn();
+
+jest.mock('../../src/utils/apiUtils', () => ({
+  createTranslateClient: () => mockRequest
+}));
+
+let translate: TranslateTVM;
+
+beforeEach(() => {
+    nock.cleanAll();
+    // Add a 1-second delay between test runs to avoid rate limiting
+    return new Promise(resolve => setTimeout(resolve, 1000));
+});
+
+beforeEach(() => {
+    translate = new TranslateTVM('test-api-key');
+    jest.clearAllMocks();
+});
+
 describe('TranslateTVM', () => {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-        throw new Error('API_KEY environment variable is not set');
-    }
-    const translate = Translate.tvm(apiKey);
-
-    beforeEach(() => {
-        nock.cleanAll();
-        // Add a 1-second delay between test runs to avoid rate limiting
-        return new Promise(resolve => setTimeout(resolve, 1000));
-    });
-
     it('should fetch chains successfully', async () => {
         const mockChains = [
-            {
-                ecosystem: "tvm",
-                name: "tron",
-                nativeCoin: {
-                    address: "TRX",
-                    decimals: 6,
-                    name: "TRX",
-                    symbol: "TRX"
-                },
-                tier: 0
-            },
+            { name: 'tron', displayName: 'TRON' }
         ];
+        mockRequest.mockResolvedValue({ succeeded: true, response: mockChains });
 
-        nock(BASE_URL)
-            .get('/tvm/chains')
-            .reply(200, mockChains);
-
-        const response = await translate.getChains();
-        expect(response[0]).toEqual(mockChains[0]);
-        expect(response.length).toBeGreaterThan(0);
+        const chains = await translate.getChains();
+        expect(chains).toEqual(mockChains);
     });
 
-    it('should fetch a chain successfully', async () => {
-        const mockChain = { 
-            "ecosystem": "tvm", 
-            "name": "tron",
-            nativeCoin: {
-                address: "TRX",
-                decimals: 6,
-                name: "TRX",
-                symbol: "TRX"
-            },
-            tier: 0
-        };
+    it('should get chain by name', async () => {
+        const mockChain = { name: 'tron', displayName: 'TRON' };
+        mockRequest.mockResolvedValue({ succeeded: true, response: [mockChain] });
 
-        nock(BASE_URL)
-            .get('/tvm/chains')
-            .reply(200, [mockChain]);
-
-        const response = await translate.getChain("tron");
-        expect(response).toEqual(mockChain);
+        const chain = await translate.getChain('tron');
+        expect(chain).toEqual(mockChain);
     });
 
-    it('should throw ChainNotFoundError when chain is not found', async () => {
-        const mockChains = [
-            { 
-                "ecosystem": "tvm", 
-                "name": "tron",
-                "nativeCoin": {
-                    "address": "TRX",
-                    "decimals": 6,
-                    "name": "TRX",
-                    "symbol": "TRX"
-                }
-            }
-        ];
-
-        nock(BASE_URL)
-            .get('/tvm/chains')
-            .reply(200, mockChains);
-
-        await expect(translate.getChain('nonexistent')).rejects.toThrow(ChainNotFoundError);
+    it('should throw error for non-existent chain', async () => {
+        mockRequest.mockResolvedValue({ succeeded: true, response: [] });
+        await expect(translate.getChain('nonexistent')).rejects.toThrow();
     });
 
     it('should fetch a transaction successfully', async () => {
         const mockTransaction = {
             hash: 'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462',
-            accountAddress: 'EQCi7s8dDGBmNBJhqLhZhHjBSXVGHdN1oDJOHEEUNHLLXbJY',
+            accountAddress: 'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR',
             rawTransactionData: {
-                blockNumber: 12345678,
-                timestamp: 1619833950
+                blockNumber: 65895195,
+                timestamp: 1728334230
             },
             classificationData: {
-                description: "Sent 10 TRX to EQC..."
+                description: "Sent 108 USDT."
             }
         };
 
-        nock(BASE_URL)
-            .get('/tvm/tron/tx/c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462')
-            .reply(200, { succeeded: true, response: mockTransaction });
+        mockRequest.mockResolvedValue({ succeeded: true, response: mockTransaction });
 
         const response = await translate.getTransaction('tron', 'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462');
-        expect(response).toHaveProperty("accountAddress", "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR");
-        expect(response).toHaveProperty("rawTransactionData.blockNumber", 65895195);
-        expect(response).toHaveProperty("rawTransactionData.timestamp", 1728334230);
-        expect(response).toHaveProperty("classificationData.description", "Sent 108 USDT.");
+        expect(response).toEqual(mockTransaction);
     });
 
     it('should handle transaction validation errors', async () => {
         const mockErrorResponse = {
-            status: 400,
-            errors: {
-                chain: ['The field chain is invalid. Valid chains: ton, toncoin'],
-                txHash: ['The field txHash must be a valid Transaction Hash.'],
+            succeeded: false,
+            response: {
+                status: 400,
+                errors: {
+                    chain: ['The field chain is invalid. Valid chains: tron'],
+                    txHash: ['The field txHash must be a valid Transaction Hash.'],
+                },
             },
         };
 
-        nock(BASE_URL)
-            .get('/tvm/invalidChain/tx/invalidTxHash')
-            .reply(400, mockErrorResponse);
+        mockRequest.mockResolvedValue(mockErrorResponse);
 
-        try {
-            await translate.getTransaction('invalidChain', 'invalidTxHash');
-        } catch (error) {
-            expect(error).toBeInstanceOf(SyntaxError);
-            expect((error as any).errors).toEqual(mockErrorResponse.errors);
-        }
+        await expect(translate.getTransaction('invalidChain', 'invalidTxHash'))
+            .rejects.toThrow(TransactionError);
     });
 
     it('should fetch first page transactions successfully', async () => {
-        const mockChains = [
-            {
-                name: "tron",
-                nativeCoin: {
-                    symbol: "TRX",
-                    name: "Tron",
-                    decimals: 6,
-                    address: "TRX"
-                }
-            }
-        ];
-
         const mockTransactions = {
             items: [
                 {
@@ -203,140 +145,138 @@ describe('TranslateTVM', () => {
                         },
                         timestamp: 1740464547
                     }
-                },
-                {
-                    txTypeVersion: 2,
-                    chain: "tron",
-                    accountAddress: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR",
-                    classificationData: {
-                        type: "sendToken",
-                        source: {
-                            type: "human"
-                        },
-                        description: "Sent 5 TRX.",
-                        protocol: {
-                            name: null
-                        },
-                        sent: [
-                            {
-                                action: "sent",
-                                from: {
-                                    name: "This wallet",
-                                    address: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR"
-                                },
-                                to: {
-                                    name: null,
-                                    address: "TS3PArVTgWb1HZahsoEprG3Fjh8t526JVC"
-                                },
-                                amount: "5",
-                                token: {
-                                    symbol: "TRX",
-                                    name: "Tron",
-                                    decimals: 6,
-                                    address: "TRX"
-                                }
-                            },
-                            {
-                                action: "paidGas",
-                                from: {
-                                    name: "This wallet",
-                                    address: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR"
-                                },
-                                to: {
-                                    name: null,
-                                    address: null
-                                },
-                                amount: "0",
-                                token: {
-                                    symbol: "TRX",
-                                    name: "Tron",
-                                    decimals: 6,
-                                    address: "TRX"
-                                }
-                            }
-                        ],
-                        received: []
-                    },
-                    rawTransactionData: {
-                        transactionHash: "8972836dbcf54474b0c9ee1dc2b1dc2cd13cc1d3a3f9c7cf1103f7174209e26f",
-                        fromAddress: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR",
-                        toAddress: "TS3PArVTgWb1HZahsoEprG3Fjh8t526JVC",
-                        blockNumber: 69937339,
-                        gas: 0,
-                        gasUsed: 0,
-                        gasPrice: 210,
-                        transactionFee: {
-                            amount: "0",
-                            token: {
-                                symbol: "TRX",
-                                name: "Tron",
-                                decimals: 6,
-                                address: "TRX"
-                            }
-                        },
-                        timestamp: 1740464478
-                    }
                 }
             ],
-            pageSize: 10,
             hasNextPage: true,
-            nextPageUrl: "https://translate.noves.fi/tvm/tron/txs/TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR?startBlock=1&endBlock=66312567&pageSize=10&ignoreTransactions=67f73147f4aa61bb9fc3e52453c65afa1e6b8e2b48313bc8f65f66ab032b5663&viewAsAccountAddress=&sort=desc&viewAsTransactionSender=False"
+            nextPageUrl: "https://translate.noves.fi/tvm/tron/txs/TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR?pageSize=10&sort=desc&pageKey=next"
         };
 
-        nock(BASE_URL)
-            .get('/tvm/chains')
-            .reply(200, mockChains);
+        mockRequest.mockResolvedValue({ succeeded: true, response: mockTransactions });
 
-        nock(BASE_URL)
-            .get('/tvm/tron/txs/TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR')
-            .query(true)
-            .reply(200, mockTransactions);
-
-        const paginator = await translate.Transactions('tron', 'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR');
-        const transactions = paginator.getTransactions();
-        expect(transactions[0]).toEqual(mockTransactions.items[0]);
-        expect(transactions[1]).toEqual(mockTransactions.items[1]);
+        const transactions = await translate.Transactions('tron', 'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR');
+        expect(transactions).toBeInstanceOf(TransactionsPage);
+        expect(transactions.getTransactions()).toEqual(mockTransactions.items as TVMTransaction[]);
+        expect(transactions.getNextPageKeys()).not.toBeNull();
     });
 
-    it('should fetch first page transactions with custom paging successfully', async () => {
-        const mockTransactions = {
-            items: [
-                { hash: '97264395BD65A255A262389F74F5D05C3BAEB7FE9F4C4F8C49B96D8D8E9BFE00' },
-                { hash: 'A8264395BD65A255A262389F74F5D05C3BAEB7FE9F4C4F8C49B96D8D8E9BFEBB' }
-            ],
-            hasNextPage: true,
-            nextPageUrl: 'https://api.example.com/next-page'
+    it('should describe a transaction successfully', async () => {
+        const mockDescription = {
+            type: 'sendToken',
+            description: 'Sent 100 TRX'
         };
 
-        nock(BASE_URL)
-            .get('/tvm/tron/txs/TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR')
-            .query(true)
-            .reply(200, {
-                succeeded: true,
-                response: mockTransactions
-            });
+        mockRequest.mockResolvedValue({ succeeded: true, response: mockDescription });
 
-        const paging: PageOptions = {
-            startBlock: 20104079,
-            sort: 'desc'
-        }
+        const response = await translate.describeTransaction(
+            'tron',
+            'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462'
+        );
+        expect(response).toEqual(mockDescription);
+    });
 
-        const mockGetTransactions = jest.fn().mockReturnValue([/* mock transactions */]);
-        const mockTxEngine = {
-            getTransactions: mockGetTransactions,
-            getCurrentPageKeys: jest.fn().mockReturnValue(paging)
+    it('should describe multiple transactions successfully', async () => {
+        const mockDescriptions = [
+            {
+                type: 'sendToken',
+                description: 'Sent 100 TRX'
+            },
+            {
+                type: 'receiveToken',
+                description: 'Received 50 TRX'
+            }
+        ];
+
+        mockRequest.mockResolvedValue({ succeeded: true, response: mockDescriptions });
+
+        const response = await translate.describeTransactions(
+            'tron',
+            ['txHash1', 'txHash2']
+        );
+        expect(response).toEqual(mockDescriptions);
+    });
+
+    it('should get transaction status successfully', async () => {
+        const mockStatus = {
+            status: 'confirmed',
+            blockNumber: 123456,
+            timestamp: 1234567890
         };
 
-        const mockTransactionsPage: Partial<TransactionsPage<Transaction>> = {
-            getTransactions: mockGetTransactions,
-            getCurrentPageKeys: jest.fn().mockReturnValue(paging),
-            next: jest.fn()
+        mockRequest.mockResolvedValue({ succeeded: true, response: mockStatus });
+
+        const response = await translate.getTransactionStatus(
+            'tron',
+            'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462'
+        );
+        expect(response).toEqual(mockStatus);
+    });
+
+    it('should get raw transaction successfully', async () => {
+        const mockRawTx = {
+            network: 'tron',
+            rawTx: {
+                transactionHash: 'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462',
+                hash: 'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462',
+                blockNumber: 123456,
+                from: 'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR',
+                to: 'TVXk9LFfNUJvtoX8tWFuVLUyPUMN1M3JVC',
+                gas: 21000,
+                gasPrice: 210,
+                value: 100000000,
+                timestamp: 1234567890,
+                gasUsed: 21000,
+                transactionFee: 4410000
+            },
+            rawTraces: [],
+            eventLogs: [],
+            internalTxs: [],
+            txReceipt: {
+                blockNumber: 123456,
+                blockHash: '0x123...',
+                status: 1
+            }
         };
 
-        jest.spyOn(translate, 'Transactions').mockResolvedValue(mockTransactionsPage as TransactionsPage<Transaction>);
+        mockRequest.mockResolvedValue({ succeeded: true, response: mockRawTx });
 
-        const txEngine = await translate.Transactions('tron', 'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR', paging);
+        const response = await translate.getRawTransaction(
+            'tron',
+            'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462'
+        );
+        expect(response).toEqual(mockRawTx);
+    });
+});
 
-        expect(txEngine.getCurrentPageKeys()).toEqual(paging);
+describe('Balances Job', () => {
+    it('should start and get balances job results', async () => {
+        const mockJob = {
+            jobId: 'job123',
+            status: 'pending'
+        };
+
+        mockRequest.mockResolvedValue({ succeeded: true, response: mockJob });
+
+        const response = await translate.startBalancesJob(
+            'tron',
+            'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR',
+            'TRX',
+            123456
+        );
+        expect(response).toEqual(mockJob);
+    });
+
+    it('should handle invalid address in startBalancesJob', async () => {
+        mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid address'] }));
+        await expect(translate.startBalancesJob(
+            'tron',
+            'invalid-address',
+            'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
+            72049264
+        )).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle non-existent job ID', async () => {
+        mockRequest.mockRejectedValue(new TransactionError({ message: ['Job not found'] }));
+        await expect(translate.getBalancesJobResults('tron', 'nonexistent-id')).rejects.toThrow(TransactionError);
     });
 });

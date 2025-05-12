@@ -544,3 +544,175 @@ export interface SolanaTransaction {
     interactedAccounts: string[];
   };
 }
+
+export interface TransactionStatus {
+    status: 'pending' | 'confirmed' | 'failed';
+    blockNumber?: number;
+    timestamp?: number;
+}
+
+export interface RawTransactionResponse {
+    network: string;
+    rawTx: {
+        transactionHash: string;
+        hash: string;
+        blockNumber: number;
+        from: string;
+        to: string;
+        gas: number;
+        gasPrice: number;
+        value: number;
+        timestamp: number;
+        gasUsed: number;
+        transactionFee: number;
+    };
+    rawTraces: Array<{
+        action: {
+            from: string;
+            callType: string;
+            gas: string;
+            input: string;
+            to: string;
+            value: string;
+        };
+        blockHash: string;
+        blockNumber: number;
+        result: {
+            gasUsed: string;
+            output: string;
+        };
+        subtraces: number;
+        traceAddress: number[];
+        transactionHash: string;
+        transactionPosition: number;
+        type: string;
+    }>;
+    eventLogs: Array<{
+        decodedName: string;
+        decodedSignature: string;
+        logIndex: number;
+        address: string;
+        params: Array<{
+            name: string;
+            type: string;
+            value: number;
+        }>;
+        raw: {
+            eventSignature: string;
+            topics: string[];
+            data: string;
+        };
+    }>;
+    internalTxs: any[];
+    txReceipt: {
+        blockNumber: number;
+        blockHash: string;
+        status: number;
+        effectiveGasPrice: number;
+        gasUsed: number;
+        cumulativeGasUsed: number;
+    };
+    decodedInput: Record<string, any>;
+}
+
+/**
+ * Interface representing a TVM transaction
+ */
+export interface TVMTransaction {
+  txTypeVersion: number;
+  chain: string;
+  accountAddress: string;
+  classificationData: {
+    type: string;
+    source: {
+      type: string;
+    };
+    description: string;
+    protocol: {
+      name: string | null;
+    };
+    sent: Array<{
+      action: string;
+      from: {
+        name: string | null;
+        address: string;
+      };
+      to: {
+        name: string | null;
+        address: string;
+      };
+      amount: string;
+      token: {
+        symbol: string;
+        name: string;
+        decimals: number;
+        address: string;
+      };
+    }>;
+    received: Array<{
+      action: string;
+      from: {
+        name: string | null;
+        address: string;
+      };
+      to: {
+        name: string | null;
+        address: string;
+      };
+      amount: string;
+      token: {
+        symbol: string;
+        name: string;
+        decimals: number;
+        address: string;
+      };
+    }>;
+  };
+  rawTransactionData: {
+    transactionHash: string;
+    fromAddress: string;
+    toAddress: string;
+    blockNumber: number;
+    gas: number;
+    gasUsed: number;
+    gasPrice: number;
+    transactionFee: {
+      amount: string;
+      token: {
+        symbol: string;
+        name: string;
+        decimals: number;
+        address: string;
+      };
+    };
+    timestamp: number;
+  };
+}
+
+/**
+ * Interface representing a TVM balances job
+ */
+export interface TVMBalancesJob {
+  jobId: string;
+  resultUrl: string;
+}
+
+/**
+ * Interface representing a TVM balances job response
+ */
+export interface TVMBalancesJobResponse {
+  jobId: string;
+  status: 'pending' | 'completed' | 'failed';
+  results?: {
+    balances: Array<{
+      token: {
+        symbol: string;
+        name: string;
+        decimals: number;
+        address: string;
+      };
+      balance: string;
+    }>;
+  };
+  error?: string;
+}
