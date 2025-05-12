@@ -49,10 +49,23 @@ export class Foresight {
   public async preview(chain: string, unsignedTransaction: UnsignedTransaction, stateOverrides?: StateOverrides, viewAsAccountAddress?: string, block?: number): Promise<Transaction> {
     try {
       let endpoint = `${chain}/preview`;
-      endpoint += block ? `?block=${block}` : '';
-      endpoint += viewAsAccountAddress ? `?viewAsAccountAddress=${viewAsAccountAddress}` : '';
+      const queryParams = new URLSearchParams();
+      
+      if (block) {
+        queryParams.append('block', block.toString());
+      }
+      if (viewAsAccountAddress) {
+        queryParams.append('viewAsAccountAddress', viewAsAccountAddress);
+      }
+      
+      if (queryParams.toString()) {
+        endpoint += `?${queryParams.toString()}`;
+      }
 
-      const body = stateOverrides ? { ...unsignedTransaction, stateOverrides } : unsignedTransaction;
+      const body = {
+        transaction: unsignedTransaction,
+        stateOverrides: stateOverrides || {}
+      };
 
       const result = await this.request(endpoint, "POST", { body: JSON.stringify(body) });
       return result.response;
@@ -82,7 +95,7 @@ export class Foresight {
       let endpoint = `${chain}/preview4337`;
       endpoint += block ? `?block=${block}` : '';
 
-      const result = await this.request(endpoint, "POST", { body: JSON.stringify(userOperation) });
+      const result = await this.request(endpoint, "POST", { body: JSON.stringify({ userOp: userOperation }) });
       return result.response;
     } catch (error) {
       if (error instanceof Response) {
@@ -100,14 +113,14 @@ export class Foresight {
    * 
    * @param {string} chain - The chain name.
    * @param {UnsignedTransaction} unsignedTransaction - The unsigned transaction object, modeled after the standard format used by multiple EVM wallets.
-   * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
+   * @returns {Promise<{description: string}>} A promise that resolves to the transaction description.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async describe(chain: string, unsignedTransaction: UnsignedTransaction): Promise<Transaction> {
+  public async describe(chain: string, unsignedTransaction: UnsignedTransaction): Promise<{description: string}> {
     try {
       let endpoint = `${chain}/describe`;
 
-      const result = await this.request(endpoint, "POST", { body: JSON.stringify(unsignedTransaction) });
+      const result = await this.request(endpoint, "POST", { body: JSON.stringify({ transaction: unsignedTransaction }) });
       return result.response;
     } catch (error) {
       if (error instanceof Response) {
@@ -121,18 +134,111 @@ export class Foresight {
   }
 
   /**
+   * Validates that the response contains all required fields.
+   * @param {any} response - The response to validate.
+   * @param {string[]} requiredFields - Array of required field names.
+   * @returns {boolean} True if all required fields are present.
+   */
+  private validateResponse(response: any, requiredFields: string[]): boolean {
+    return requiredFields.every(field => response && typeof response[field] === 'string');
+  }
+
+  /**
    * Returns a description of what will happen if the ERC-4337 userOp object executes.
    * 
    * @param {string} chain - The chain name.
    * @param {UserOperation} userOperation - The ERC-4337 userOp object, in exactly the same format that would be submitted to a bundler for transaction execution.
-   * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
+   * @returns {Promise<{description: string, type: string}>} A promise that resolves to the transaction description and type.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async describe4337(chain: string, userOperation: UserOperation): Promise<Transaction> {
+  public async describe4337(chain: string, userOperation: UserOperation): Promise<{description: string, type: string}> {
     try {
       let endpoint = `${chain}/describe4337`;
 
-      const result = await this.request(endpoint, "POST", { body: JSON.stringify(userOperation) });
+      const result = await this.request(endpoint, "POST", { body: JSON.stringify({ userOp: userOperation }) });
+      
+      if (!this.validateResponse(result.response, ['description', 'type'])) {
+        throw new TransactionError({ message: ['Invalid response format'] });
+      }
+      
+      return result.response;
+    } catch (error) {
+      if (error instanceof Response) {
+        const errorResponse = await error.json();
+        if (errorResponse.status === 400 && errorResponse.errors) {
+          throw new TransactionError(errorResponse.errors);
+        }
+      }
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to describe user operation'] });
+    }
+  }
+
+  /**
+   * Screens a transaction for potential risks and provides detailed analysis.
+   * @param {string} chain - The chain name.
+   * @param {UnsignedTransaction} unsignedTransaction - The unsigned transaction object to screen.
+   * @returns {Promise<Transaction>} A promise that resolves to the transaction screening results.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async screen(chain: string, unsignedTransaction: UnsignedTransaction): Promise<Transaction> {
+    try {
+      const endpoint = `${chain}/screen`;
+
+      const result = await this.request(endpoint, "POST", { 
+        body: JSON.stringify({ transaction: unsignedTransaction }) 
+      });
+      return result.response;
+    } catch (error) {
+      if (error instanceof Response) {
+        const errorResponse = await error.json();
+        if (errorResponse.status === 400 && errorResponse.errors) {
+          throw new TransactionError(errorResponse.errors);
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Screens an ERC-4337 user operation for potential risks and provides detailed analysis.
+   * @param {string} chain - The chain name.
+   * @param {UserOperation} userOperation - The ERC-4337 userOp object to screen.
+   * @returns {Promise<Transaction>} A promise that resolves to the user operation screening results.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async screen4337(chain: string, userOperation: UserOperation): Promise<Transaction> {
+    try {
+      const endpoint = `${chain}/screen4337`;
+
+      const result = await this.request(endpoint, "POST", { 
+        body: JSON.stringify({ userOp: userOperation }) 
+      });
+      return result.response;
+    } catch (error) {
+      if (error instanceof Response) {
+        const errorResponse = await error.json();
+        if (errorResponse.status === 400 && errorResponse.errors) {
+          throw new TransactionError(errorResponse.errors);
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Screens a URL for potential risks and provides detailed analysis.
+   * @param {string} url - The URL to screen.
+   * @returns {Promise<{domain: string, risksDetected: Array<{type: string}>}>} A promise that resolves to the URL screening results.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async screenUrl(url: string): Promise<{domain: string, risksDetected: Array<{type: string}>}> {
+    try {
+      const endpoint = `url/screen?url=${encodeURIComponent(url)}`;
+
+      const result = await this.request(endpoint);
       return result.response;
     } catch (error) {
       if (error instanceof Response) {

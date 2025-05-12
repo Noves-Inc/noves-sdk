@@ -7,6 +7,12 @@ export interface Chain {
     ecosystem: string;
     evmChainId?: number;
     name: string;
+    nativeCoin?: {
+        name: string;
+        symbol: string;
+        address: string;
+        decimals: number;
+    };
 }
 
 /**
@@ -102,8 +108,21 @@ export interface Transaction {
     txTypeVersion: number;
     chain: string;
     accountAddress: string;
-    classificationData: ClassificationData;
-    rawTransactionData: RawTransactionData;
+    classificationData: {
+        type: string;
+        source: {
+            type: string | null;
+        };
+        description: string;
+        protocol: Record<string, any>;
+        sent: any[];
+        received: any[];
+    };
+    rawTransactionData: {
+        fromAddress: string;
+        toAddress: string;
+        gasUsed: number;
+    };
 }
 
 export interface ClassificationData {

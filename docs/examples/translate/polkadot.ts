@@ -1,4 +1,4 @@
-import { TranslatePOLKADOT } from '../../src/translate/translatePOLKADOT';
+import { TranslatePOLKADOT } from '../../../src/translate/translatePOLKADOT';
 
 async function main() {
     // Initialize the Polkadot Translate client

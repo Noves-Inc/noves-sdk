@@ -1,4 +1,4 @@
-import { Translate } from '../../src';
+import { Translate } from '../../../src';
 
 async function main() {
   // Initialize the UTXO translator

@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.12] - 2025-05-12
+
+### Added
+- Enhanced Foresight API coverage:
+    - New `screen` method for transaction risk analysis
+    - New `screen4337` method for ERC-4337 user operation risk analysis
+    - New `screenUrl` method for URL risk analysis
+    - New comprehensive type definitions for Foresight API responses
+    - New documentation file for Foresight API
+    - New examples directory with Foresight usage examples
+
+### Changed
+- Enhanced Foresight API implementation:
+    - Improved error handling with more specific error messages
+    - Enhanced transaction processing with better type safety
+    - Updated request body structure for better API compatibility
+    - Improved URL utilities for better parameter handling
+    - Enhanced test coverage with comprehensive test cases
+- Updated Foresight API structure:
+    - Added response validation for better type safety
+    - Improved error handling for invalid response formats
+    - Enhanced parameter handling in API requests
+    - Refactored request body structure for better consistency
+
+### Fixed
+- Fixed request body structure in preview and describe methods
+- Improved error handling for API responses
+- Fixed parameter handling in URL screening
+- Fixed response validation in describe4337 method
+
+
 ## [1.0.11] - 2025-05-12
 
 ### Added
