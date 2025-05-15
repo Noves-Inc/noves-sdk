@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.14] - 2025-05-15
+
+### Added
+- Enhanced SVM Pricing API coverage:
+    - New `PricingSVM` class for Solana Virtual Machine pricing
+    - New `PriceType` enum for standardized price type selection
+    - New `getChains` method for retrieving supported SVM chains
+    - New `getChain` method for retrieving specific chain information
+    - New `getPrice` method for token price retrieval with timestamp support
+    - New documentation file for SVM Pricing API
+    - New examples directory with SVM Pricing usage examples
+
+### Changed
+- Enhanced SVM Pricing API implementation:
+    - Improved price type handling with default to `dexHighestLiquidity`
+    - Updated chain name handling with automatic transformation for "solana"
+    - Enhanced error handling with chain-specific error types
+    - Improved test coverage with comprehensive test cases
+
+### Fixed
+- Improved error handling for invalid chain names
+- Fixed price type validation in price retrieval
+
+
 ## [1.0.13] - 2025-05-15
 
 ### Added

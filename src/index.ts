@@ -6,6 +6,7 @@ import { TranslateTVM } from './translate/translateTVM';
 import { TranslatePOLKADOT } from './translate/translatePOLKADOT';
 
 import { PricingEVM, PriceType } from './pricing/pricingEVM';
+import { PricingSVM } from './pricing/pricingSVM';
 import { PricingMove } from './pricing/pricingMove';
 import { PricingCosmos } from './pricing/pricingCosmos';
 
@@ -82,6 +83,13 @@ export const Pricing = {
      * @returns A new PricingCosmos instance.
      */
     cosmos: (apiKey: string) => new PricingCosmos(apiKey),
+
+    /**
+     * Creates a new instance of PricingSVM for Solana Virtual Machine (SVM) based blockchain.
+     * @param apiKey - The API key for authentication.
+     * @returns A new PricingSVM instance.
+     */
+    svm: (apiKey: string) => new PricingSVM(apiKey),
 };
 
 export * from "./types/types"
