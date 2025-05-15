@@ -7,6 +7,23 @@ import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 const ECOSYSTEM = 'cosmos';
 
 /**
+ * Available pricing strategies for token pricing.
+ * See https://docs.noves.fi/reference/pricing-strategies for more details.
+ */
+export enum PriceType {
+  /** Uses the liquidity pool with the highest liquidity to determine price */
+  DEX_HIGHEST_LIQUIDITY = 'dexHighestLiquidity',
+  /** Uses Coingecko as a price source */
+  COINGECKO = 'coingecko',
+  /** Uses Chainlink oracle as a price source */
+  CHAINLINK = 'chainlink',
+  /** Uses a custom strategy */
+  CUSTOM = 'custom',
+  /** Uses a weighted volume average across exchanges */
+  WEIGHTED_VOLUME_AVERAGE = 'weightedVolumeAverage'
+}
+
+/**
  * Class representing the Cosmos pricing module.
  */
 export class PricingCosmos {
@@ -47,6 +64,46 @@ export class PricingCosmos {
       throw new ChainNotFoundError(name);
     }
     return chain;
+  }
+
+  /**
+   * This is our main / general pricing endpoint.
+   * It returns the price for any token or lpToken at the given block/timestamp. 
+   * If no block or timestamp is passed, the price for the latest block will be returned.
+   * @param {string} chain - The name of the chain to retrieve pricing for.
+   * @param {string} tokenAddress - The address of the token to retrieve pricing for.
+   * @param {Object} [options] - Optional parameters for the request.
+   * @param {PriceType|string} [options.priceType] - The type of price to retrieve (defaults to PriceType.DEX_HIGHEST_LIQUIDITY if not specified).
+   *                                               See https://docs.noves.fi/reference/pricing-strategies for all available strategies.
+   *                                               You can use the PriceType enum for convenient access to common strategies.
+   * @param {number} [options.timestamp] - The timestamp for which to retrieve the price.
+   * @returns {Promise<Pricing>} A promise that resolves to the pricing object.
+   */
+  public async getPrice(
+    chain: string,
+    tokenAddress: string,
+    options?: {
+      priceType?: PriceType | string;
+      timestamp?: number;
+    }
+  ): Promise<Pricing> {
+    let url = `${chain}/price/${tokenAddress}`;
+
+    const queryParams = new URLSearchParams();
+    if (options?.priceType) {
+      queryParams.append('priceType', options.priceType);
+    }
+    if (options?.timestamp !== undefined) {
+      queryParams.append('timestamp', options.timestamp.toString());
+    }
+
+    const queryString = queryParams.toString();
+    if (queryString) {
+      url += `?${queryString}`;
+    }
+
+    const result = await this.request(url);
+    return result.response;
   }
 
   /**

@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.15] - 2025-05-15
+
+### Added
+- Enhanced Cosmos Pricing API coverage:
+    - New `PriceType` enum for standardized price type selection
+    - New `getPrice` method for token price retrieval with timestamp support
+    - New documentation file for Cosmos Pricing API
+    - New examples directory with Cosmos Pricing usage examples
+
+### Changed
+- Enhanced Cosmos Pricing API implementation:
+    - Improved price type handling
+    - Updated chain name handling with automatic transformation
+    - Enhanced error handling with chain-specific error types
+    - Improved test coverage with comprehensive test cases
+
+### Fixed
+- Improved error handling for invalid chain names
+- Fixed price type validation in price retrieval
+
+
 ## [1.0.14] - 2025-05-15
 
 ### Added
