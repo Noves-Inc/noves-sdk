@@ -7,6 +7,64 @@ import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 const ECOSYSTEM = 'evm';
 
 /**
+ * Available pricing strategies for token pricing.
+ * See https://docs.noves.fi/reference/pricing-strategies for more details.
+ */
+export enum PriceType {
+  /** Uses the liquidity pool with the highest liquidity to determine price */
+  DEX_HIGHEST_LIQUIDITY = 'dexHighestLiquidity',
+  /** Uses Coingecko as a price source */
+  COINGECKO = 'coingecko',
+  /** Uses Chainlink oracle as a price source */
+  CHAINLINK = 'chainlink',
+  /** Uses a custom strategy */
+  CUSTOM = 'custom'
+}
+
+/**
+ * Interface for token prefetch request
+ */
+export interface TokenPrefetchRequest {
+  tokenAddress: string | null;
+  chain: string | null;
+  priceType: PriceType | string | null;
+  timestamp?: number;
+  blockNumber?: number;
+}
+
+/**
+ * Interface for token price result in prefetch response
+ */
+export interface TokenPriceResult {
+  blockNumber: number;
+  priceStatus: string;
+  token: {
+    symbol: string;
+    name: string;
+    decimals: number;
+    address: string;
+  };
+  price: string;
+  priceType: string;
+  pricedBy: any | null;
+}
+
+/**
+ * Interface for token prefetch result
+ */
+export interface TokenPrefetchResult {
+  request: {
+    tokenAddress: string;
+    chain: string;
+    priceType: string;
+    timestamp: number | null;
+    blockNumber: number | null;
+  };
+  result: TokenPriceResult | null;
+  error: string | null;
+}
+
+/**
  * Class representing the EVM pricing module.
  */
 export class PricingEVM {
@@ -57,7 +115,9 @@ export class PricingEVM {
    * @param {string} chain - The name of the chain to retrieve pricing for.
    * @param {string} tokenAddress - The address of the token to retrieve pricing for.
    * @param {Object} [options] - Optional parameters for the request.
-   * @param {string} [options.priceType] - The type of price to retrieve (only 'dexHighestLiquidity' is supported).
+   * @param {PriceType|string} [options.priceType] - The type of price to retrieve (defaults to PriceType.DEX_HIGHEST_LIQUIDITY if not specified).
+   *                                               See https://docs.noves.fi/reference/pricing-strategies for all available strategies.
+   *                                               You can use the PriceType enum for convenient access to common strategies.
    * @param {number} [options.timestamp] - The timestamp for which to retrieve the price.
    * @param {number} [options.blockNumber] - The block number for which to retrieve the price.
    * @returns {Promise<Pricing>} A promise that resolves to the pricing object.
@@ -66,7 +126,7 @@ export class PricingEVM {
     chain: string,
     tokenAddress: string,
     options?: {
-      priceType?: 'dexHighestLiquidity';
+      priceType?: PriceType | string;
       timestamp?: number;
       blockNumber?: number;
     }
@@ -75,9 +135,9 @@ export class PricingEVM {
     let url = `${validatedChain}/price/${tokenAddress}`;
 
     const queryParams = new URLSearchParams();
-    if (options?.priceType === 'dexHighestLiquidity') {
-      queryParams.append('priceType', options.priceType);
-    }
+    // Use dexHighestLiquidity as default if no priceType is specified
+    const priceType = options?.priceType || 'dexHighestLiquidity';
+    queryParams.append('priceType', priceType);
     if (options?.timestamp !== undefined) {
       queryParams.append('timestamp', options.timestamp.toString());
     }
@@ -116,30 +176,18 @@ export class PricingEVM {
 
   /**
    * Pre-fetch prices for multiple tokens.
-   * @param {Array<{
-   *   tokenAddress: string | null,
-   *   chain: string | null,
-   *   priceType: 'dexHighestLiquidity' | 'coingecko' | null,
-   *   timestamp?: number,
-   *   blockNumber?: number
-   * }>} tokens - An array of token objects to pre-fetch prices for.
-   * @returns {Promise<Array<any>>} A promise that resolves to an array of pricing results.
+   * @param {Array<TokenPrefetchRequest>} tokens - An array of token objects to pre-fetch prices for.
+   * @returns {Promise<Array<TokenPrefetchResult>>} A promise that resolves to an array of pricing results.
    * @description Takes an array of tokens that need pricing. Each token needs an address, a chain identifier, and the type of price desired.
-   * Valid values for 'priceType' are: dexHighestLiquidity, coingecko.
+   * Use the PriceType enum for convenient access to common pricing strategies.
    * For the 'chain' field, pull the list of valid names from the /chains endpoint.
    * Block number or timestamp are optional (you only need to pass one of those, or none if you want to pre-fetch the token for current time).
    * Returns an array of results for each token that you passed. If any of the results have a status of "findingSolution", 
    * you can call the regular /price endpoint for a final answer on that token in about ~2 minutes.
    */
-  public async preFetchPrice(tokens: Array<{
-    tokenAddress: string | null,
-    chain: string | null,
-    priceType: 'dexHighestLiquidity' | 'coingecko' | null,
-    timestamp?: number,
-    blockNumber?: number
-  }>): Promise<Array<any>> {
-    const url = 'prefetch';
-    const result = await this.request(url, "POST", { body: JSON.stringify(tokens) });
-    return result.response;
+  public async preFetchPrice(tokens: Array<TokenPrefetchRequest>): Promise<Array<TokenPrefetchResult>> {
+    const url = 'preFetch';
+    const result = await this.request(url, "POST", { body: JSON.stringify({ tokens }) });
+    return result.response.tokens;
   }
 }

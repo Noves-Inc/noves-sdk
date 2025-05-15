@@ -290,11 +290,22 @@ export interface Pricing {
         name: string | null;
     };
     price: {
-        amount: number | null;
+        amount: string | null;
         currency: string | null;
         status: string | null;
     };
-    pricedBy: string | null;
+    pricedBy: {
+        poolAddress: string;
+        exchange: {
+            name: string;
+        };
+        liquidity: number;
+        baseToken: {
+            address: string;
+            symbol: string;
+            name: string;
+        };
+    } | string | null;
     priceType: string | null;
     priceStatus: string | null;
 }

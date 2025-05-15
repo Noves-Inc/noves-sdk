@@ -5,7 +5,7 @@ import { TranslateCOSMOS } from './translate/translateCOSMOS';
 import { TranslateTVM } from './translate/translateTVM';
 import { TranslatePOLKADOT } from './translate/translatePOLKADOT';
 
-import { PricingEVM } from './pricing/pricingEVM';
+import { PricingEVM, PriceType } from './pricing/pricingEVM';
 import { PricingMove } from './pricing/pricingMove';
 import { PricingCosmos } from './pricing/pricingCosmos';
 
@@ -85,3 +85,4 @@ export const Pricing = {
 };
 
 export * from "./types/types"
+export { PriceType }

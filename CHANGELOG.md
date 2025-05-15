@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.13] - 2025-05-15
+
+### Added
+- Enhanced EVM Pricing API coverage:
+    - New `PriceType` enum for standardized price type selection
+    - Added comprehensive interfaces for token prefetch requests and responses
+    - New documentation file for EVM Pricing API
+    - New examples directory with EVM Pricing usage examples
+    - Enhanced type definitions for pricing responses
+
+### Changed
+- Enhanced EVM Pricing API implementation:
+    - Improved price type handling with default to `dexHighestLiquidity`
+    - Updated `preFetchPrice` method with proper request formatting and response typing
+    - Updated the Pricing interface with more comprehensive types
+    - Improved error handling with chain name transformation
+    - Enhanced test coverage with comprehensive test cases
+
+### Fixed
+- Fixed request body structure in `preFetchPrice` method
+- Fixed response parsing for token prefetch results
+- Improved chain name handling with automatic transformation from "ethereum" to "eth"
+
+
 ## [1.0.12] - 2025-05-12
 
 ### Added
