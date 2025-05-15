@@ -33,7 +33,18 @@ describe('PricingMove', () => {
 
   describe('getChains', () => {
     it('should return a list of chains', async () => {
-      const mockChains = [{ name: 'aptos', ecosystem: 'move' }];
+      const mockChains = [
+        {
+          name: "sui",
+          ecosystem: "move",
+          nativeCoin: {
+            name: "SUI",
+            symbol: "SUI",
+            address: "SUI",
+            decimals: 9
+          }
+        }
+      ];
       mockRequest.mockResolvedValue({ response: mockChains });
 
       const result = await pricingMove.getChains();
@@ -45,10 +56,21 @@ describe('PricingMove', () => {
 
   describe('getChain', () => {
     it('should return a specific chain', async () => {
-      const mockChains = [{ name: 'aptos', ecosystem: 'move' }];
+      const mockChains = [
+        {
+          name: "sui",
+          ecosystem: "move",
+          nativeCoin: {
+            name: "SUI",
+            symbol: "SUI",
+            address: "SUI",
+            decimals: 9
+          }
+        }
+      ];
       mockRequest.mockResolvedValue({ response: mockChains });
 
-      const result = await pricingMove.getChain('aptos');
+      const result = await pricingMove.getChain('sui');
 
       expect(result).toEqual(mockChains[0]);
       expect(mockRequest).toHaveBeenCalledWith('chains');
@@ -61,5 +83,38 @@ describe('PricingMove', () => {
     });
   });
 
-  // Add more tests for getPriceFromPool method
+  describe('getPriceFromPool', () => {
+    it('should get price from pool', async () => {
+      const mockPrice = {
+        chain: "sui",
+        exchange: { name: "Aftermath Finance" },
+        poolAddress: "0xdeacf7ab460385d4bcb567f183f916367f7d43666a2c72323013822eb3c57026",
+        baseToken: {
+          address: "0x2::sui::SUI",
+          symbol: "SUI",
+          name: "Sui",
+          decimals: 9
+        },
+        quoteToken: {
+          address: "0xce7ff77a83ea0cb6fd39bd8748e2ec89a3f41e8efdc3f4eb123e0ca37b184db2::buck::BUCK",
+          symbol: "BUCK",
+          name: "Bucket USD",
+          decimals: 9
+        },
+        price: { amount: "3.857618395" }
+      };
+      mockRequest.mockResolvedValue({ response: mockPrice });
+
+      const result = await pricingMove.getPriceFromPool(
+        'sui',
+        '0xdeacf7ab460385d4bcb567f183f916367f7d43666a2c72323013822eb3c57026',
+        '0x2::sui::SUI'
+      );
+
+      expect(result).toEqual(mockPrice);
+      expect(mockRequest).toHaveBeenCalledWith(
+        'sui/priceFromPool/0xdeacf7ab460385d4bcb567f183f916367f7d43666a2c72323013822eb3c57026/0x2::sui::SUI'
+      );
+    });
+  });
 });

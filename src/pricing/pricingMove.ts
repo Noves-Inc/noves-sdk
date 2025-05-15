@@ -7,7 +7,7 @@ import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 const ECOSYSTEM = 'move';
 
 /**
- * Class representing the Cosmos pricing module.
+ * Class representing the Move pricing module.
  */
 export class PricingMove {
   private request: ReturnType<typeof createPricingClient>;
@@ -55,7 +55,7 @@ export class PricingMove {
    * @param {string} chain - The name of the chain to retrieve pricing for.
    * @param {string} poolAddress - The address of the pool to retrieve pricing for.
    * @param {string} baseTokenAddress - The address of the base token to retrieve pricing for.
-   * @returns {Promise<Pricing>} A promise that resolves to the pricing object.
+   * @returns {Promise<PoolPricing>} A promise that resolves to the pricing object.
    */
   public async getPriceFromPool(
     chain: string,

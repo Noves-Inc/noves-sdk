@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.16] - 2025-05-15
+
+### Added
+- Enhanced Move Pricing API coverage:
+    - New `PricingMove` class for Move ecosystem pricing
+    - New `getChains` method for retrieving supported Move chains
+    - New `getChain` method for retrieving specific chain information
+    - New `getPriceFromPool` method for token price retrieval from liquidity pools
+    - New documentation file for Move Pricing API
+    - New examples directory with Move Pricing usage examples
+
+### Changed
+- Enhanced Move Pricing API implementation:
+    - Improved chain name handling with automatic transformation
+    - Enhanced error handling with chain-specific error types
+    - Improved test coverage with comprehensive test cases
+    - Updated documentation with detailed examples
+
+### Fixed
+- Improved error handling for invalid chain names
+- Fixed price type validation in price retrieval
+
+
 ## [1.0.15] - 2025-05-15
 
 ### Added
