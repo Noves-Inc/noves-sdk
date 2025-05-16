@@ -333,7 +333,7 @@ export class TranslateEVM extends BaseTranslate {
       const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
       const endpoint = `${validatedChain}/tx/${txHash}${v5Format ? '?v5Format=true' : ''}`;
       const result = await this.makeRequest(endpoint);
-      if (!this.validateResponse(result, ['hash', 'from', 'to'])) {
+      if (!this.validateResponse(result, ['txTypeVersion', 'chain', 'accountAddress', 'classificationData', 'rawTransactionData'])) {
         throw new TransactionError({ message: ['Invalid transaction response format'] });
       }
       return result;

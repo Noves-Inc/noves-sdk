@@ -145,7 +145,29 @@ async function evmTranslateExample() {
     const txHash = "0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22";
     console.log("\nFetching transaction details...");
     const txDetails = await evmTranslate.getTransaction("eth", txHash);
-    console.log("Transaction details:", txDetails);
+    console.log("Transaction details:", {
+      txTypeVersion: txDetails.txTypeVersion,
+      chain: txDetails.chain,
+      accountAddress: txDetails.accountAddress,
+      classificationData: {
+        type: txDetails.classificationData.type,
+        description: txDetails.classificationData.description,
+        protocol: txDetails.classificationData.protocol,
+        sent: txDetails.classificationData.sent,
+        received: txDetails.classificationData.received
+      },
+      rawTransactionData: {
+        transactionHash: txDetails.rawTransactionData.transactionHash,
+        fromAddress: txDetails.rawTransactionData.fromAddress,
+        toAddress: txDetails.rawTransactionData.toAddress,
+        blockNumber: txDetails.rawTransactionData.blockNumber,
+        gas: txDetails.rawTransactionData.gas,
+        gasUsed: txDetails.rawTransactionData.gasUsed,
+        gasPrice: txDetails.rawTransactionData.gasPrice,
+        transactionFee: txDetails.rawTransactionData.transactionFee,
+        timestamp: txDetails.rawTransactionData.timestamp
+      }
+    });
 
     // 3. Get transaction descriptions for multiple transactions
     console.log("\nFetching descriptions for multiple transactions...");

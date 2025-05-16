@@ -86,48 +86,116 @@ describe('TranslateEVM', () => {
   describe('getTransaction', () => {
     it('should get transaction details', async () => {
       mockRequest.mockResolvedValue({
-        hash: validTxHash,
-        from: validAddress,
-        to: validAddress,
-        txTypeVersion: 1,
+        txTypeVersion: 2,
         chain: validChain,
         accountAddress: validAddress,
-        classificationData: {},
-        rawTransactionData: {}
+        classificationData: {
+          type: 'placeOrder',
+          source: { type: 'human' },
+          description: 'Placed a new order in a decentralized exchange.',
+          protocol: { name: null },
+          sent: [],
+          received: []
+        },
+        rawTransactionData: {
+          transactionHash: validTxHash,
+          fromAddress: validAddress,
+          toAddress: validAddress,
+          blockNumber: 12345678,
+          gas: 21000,
+          gasUsed: 21000,
+          gasPrice: 20000000000,
+          transactionFee: {
+            amount: '0.00042',
+            token: {
+              symbol: 'ETH',
+              name: 'Ethereum',
+              decimals: 18,
+              address: 'ETH'
+            }
+          },
+          timestamp: 1234567890
+        }
       });
       const tx = await translateEVM.getTransaction(validChain, validTxHash);
       expect(tx).toBeDefined();
-      expect(tx).toHaveProperty('hash');
-      expect(tx).toHaveProperty('from');
-      expect(tx).toHaveProperty('to');
       expect(tx).toHaveProperty('txTypeVersion');
       expect(tx).toHaveProperty('chain');
       expect(tx).toHaveProperty('accountAddress');
       expect(tx).toHaveProperty('classificationData');
       expect(tx).toHaveProperty('rawTransactionData');
+      expect(tx.classificationData).toHaveProperty('type');
+      expect(tx.classificationData).toHaveProperty('source');
+      expect(tx.classificationData).toHaveProperty('description');
+      expect(tx.classificationData).toHaveProperty('protocol');
+      expect(tx.classificationData).toHaveProperty('sent');
+      expect(tx.classificationData).toHaveProperty('received');
+      expect(tx.rawTransactionData).toHaveProperty('transactionHash');
+      expect(tx.rawTransactionData).toHaveProperty('fromAddress');
+      expect(tx.rawTransactionData).toHaveProperty('toAddress');
+      expect(tx.rawTransactionData).toHaveProperty('blockNumber');
+      expect(tx.rawTransactionData).toHaveProperty('gas');
+      expect(tx.rawTransactionData).toHaveProperty('gasUsed');
+      expect(tx.rawTransactionData).toHaveProperty('gasPrice');
+      expect(tx.rawTransactionData).toHaveProperty('transactionFee');
+      expect(tx.rawTransactionData).toHaveProperty('timestamp');
     });
 
     it('should get transaction details in v5 format', async () => {
       mockRequest.mockResolvedValue({
-        hash: validTxHash,
-        from: validAddress,
-        to: validAddress,
         txTypeVersion: 5,
         chain: validChain,
         accountAddress: validAddress,
-        classificationData: {},
-        rawTransactionData: {}
+        classificationData: {
+          type: 'placeOrder',
+          source: { type: 'human' },
+          description: 'Placed a new order in a decentralized exchange.',
+          protocol: { name: null },
+          sent: [],
+          received: []
+        },
+        rawTransactionData: {
+          transactionHash: validTxHash,
+          fromAddress: validAddress,
+          toAddress: validAddress,
+          blockNumber: 12345678,
+          gas: 21000,
+          gasUsed: 21000,
+          gasPrice: 20000000000,
+          transactionFee: {
+            amount: '0.00042',
+            token: {
+              symbol: 'ETH',
+              name: 'Ethereum',
+              decimals: 18,
+              address: 'ETH'
+            }
+          },
+          timestamp: 1234567890
+        }
       });
       const tx = await translateEVM.getTransaction(validChain, validTxHash, true);
       expect(tx).toBeDefined();
-      expect(tx).toHaveProperty('hash');
-      expect(tx).toHaveProperty('from');
-      expect(tx).toHaveProperty('to');
       expect(tx).toHaveProperty('txTypeVersion');
       expect(tx).toHaveProperty('chain');
       expect(tx).toHaveProperty('accountAddress');
       expect(tx).toHaveProperty('classificationData');
       expect(tx).toHaveProperty('rawTransactionData');
+      expect(tx.classificationData).toHaveProperty('type');
+      expect(tx.classificationData).toHaveProperty('source');
+      expect(tx.classificationData).toHaveProperty('description');
+      expect(tx.classificationData).toHaveProperty('protocol');
+      expect(tx.classificationData).toHaveProperty('sent');
+      expect(tx.classificationData).toHaveProperty('received');
+      expect(tx.rawTransactionData).toHaveProperty('transactionHash');
+      expect(tx.rawTransactionData).toHaveProperty('fromAddress');
+      expect(tx.rawTransactionData).toHaveProperty('toAddress');
+      expect(tx.rawTransactionData).toHaveProperty('blockNumber');
+      expect(tx.rawTransactionData).toHaveProperty('gas');
+      expect(tx.rawTransactionData).toHaveProperty('gasUsed');
+      expect(tx.rawTransactionData).toHaveProperty('gasPrice');
+      expect(tx.rawTransactionData).toHaveProperty('transactionFee');
+      expect(tx.rawTransactionData).toHaveProperty('timestamp');
     });
 
     it('should handle invalid hash', async () => {

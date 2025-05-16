@@ -50,6 +50,44 @@ const txInfoV5 = await evmTranslate.getTransaction(
   "0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22",
   true
 );
+
+// Example response:
+{
+  txTypeVersion: 2,
+  chain: "eth",
+  accountAddress: "0x123...",
+  classificationData: {
+    type: "placeOrder",
+    source: {
+      type: "human"
+    },
+    description: "Placed a new order in a decentralized exchange.",
+    protocol: {
+      name: null
+    },
+    sent: [],
+    received: []
+  },
+  rawTransactionData: {
+    transactionHash: "0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22",
+    fromAddress: "0x123...",
+    toAddress: "0x456...",
+    blockNumber: 12345678,
+    gas: 21000,
+    gasUsed: 21000,
+    gasPrice: 20000000000,
+    transactionFee: {
+      amount: "0.00042",
+      token: {
+        symbol: "ETH",
+        name: "Ethereum",
+        decimals: 18,
+        address: "ETH"
+      }
+    },
+    timestamp: 1234567890
+  }
+}
 ```
 
 ### describeTransaction(chain: string, txHash: string, viewAsAccountAddress?: string)

@@ -119,9 +119,15 @@ export interface Transaction {
         received: any[];
     };
     rawTransactionData: {
+        transactionHash: string;
         fromAddress: string;
         toAddress: string;
+        blockNumber: number;
+        gas: number;
         gasUsed: number;
+        gasPrice: number;
+        transactionFee: number;
+        timestamp: number;
     };
 }
 
