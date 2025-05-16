@@ -94,3 +94,4 @@ export const Pricing = {
 
 export * from "./types/types"
 export { PriceType }
+export { shortenAddress } from './utils/addressUtils';
