@@ -98,6 +98,13 @@ interface SPLAccounts {
 }
 
 /**
+ * Interface representing the SVM token balances response
+ */
+interface SVMBalancesResponse {
+  balances: SVMTokenBalance[];
+}
+
+/**
  * Class representing the SVM translation module.
  */
 export class TranslateSVM extends BaseTranslate {
@@ -341,7 +348,7 @@ export class TranslateSVM extends BaseTranslate {
    * @param {string} accountAddress - The account address.
    * @param {boolean} [includePrices=true] - Optional. Whether to include token prices in the response.
    * @param {boolean} [excludeZeroPrices=false] - Optional. Whether to exclude tokens with zero price.
-   * @returns {Promise<SVMTokenBalance[]>} A promise that resolves to the balances data.
+   * @returns {Promise<SVMBalancesResponse>} A promise that resolves to the balances data.
    * @throws {TransactionError} If there are validation errors in the request.
    */
   public async getTokenBalances(
@@ -354,6 +361,21 @@ export class TranslateSVM extends BaseTranslate {
       const endpoint = `${chain}/tokenBalances/${accountAddress}`;
       const url = constructUrl(endpoint, { includePrices, excludeZeroPrices });
       const result = await this.makeRequest(url);
+      
+      if (!Array.isArray(result)) {
+        throw new TransactionError({ message: ['Invalid response format'] });
+      }
+      
+      // Validate each token balance in the array
+      for (const balance of result) {
+        if (!this.validateResponse(balance, ['balance', 'token'])) {
+          throw new TransactionError({ message: ['Invalid token balance format'] });
+        }
+        if (!this.validateResponse(balance.token, ['symbol', 'name', 'decimals', 'address'])) {
+          throw new TransactionError({ message: ['Invalid token format'] });
+        }
+      }
+      
       return result;
     } catch (error) {
       if (error instanceof TransactionError) {

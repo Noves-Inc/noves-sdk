@@ -193,6 +193,7 @@ export interface Token {
     decimals: number;
     address: string;
     price?: string | null;
+    icon?: string | null;
 }
 
 export interface Nft {
@@ -236,14 +237,11 @@ export interface DescribeTransaction {
 
 export interface BalancesData {
     balance: string;
+    usdValue?: string | null;
     token: Token;
 }
 
-export interface BalancesResponse {
-    accountAddress: string;
-    balances: BalancesData[];
-    timestamp: number;
-}
+export interface BalancesResponse extends Array<BalancesData> {}
 
 /**
  * The unsigned transaction object, modeled after the standard format used by multiple EVM wallets.
@@ -351,22 +349,20 @@ export interface TransactionTypes {
  * Interface representing a Cosmos token balance
  */
 export interface CosmosTokenBalance {
+  balance: string;
   token: {
     symbol: string;
     name: string;
     decimals: number;
     address: string;
+    icon: string | null;
   };
-  balance: string;
 }
 
 /**
  * Interface representing a Cosmos balances response
  */
-export interface CosmosBalancesResponse {
-  accountAddress: string;
-  balances: CosmosTokenBalance[];
-}
+export interface CosmosBalancesResponse extends Array<CosmosTokenBalance> {}
 
 /**
  * Interface representing a Cosmos transaction job
@@ -438,13 +434,13 @@ export interface TokenTransfer {
  */
 export interface SVMTokenBalance {
   balance: string;
-  usdValue: string;
+  usdValue: string | null;
   token: {
     symbol: string;
     name: string;
     decimals: number;
     address: string;
-    price: string;
+    price: string | null;
   };
 }
 
@@ -889,3 +885,8 @@ export interface PolkadotStakingRewardsResponse {
     nextPageUrl: string | null;
   };
 }
+
+/**
+ * Interface representing SVM balances response
+ */
+export interface SVMBalancesResponse extends Array<SVMTokenBalance> {}

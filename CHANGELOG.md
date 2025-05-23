@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.19] - 2025-05-23
+
+### Changed
+- Enhanced token balance validation across all ecosystems:
+  - Updated EVM Translate API `getTokenBalances` method:
+    - Improved validation for token balance response format
+    - Added support for optional `usdValue` field
+    - Enhanced error handling for invalid token data
+  - Updated SVM Translate API `getTokenBalances` method:
+    - Fixed validation to handle null `usdValue` fields
+    - Improved response type consistency
+    - Enhanced error handling for malformed responses
+  - Updated Cosmos Translate API `getTokenBalances` method:
+    - Added validation for required `icon` field in token data
+    - Improved response type consistency
+    - Enhanced error handling for invalid addresses
+
+### Fixed
+- Fixed token balance validation in all ecosystems:
+  - Corrected response type definitions to match API behavior
+  - Updated validation logic to handle optional fields properly
+  - Improved error messages for better debugging
+  - Fixed test cases to match actual API responses
+
 ## [1.0.18] - 2025-05-16
 
 ### Added

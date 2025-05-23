@@ -389,12 +389,30 @@ export class TranslateEVM extends BaseTranslate {
         if (!Array.isArray(result)) {
           throw new TransactionError({ message: ['Invalid response format'] });
         }
+        // Validate each token balance in the array
+        for (const balance of result) {
+          if (!this.validateResponse(balance, ['balance', 'token'])) {
+            throw new TransactionError({ message: ['Invalid token balance format'] });
+          }
+          if (!this.validateResponse(balance.token, ['symbol', 'name', 'decimals', 'address'])) {
+            throw new TransactionError({ message: ['Invalid token format'] });
+          }
+        }
         return result;
       }
 
       const result = await this.makeRequest(endpoint);
       if (!Array.isArray(result)) {
         throw new TransactionError({ message: ['Invalid response format'] });
+      }
+      // Validate each token balance in the array
+      for (const balance of result) {
+        if (!this.validateResponse(balance, ['balance', 'token'])) {
+          throw new TransactionError({ message: ['Invalid token balance format'] });
+        }
+        if (!this.validateResponse(balance.token, ['symbol', 'name', 'decimals', 'address'])) {
+          throw new TransactionError({ message: ['Invalid token format'] });
+        }
       }
       return result;
     } catch (error) {

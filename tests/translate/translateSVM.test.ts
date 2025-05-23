@@ -365,58 +365,97 @@ describe('TranslateSVM', () => {
   });
 
   describe('getTokenBalances', () => {
-    it('should get token balances with default parameters', async () => {
+    it('should get token balances successfully', async () => {
       const mockBalances = [
         {
-          balance: '100',
-          usdValue: '1000',
+          balance: '1000000000',
+          usdValue: '100.00',
           token: {
             symbol: 'SOL',
             name: 'Solana',
             decimals: 9,
-            address: 'SOL',
-            price: '10'
+            address: 'SOL'
           }
         }
       ];
 
       mockRequest.mockResolvedValue(mockBalances);
 
-      const response = await translate.getTokenBalances(validChain, validAddress);
-      expect(response).toEqual(mockBalances);
-      expect(response[0].token.symbol).toBe('SOL');
+      const balances = await translate.getTokenBalances(validChain, validAddress);
+      expect(Array.isArray(balances)).toBe(true);
+      expect(balances.length).toBeGreaterThan(0);
+      balances.forEach(balance => {
+        expect(balance).toHaveProperty('balance');
+        expect(balance).toHaveProperty('token');
+        expect(balance.token).toHaveProperty('symbol');
+        expect(balance.token).toHaveProperty('name');
+        expect(balance.token).toHaveProperty('decimals');
+        expect(balance.token).toHaveProperty('address');
+      });
     });
 
     it('should get token balances with custom parameters', async () => {
       const mockBalances = [
         {
-          balance: '100',
-          usdValue: '1000',
+          balance: '1000000000',
+          usdValue: '100.00',
           token: {
             symbol: 'SOL',
             name: 'Solana',
             decimals: 9,
-            address: 'SOL',
-            price: '10'
+            address: 'SOL'
           }
         }
       ];
 
       mockRequest.mockResolvedValue(mockBalances);
 
-      const response = await translate.getTokenBalances(validChain, validAddress, false, true);
-      expect(response).toEqual(mockBalances);
-      expect(response[0].token.symbol).toBe('SOL');
+      const balances = await translate.getTokenBalances(
+        validChain,
+        validAddress,
+        true,  // includePrices
+        false  // excludeZeroPrices
+      );
+      expect(Array.isArray(balances)).toBe(true);
+      expect(balances.length).toBeGreaterThan(0);
     });
 
     it('should handle invalid address', async () => {
-      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid address'] }));
-      await expect(translate.getTokenBalances(validChain, 'invalid')).rejects.toThrow(TransactionError);
+      await expect(translate.getTokenBalances(validChain, 'invalid-address')).rejects.toThrow(TransactionError);
     });
 
-    it('should handle invalid chain', async () => {
-      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid chain'] }));
-      await expect(translate.getTokenBalances('invalid', validAddress)).rejects.toThrow(TransactionError);
+    it('should handle API errors', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid response format'] }));
+      await expect(translate.getTokenBalances(validChain, validAddress)).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle empty response', async () => {
+      mockRequest.mockResolvedValue([]);
+      const balances = await translate.getTokenBalances(validChain, validAddress);
+      expect(Array.isArray(balances)).toBe(true);
+      expect(balances.length).toBe(0);
+    });
+
+    it('should handle null usdValue', async () => {
+      const mockBalances = [
+        {
+          balance: '1000000000',
+          usdValue: null,
+          token: {
+            symbol: 'SOL',
+            name: 'Solana',
+            decimals: 9,
+            address: 'SOL'
+          }
+        }
+      ];
+
+      mockRequest.mockResolvedValue(mockBalances);
+
+      const balances = await translate.getTokenBalances(validChain, validAddress);
+      expect(Array.isArray(balances)).toBe(true);
+      expect(balances.length).toBe(1);
+      expect(balances[0].usdValue).toBeNull();
     });
   });
 

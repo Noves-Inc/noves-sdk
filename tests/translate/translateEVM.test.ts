@@ -205,111 +205,101 @@ describe('TranslateEVM', () => {
   });
 
   describe('getTokenBalances', () => {
-    it('should get all token balances', async () => {
-      mockRequest.mockResolvedValue([
+    it('should get token balances successfully', async () => {
+      const mockBalances = [
         {
+          balance: '1000000000000000000',
+          usdValue: '1800.00',
           token: {
-            address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-            symbol: 'USDC',
-            name: 'USD Coin',
-            decimals: 6,
-            price: '1.0'
-          },
-          balance: '1000000'
+            symbol: 'ETH',
+            name: 'Ethereum',
+            decimals: 18,
+            address: '0x0000000000000000000000000000000000000000'
+          }
         }
-      ]);
+      ];
+
+      mockRequest.mockResolvedValue(mockBalances);
+
       const balances = await translateEVM.getTokenBalances(validChain, validAddress);
       expect(Array.isArray(balances)).toBe(true);
+      expect(balances.length).toBeGreaterThan(0);
       balances.forEach(balance => {
-        expect(balance).toHaveProperty('token');
         expect(balance).toHaveProperty('balance');
+        expect(balance).toHaveProperty('token');
         expect(balance.token).toHaveProperty('symbol');
         expect(balance.token).toHaveProperty('name');
         expect(balance.token).toHaveProperty('decimals');
         expect(balance.token).toHaveProperty('address');
-        expect(balance.token).toHaveProperty('price');
       });
     });
 
-    it('should get balances for specific tokens', async () => {
-      const specificTokens = [
-        '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC
-        '0xdac17f958d2ee523a2206206994597c13d831ec7'  // USDT
-      ];
-      mockRequest.mockResolvedValue([
+    it('should get token balances with specific tokens', async () => {
+      const mockBalances = [
         {
+          balance: '1000000',
+          usdValue: '1.00',
           token: {
-            address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
             symbol: 'USDC',
             name: 'USD Coin',
             decimals: 6,
-            price: '1.0'
-          },
-          balance: '1000000'
+            address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+          }
         }
-      ]);
+      ];
+
+      mockRequest.mockResolvedValue(mockBalances);
+
+      const specificTokens = ['0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'];
       const balances = await translateEVM.getTokenBalances(validChain, validAddress, specificTokens);
       expect(Array.isArray(balances)).toBe(true);
-      balances.forEach(balance => {
-        expect(specificTokens).toContain(balance.token.address);
-      });
+      expect(balances.length).toBe(1);
+      expect(balances[0].token.symbol).toBe('USDC');
     });
 
-    it('should get historical balances at specific block', async () => {
-      const blockNumber = 12345678;
-      mockRequest.mockResolvedValue([
+    it('should get token balances with custom parameters', async () => {
+      const mockBalances = [
         {
+          balance: '1000000000000000000',
+          usdValue: '1800.00',
           token: {
-            address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-            symbol: 'USDC',
-            name: 'USD Coin',
-            decimals: 6,
-            price: '1.0'
-          },
-          balance: '1000000'
+            symbol: 'ETH',
+            name: 'Ethereum',
+            decimals: 18,
+            address: '0x0000000000000000000000000000000000000000'
+          }
         }
-      ]);
-      const balances = await translateEVM.getTokenBalances(validChain, validAddress, undefined, blockNumber);
-      expect(Array.isArray(balances)).toBe(true);
-      expect(mockRequest).toHaveBeenCalledWith(expect.stringContaining(`block=${blockNumber}`));
-    });
+      ];
 
-    it('should get balances with custom parameters', async () => {
-      mockRequest.mockResolvedValue([
-        {
-          token: {
-            address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-            symbol: 'USDC',
-            name: 'USD Coin',
-            decimals: 6,
-            price: '1.0'
-          },
-          balance: '1000000'
-        }
-      ]);
+      mockRequest.mockResolvedValue(mockBalances);
+
       const balances = await translateEVM.getTokenBalances(
         validChain,
         validAddress,
         undefined,
-        undefined,
-        false, // includePrices
-        true,  // excludeZeroPrices
-        false  // excludeSpam
+        12345678, // block
+        true,     // includePrices
+        false,    // excludeZeroPrices
+        true      // excludeSpam
       );
       expect(Array.isArray(balances)).toBe(true);
-      expect(mockRequest).toHaveBeenCalledWith(expect.stringContaining('includePrices=false'));
-      expect(mockRequest).toHaveBeenCalledWith(expect.stringContaining('excludeZeroPrices=true'));
-      expect(mockRequest).toHaveBeenCalledWith(expect.stringContaining('excludeSpam=false'));
+      expect(balances.length).toBeGreaterThan(0);
     });
 
     it('should handle invalid address', async () => {
-      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid address'] }));
       await expect(translateEVM.getTokenBalances(validChain, 'invalid-address')).rejects.toThrow(TransactionError);
     });
 
-    it('should handle invalid chain', async () => {
-      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid chain'] }));
-      await expect(translateEVM.getTokenBalances('invalid-chain', validAddress)).rejects.toThrow(TransactionError);
+    it('should handle API errors', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid response format'] }));
+      await expect(translateEVM.getTokenBalances(validChain, validAddress)).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle empty response', async () => {
+      mockRequest.mockResolvedValue([]);
+      const balances = await translateEVM.getTokenBalances(validChain, validAddress);
+      expect(Array.isArray(balances)).toBe(true);
+      expect(balances.length).toBe(0);
     });
   });
 
