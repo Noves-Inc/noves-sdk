@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.20] - 2025-05-26
+
+### Changed
+- Updated transaction format handling in Translate API:
+  - Modified EVM Translate API `Transactions` method:
+    - Changed format handling to use `v5Format` boolean parameter
+  - Modified SVM Translate API `Transactions` method:
+    - Removed format parameter as it's not supported by the API
+  - Updated `PageOptions` interface:
+    - Replaced `format` option with `v5Format` boolean for EVM chains
+    - Updated documentation to reflect correct API behavior
+- Enhanced type safety in pagination:
+  - Made `getNextPageKeys()` return type explicit as `PageOptions | null` in all pagination classes
+  - Updated documentation to clearly indicate possible return values
+  - Improved type consistency across `Pagination`, `TransactionsPage`, and `HistoryPage` classes
+
 ## [1.0.19] - 2025-05-23
 
 ### Changed

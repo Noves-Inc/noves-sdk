@@ -618,7 +618,8 @@ describe('TranslateEVM', () => {
       mockRequest.mockResolvedValue({
         items: [],
         hasNextPage: false,
-        nextPageUrl: null
+        nextPageUrl: null,
+        pageSize: 10
       });
       const result = await translateEVM.Transactions(validChain, validAddress, pageOptions);
       expect(result).toBeInstanceOf(TransactionsPage);
@@ -628,7 +629,8 @@ describe('TranslateEVM', () => {
       mockRequest.mockResolvedValue({
         items: [],
         hasNextPage: true,
-        nextPageUrl: 'https://api.example.com/next-page'
+        nextPageUrl: 'https://api.example.com/next-page',
+        pageSize: 5
       });
       const result = await translateEVM.Transactions(validChain, validAddress, { pageSize: 5 });
       expect(result).toBeInstanceOf(TransactionsPage);
@@ -638,7 +640,8 @@ describe('TranslateEVM', () => {
       mockRequest.mockResolvedValue({
         items: [],
         hasNextPage: false,
-        nextPageUrl: null
+        nextPageUrl: null,
+        pageSize: 10
       });
       const options: PageOptions = {
         pageSize: 10,

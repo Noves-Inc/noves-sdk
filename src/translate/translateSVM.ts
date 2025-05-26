@@ -171,7 +171,7 @@ export class TranslateSVM extends BaseTranslate {
    */
   public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<SolanaTransaction>> {
     try {
-      const endpoint = `${chain}/txs/v5/${accountAddress}`;
+      const endpoint = `${chain}/txs/${accountAddress}`;
       const url = constructUrl(endpoint, pageOptions);
       const result = await this.makeRequest(url);
 
@@ -358,7 +358,7 @@ export class TranslateSVM extends BaseTranslate {
     excludeZeroPrices: boolean = false
   ): Promise<SVMTokenBalance[]> {
     try {
-      const endpoint = `${chain}/tokenBalances/${accountAddress}`;
+      const endpoint = `${chain}/token/balancesOf/${accountAddress}`;
       const url = constructUrl(endpoint, { includePrices, excludeZeroPrices });
       const result = await this.makeRequest(url);
       

@@ -30,6 +30,7 @@ export interface Chain {
  * @property ignoreTransactions - The transaction used for starting the next page.
  * @property pageNumber - The page number to retrieve. This will not work on EVM chains.
  * @property pagesize - The number of transactions to retrieve per page. Defaults to 10. EVM max size is 50. SVM and UTXO is 100.
+ * @property format - The response format version to use. Valid options are 'v4', 'v5'. Defaults to 'v4'.
  */
 export interface PageOptions {
     /**
@@ -102,6 +103,12 @@ export interface PageOptions {
      * Whether to exclude tokens with zero prices. (Optional)
      */
     excludeZeroPrices?: boolean;
+
+    /**
+     * Whether to use v5 format for transaction responses. (Optional)
+     * Only applicable for EVM chains. Defaults to false (v2 format).
+     */
+    v5Format?: boolean;
 }
 
 export interface Transaction {

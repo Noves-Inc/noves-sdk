@@ -33,7 +33,9 @@ export function createTranslateClient(ecosystem: string, apiKey: string) {
     method: string = 'GET',
     options: RequestInit = {}
   ): Promise<ApiResponse> {
-    const response = await retryFetch(`${TRANSLATE_URL}/${ecosystem}/${endpoint}`, {
+    const url = `${TRANSLATE_URL}/${ecosystem}/${endpoint}`;
+    
+    const response = await retryFetch(url, {
       ...options,
       method,
       headers: {
@@ -70,7 +72,6 @@ export function createTranslateClient(ecosystem: string, apiKey: string) {
       };
     }
 
-    // Handle error responses
     if (!response.ok) {
       return {
         succeeded: false,

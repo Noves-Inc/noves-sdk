@@ -63,7 +63,6 @@ export abstract class BaseTranslate {
       return Array.isArray(result.response) ? [] : {};
     }
 
-    // Return the response data
     return result.response;
   }
 

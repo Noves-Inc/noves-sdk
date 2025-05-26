@@ -370,7 +370,7 @@ export class TranslateEVM extends BaseTranslate {
   ): Promise<BalancesData[]> {
     try {
       const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
-      let endpoint = `${validatedChain}/balances/${accountAddress}`;
+      let endpoint = `${validatedChain}/token/balancesOf/${accountAddress}`;
       
       const queryParams = new URLSearchParams();
       if (block) queryParams.append('block', block.toString());
@@ -433,20 +433,36 @@ export class TranslateEVM extends BaseTranslate {
   public async Transactions(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<Transaction>> {
     try {
       const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
+      // Use the base endpoint without format in the path
       const endpoint = `${validatedChain}/txs/${walletAddress}`;
       const url = constructUrl(endpoint, pageOptions);
       const result = await this.makeRequest(url);
 
-      if (!this.validateResponse(result, ['items', 'hasNextPage'])) {
-        throw new TransactionError({ message: ['Invalid response format'] });
+      // The response is already unwrapped by makeRequest, so we can validate it directly
+      if (!result) {
+        throw new TransactionError({ message: ['Empty response from API'] });
       }
+
+      // Validate required fields
+      if (!Array.isArray(result.items)) {
+        throw new TransactionError({ message: ['Invalid items array in response'] });
+      }
+
+      if (typeof result.hasNextPage !== 'boolean') {
+        throw new TransactionError({ message: ['Invalid hasNextPage value in response'] });
+      }
+
+      // Make pageSize optional and handle both string and number types
+      const pageSize = result.pageSize !== undefined ? 
+        (typeof result.pageSize === 'string' ? parseInt(result.pageSize, 10) : result.pageSize) : 
+        10; // Default to 10 if not provided
 
       const initialData = {
         chain: chain,
         walletAddress: walletAddress,
         transactions: result.items,
         currentPageKeys: pageOptions,
-        nextPageKeys: result.hasNextPage ? parseUrl(result.nextPageUrl) : null,
+        nextPageKeys: result.hasNextPage && result.nextPageUrl ? parseUrl(result.nextPageUrl) : null,
       };
       return new TransactionsPage(this, initialData);
     } catch (error) {

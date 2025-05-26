@@ -28,6 +28,14 @@ export class TransactionsPage<T> extends Pagination<T> {
   }
 
   /**
+   * Get the next page keys.
+   * @returns {PageOptions | null} The next page keys or null if there is no next page.
+   */
+  public getNextPageKeys(): PageOptions | null {
+    return this.nextPageKeys;
+  }
+
+  /**
    * Fetch the next page of transactions and update internal state.
    * @returns {Promise<boolean>} A promise that resolves to true if the next page was fetched successfully, false otherwise.
    */
