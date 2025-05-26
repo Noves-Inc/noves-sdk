@@ -3,7 +3,7 @@
 import { Chain, PageOptions, TransactionTypes, EVMTransactionJob, EVMTransactionJobResponse, DeleteTransactionJobResponse, SVMTokenBalance, TransactionCountResponse, SVMStakingTransactionsResponse, SVMStakingEpochResponse } from '../types/types';
 import { createTranslateClient } from '../utils/apiUtils';
 import { TransactionError } from '../errors/TransactionError';
-import { TransactionsPage } from './transactionsPage';
+import { TransactionsPage, PaginatedItem } from './transactionsPage';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
 import { BaseTranslate } from './baseTranslate';
 
@@ -75,7 +75,7 @@ interface Source {
 /**
  * Interface representing a Solana transaction response
  */
-export interface SolanaTransaction {
+export interface SolanaTransaction extends PaginatedItem {
   txTypeVersion: number;
   source: Source;
   timestamp: number;
@@ -171,7 +171,9 @@ export class TranslateSVM extends BaseTranslate {
    */
   public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<SolanaTransaction>> {
     try {
-      const endpoint = `${chain}/txs/${accountAddress}`;
+      // Use v4 format if specified, otherwise default to v5
+      const format = pageOptions.v5Format === false ? 'v4' : 'v5';
+      const endpoint = `${chain}/txs/${format}/${accountAddress}`;
       const url = constructUrl(endpoint, pageOptions);
       const result = await this.makeRequest(url);
 

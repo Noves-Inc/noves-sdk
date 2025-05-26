@@ -1,6 +1,6 @@
 // src/translate/translateEVM.ts
 
-import { BalancesData, Chain, DescribeTransaction, HistoryData, PageOptions, Transaction, TransactionTypes, EVMTransactionJob, EVMTransactionJobResponse } from '../types/types';
+import { BalancesData, Chain, DescribeTransaction, HistoryData, PageOptions, Transaction, TransactionTypes, EVMTransactionJob, EVMTransactionJobResponse, TransactionV4, TransactionV5 } from '../types/types';
 import { TransactionsPage } from './transactionsPage';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
@@ -324,19 +324,33 @@ export class TranslateEVM extends BaseTranslate {
    * Returns all of the available transaction information for the chain and transaction hash requested.
    * @param {string} chain - The chain name.
    * @param {string} txHash - The transaction hash.
-   * @param {boolean} [v5Format=false] - Whether to return the response in v5 format.
-   * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
+   * @param {boolean} [v5Format=false] - Whether to return the response in v5 format. Defaults to false (v2 format).
+   * @returns {Promise<TransactionV4 | TransactionV5>} A promise that resolves to the transaction details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTransaction(chain: string, txHash: string, v5Format: boolean = false): Promise<Transaction> {
+  public async getTransaction(chain: string, txHash: string, v5Format: boolean = false): Promise<TransactionV4 | TransactionV5> {
     try {
       const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
       const endpoint = `${validatedChain}/tx/${txHash}${v5Format ? '?v5Format=true' : ''}`;
       const result = await this.makeRequest(endpoint);
-      if (!this.validateResponse(result, ['txTypeVersion', 'chain', 'accountAddress', 'classificationData', 'rawTransactionData'])) {
-        throw new TransactionError({ message: ['Invalid transaction response format'] });
+      
+      if (v5Format) {
+        if (!this.validateResponse(result, ['txTypeVersion', 'chain', 'accountAddress', 'classificationData', 'rawTransactionData'])) {
+          throw new TransactionError({ message: ['Invalid transaction response format'] });
+        }
+        if (!this.validateResponse(result.classificationData, ['type', 'source', 'description', 'protocol', 'transfers'])) {
+          throw new TransactionError({ message: ['Invalid v5 transaction format'] });
+        }
+        return result as TransactionV5;
+      } else {
+        if (!this.validateResponse(result, ['txTypeVersion', 'chain', 'accountAddress', 'classificationData', 'rawTransactionData'])) {
+          throw new TransactionError({ message: ['Invalid transaction response format'] });
+        }
+        if (!this.validateResponse(result.classificationData, ['type', 'source', 'description', 'protocol', 'sent', 'received'])) {
+          throw new TransactionError({ message: ['Invalid v2 transaction format'] });
+        }
+        return result as TransactionV4;
       }
-      return result;
     } catch (error) {
       if (error instanceof TransactionError) {
         throw error;
@@ -428,41 +442,25 @@ export class TranslateEVM extends BaseTranslate {
    * @param {string} chain - The chain name.
    * @param {string} walletAddress - The wallet address.
    * @param {PageOptions} pageOptions - The page options object.
-   * @returns {Promise<TransactionsPage<Transaction>>} A promise that resolves to a TransactionsPage instance.
+   * @returns {Promise<TransactionsPage<TransactionV4 | TransactionV5>>} A promise that resolves to a TransactionsPage instance.
    */
-  public async Transactions(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<Transaction>> {
+  public async Transactions(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<TransactionV4 | TransactionV5>> {
     try {
       const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
-      // Use the base endpoint without format in the path
       const endpoint = `${validatedChain}/txs/${walletAddress}`;
       const url = constructUrl(endpoint, pageOptions);
       const result = await this.makeRequest(url);
 
-      // The response is already unwrapped by makeRequest, so we can validate it directly
-      if (!result) {
-        throw new TransactionError({ message: ['Empty response from API'] });
+      if (!this.validateResponse(result, ['items', 'hasNextPage'])) {
+        throw new TransactionError({ message: ['Invalid response format'] });
       }
-
-      // Validate required fields
-      if (!Array.isArray(result.items)) {
-        throw new TransactionError({ message: ['Invalid items array in response'] });
-      }
-
-      if (typeof result.hasNextPage !== 'boolean') {
-        throw new TransactionError({ message: ['Invalid hasNextPage value in response'] });
-      }
-
-      // Make pageSize optional and handle both string and number types
-      const pageSize = result.pageSize !== undefined ? 
-        (typeof result.pageSize === 'string' ? parseInt(result.pageSize, 10) : result.pageSize) : 
-        10; // Default to 10 if not provided
 
       const initialData = {
         chain: chain,
         walletAddress: walletAddress,
         transactions: result.items,
         currentPageKeys: pageOptions,
-        nextPageKeys: result.hasNextPage && result.nextPageUrl ? parseUrl(result.nextPageUrl) : null,
+        nextPageKeys: result.hasNextPage ? parseUrl(result.nextPageUrl) : null,
       };
       return new TransactionsPage(this, initialData);
     } catch (error) {
@@ -654,14 +652,14 @@ export class TranslateEVM extends BaseTranslate {
    * @param {string} chain - The chain name.
    * @param {number} blockNumber - The block number.
    * @param {PageOptions} pageOptions - The page options object.
-   * @returns {Promise<TransactionsPage<Transaction>>} A promise that resolves to a TransactionsPage instance.
+   * @returns {Promise<TransactionsPage<TransactionV4 | TransactionV5>>} A promise that resolves to a TransactionsPage instance.
    * @throws {TransactionError} If there are validation errors in the request.
    */
   public async getBlockTransactions(
     chain: string,
     blockNumber: number,
     pageOptions: PageOptions = {}
-  ): Promise<TransactionsPage<Transaction>> {
+  ): Promise<TransactionsPage<TransactionV4 | TransactionV5>> {
     try {
       const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
       const endpoint = `${validatedChain}/block/${blockNumber}/txs`;

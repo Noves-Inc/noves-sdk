@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.21] - 2025-05-26
+
+### Changed
+- Enhanced transaction format handling across Translate APIs:
+  - Updated EVM Translate API `getTransaction` method:
+    - Added support for both v4 and v5 transaction formats
+    - Improved type safety with separate `TransactionV4` and `TransactionV5` interfaces
+    - Enhanced validation for format-specific fields
+  - Updated SVM Translate API `Transactions` method:
+    - Added support for v4 and v5 format selection via `v5Format` parameter
+    - Improved endpoint construction for format-specific requests
+  - Enhanced `PageOptions` interface:
+    - Added detailed documentation for chain-specific options
+    - Clarified which options are applicable to EVM vs SVM chains
+    - Improved type safety for format-related parameters
+  - Updated test cases to match new transaction format structure
+
 ## [1.0.20] - 2025-05-26
 
 ### Changed

@@ -151,8 +151,26 @@ describe('TranslateEVM', () => {
           source: { type: 'human' },
           description: 'Placed a new order in a decentralized exchange.',
           protocol: { name: null },
-          sent: [],
-          received: []
+          transfers: [
+            {
+              action: 'sent',
+              from: {
+                name: null,
+                address: validAddress
+              },
+              to: {
+                name: null,
+                address: '0x1234567890123456789012345678901234567890'
+              },
+              amount: '1.0',
+              token: {
+                symbol: 'ETH',
+                name: 'Ethereum',
+                decimals: 18,
+                address: '0x0000000000000000000000000000000000000000'
+              }
+            }
+          ]
         },
         rawTransactionData: {
           transactionHash: validTxHash,
@@ -162,15 +180,7 @@ describe('TranslateEVM', () => {
           gas: 21000,
           gasUsed: 21000,
           gasPrice: 20000000000,
-          transactionFee: {
-            amount: '0.00042',
-            token: {
-              symbol: 'ETH',
-              name: 'Ethereum',
-              decimals: 18,
-              address: 'ETH'
-            }
-          },
+          transactionFee: 0.00042,
           timestamp: 1234567890
         }
       });
@@ -185,8 +195,7 @@ describe('TranslateEVM', () => {
       expect(tx.classificationData).toHaveProperty('source');
       expect(tx.classificationData).toHaveProperty('description');
       expect(tx.classificationData).toHaveProperty('protocol');
-      expect(tx.classificationData).toHaveProperty('sent');
-      expect(tx.classificationData).toHaveProperty('received');
+      expect(tx.classificationData).toHaveProperty('transfers');
       expect(tx.rawTransactionData).toHaveProperty('transactionHash');
       expect(tx.rawTransactionData).toHaveProperty('fromAddress');
       expect(tx.rawTransactionData).toHaveProperty('toAddress');

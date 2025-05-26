@@ -1,3 +1,5 @@
+import { PaginatedItem } from '../translate/transactionsPage';
+
 export interface ApiResponse {
     succeeded: boolean;
     response: any;
@@ -20,17 +22,28 @@ export interface Chain {
  * 
  * @interface PageOptions
  * 
- * @property startBlock - The starting block number to filter by.
- * @property endBlock - The ending block number to filter by.
- * @property startTimestamp - The starting timestamp for the transaction page in milliseconds.
- * @property endTimestamp - The ending timestamp for the transaction page in milliseconds.
- * @property sort - The sort order for the transaction page. Valid options are 'desc' (descending) or 'asc' (ascending).
- * @property viewAsAccountAddress - The account address to view transactions from.
- * @property liveData - Whether to retrieve live data or paginate through historical data. Defaults to false.
- * @property ignoreTransactions - The transaction used for starting the next page.
- * @property pageNumber - The page number to retrieve. This will not work on EVM chains.
- * @property pagesize - The number of transactions to retrieve per page. Defaults to 10. EVM max size is 50. SVM and UTXO is 100.
- * @property format - The response format version to use. Valid options are 'v4', 'v5'. Defaults to 'v4'.
+ * Common options for both EVM and SVM:
+ * @property startBlock - The starting block number to filter by. (Optional)
+ * @property endBlock - The ending block number to filter by. (Optional)
+ * @property startTimestamp - The starting timestamp for the transaction page in milliseconds. (Optional)
+ * @property endTimestamp - The ending timestamp for the transaction page in milliseconds. (Optional)
+ * @property sort - The sort order for the transaction page. Valid options are 'desc' (descending) or 'asc' (ascending). (Optional)
+ * @property viewAsAccountAddress - The account address to view transactions from. (Optional)
+ * @property pageSize - The number of transactions to retrieve per page. Defaults to 10. (Optional)
+ * 
+ * EVM-specific options:
+ * @property liveData - Whether to retrieve live data or paginate through historical data. Defaults to false. (Optional)
+ * @property ignoreTransactions - The transaction used for starting the next page. (Optional)
+ * @property viewAsTransactionSender - Whether to view transactions as the sender. (Optional)
+ * @property v5Format - Whether to use v5 format for transaction responses. Only applicable for EVM chains. Defaults to false. (Optional)
+ * 
+ * SVM-specific options:
+ * @property pageNumber - The page number to retrieve. This will not work on EVM chains. (Optional)
+ * @property page - Alias for pageNumber. This will not work on EVM chains. (Optional)
+ * 
+ * Token-related options:
+ * @property includePrices - Whether to include token prices in the response. (Optional)
+ * @property excludeZeroPrices - Whether to exclude tokens with zero prices. (Optional)
  */
 export interface PageOptions {
     /**
@@ -65,16 +78,19 @@ export interface PageOptions {
 
     /**
      * Whether to retrieve live data or paginate through historical data. Defaults to false. (Optional)
+     * Only applicable for EVM chains.
      */
     liveData?: boolean;
 
     /**
      * The transaction used for starting the next page. (Optional)
+     * Only applicable for EVM chains.
      */
     ignoreTransactions?: string;
 
     /**
      * The page number to retrieve. This will not work on EVM chains. (Optional)
+     * Only applicable for SVM chains.
      */
     pageNumber?: number;
 
@@ -86,11 +102,13 @@ export interface PageOptions {
 
     /**
      * Whether to view transactions as the sender. (Optional)
+     * Only applicable for EVM chains.
      */
     viewAsTransactionSender?: boolean;
 
     /**
      * The page number to retrieve. This will not work on EVM chains. (Optional)
+     * Alias for pageNumber. Only applicable for SVM chains.
      */
     page?: number;
 
@@ -111,7 +129,10 @@ export interface PageOptions {
     v5Format?: boolean;
 }
 
-export interface Transaction {
+/**
+ * Represents a transaction in v5 format with a combined transfers array
+ */
+export interface TransactionV5 extends PaginatedItem {
     txTypeVersion: number;
     chain: string;
     accountAddress: string;
@@ -122,8 +143,24 @@ export interface Transaction {
         };
         description: string;
         protocol: Record<string, any>;
-        sent: any[];
-        received: any[];
+        transfers: Array<{
+            action: string;
+            from: {
+                name: string | null;
+                address: string;
+            };
+            to: {
+                name: string | null;
+                address: string;
+            };
+            amount: string;
+            token: {
+                symbol: string;
+                name: string;
+                decimals: number;
+                address: string;
+            };
+        }>;
     };
     rawTransactionData: {
         transactionHash: string;
@@ -137,6 +174,75 @@ export interface Transaction {
         timestamp: number;
     };
 }
+
+/**
+ * Represents a transaction in v4 format with separate sent and received arrays
+ */
+export interface TransactionV4 extends PaginatedItem {
+    txTypeVersion: number;
+    chain: string;
+    accountAddress: string;
+    classificationData: {
+        type: string;
+        source: {
+            type: string | null;
+        };
+        description: string;
+        protocol: Record<string, any>;
+        sent: Array<{
+            action: string;
+            from: {
+                name: string | null;
+                address: string;
+            };
+            to: {
+                name: string | null;
+                address: string;
+            };
+            amount: string;
+            token: {
+                symbol: string;
+                name: string;
+                decimals: number;
+                address: string;
+            };
+        }>;
+        received: Array<{
+            action: string;
+            from: {
+                name: string | null;
+                address: string;
+            };
+            to: {
+                name: string | null;
+                address: string;
+            };
+            amount: string;
+            token: {
+                symbol: string;
+                name: string;
+                decimals: number;
+                address: string;
+            };
+        }>;
+    };
+    rawTransactionData: {
+        transactionHash: string;
+        fromAddress: string;
+        toAddress: string;
+        blockNumber: number;
+        gas: number;
+        gasUsed: number;
+        gasPrice: number;
+        transactionFee: number;
+        timestamp: number;
+    };
+}
+
+/**
+ * Represents a transaction that can be either v4 or v5 format
+ */
+export type Transaction = TransactionV4 | TransactionV5;
 
 export interface ClassificationData {
     type: string;
@@ -404,7 +510,7 @@ export interface EVMTransactionJobResponse {
   jobId: string;
   status: 'pending' | 'completed' | 'failed';
   results?: {
-    transactions: Transaction[];
+    transactions: TransactionV4[] | TransactionV5[];
     totalCount: number;
   };
   error?: string;
@@ -417,10 +523,13 @@ export interface DeleteTransactionJobResponse {
   message: string;
 }
 
-export interface TokenHolder {
-  address: string;
-  balance: string;
-  share: number;
+/**
+ * Represents a token holder in the EVM ecosystem.
+ */
+export interface TokenHolder extends PaginatedItem {
+    address: string;
+    balance: string;
+    share: number;
 }
 
 /**
@@ -439,7 +548,7 @@ export interface TokenTransfer {
 /**
  * Interface representing a SVM token balance
  */
-export interface SVMTokenBalance {
+export interface SVMTokenBalance extends PaginatedItem {
   balance: string;
   usdValue: string | null;
   token: {
