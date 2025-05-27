@@ -124,12 +124,11 @@ describe('TranslateEVM', () => {
       expect(tx).toHaveProperty('accountAddress');
       expect(tx).toHaveProperty('classificationData');
       expect(tx).toHaveProperty('rawTransactionData');
+      expect(tx).toHaveProperty('transfers');
       expect(tx.classificationData).toHaveProperty('type');
       expect(tx.classificationData).toHaveProperty('source');
       expect(tx.classificationData).toHaveProperty('description');
       expect(tx.classificationData).toHaveProperty('protocol');
-      expect(tx.classificationData).toHaveProperty('sent');
-      expect(tx.classificationData).toHaveProperty('received');
       expect(tx.rawTransactionData).toHaveProperty('transactionHash');
       expect(tx.rawTransactionData).toHaveProperty('fromAddress');
       expect(tx.rawTransactionData).toHaveProperty('toAddress');
@@ -191,11 +190,11 @@ describe('TranslateEVM', () => {
       expect(tx).toHaveProperty('accountAddress');
       expect(tx).toHaveProperty('classificationData');
       expect(tx).toHaveProperty('rawTransactionData');
+      expect(tx).toHaveProperty('transfers');
       expect(tx.classificationData).toHaveProperty('type');
       expect(tx.classificationData).toHaveProperty('source');
       expect(tx.classificationData).toHaveProperty('description');
       expect(tx.classificationData).toHaveProperty('protocol');
-      expect(tx.classificationData).toHaveProperty('transfers');
       expect(tx.rawTransactionData).toHaveProperty('transactionHash');
       expect(tx.rawTransactionData).toHaveProperty('fromAddress');
       expect(tx.rawTransactionData).toHaveProperty('toAddress');

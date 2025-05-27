@@ -143,25 +143,25 @@ export interface TransactionV5 extends PaginatedItem {
         };
         description: string;
         protocol: Record<string, any>;
-        transfers: Array<{
-            action: string;
-            from: {
-                name: string | null;
-                address: string;
-            };
-            to: {
-                name: string | null;
-                address: string;
-            };
-            amount: string;
-            token: {
-                symbol: string;
-                name: string;
-                decimals: number;
-                address: string;
-            };
-        }>;
     };
+    transfers: Array<{
+        action: string;
+        from: {
+            name: string | null;
+            address: string;
+        };
+        to: {
+            name: string | null;
+            address: string;
+        };
+        amount: string;
+        token: {
+            symbol: string;
+            name: string;
+            decimals: number;
+            address: string;
+        };
+    }>;
     rawTransactionData: {
         transactionHash: string;
         fromAddress: string;

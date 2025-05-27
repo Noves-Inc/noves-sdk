@@ -335,10 +335,10 @@ export class TranslateEVM extends BaseTranslate {
       const result = await this.makeRequest(endpoint);
       
       if (v5Format) {
-        if (!this.validateResponse(result, ['txTypeVersion', 'chain', 'accountAddress', 'classificationData', 'rawTransactionData'])) {
+        if (!this.validateResponse(result, ['txTypeVersion', 'chain', 'accountAddress', 'classificationData', 'rawTransactionData', 'transfers'])) {
           throw new TransactionError({ message: ['Invalid transaction response format'] });
         }
-        if (!this.validateResponse(result.classificationData, ['type', 'source', 'description', 'protocol', 'transfers'])) {
+        if (!this.validateResponse(result.classificationData, ['type', 'source', 'description', 'protocol'])) {
           throw new TransactionError({ message: ['Invalid v5 transaction format'] });
         }
         return result as TransactionV5;

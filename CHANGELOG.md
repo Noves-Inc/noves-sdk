@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.22] - 2025-05-27
+
+### Changed
+- Enhanced transaction format handling in EVM Translate API:
+  - Updated `TransactionV5` interface structure:
+    - Moved `transfers` field to top level from `classificationData`
+    - Improved type safety for transaction format validation
+  - Updated validation logic in `getTransaction` method:
+    - Added validation for top-level `transfers` field
+    - Removed `transfers` validation from `classificationData`
+  - Updated test cases to match new transaction format structure:
+    - Added assertions for top-level `transfers` field
+    - Removed assertions for nested `transfers` in `classificationData`
+
 ## [1.0.21] - 2025-05-26
 
 ### Changed
