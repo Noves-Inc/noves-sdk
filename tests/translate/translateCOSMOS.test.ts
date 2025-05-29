@@ -241,10 +241,6 @@ describe('TranslateCOSMOS', () => {
       });
     });
 
-    it('should handle invalid address', async () => {
-      await expect(translateCOSMOS.getTokenBalances(validChain, 'invalid-address')).rejects.toThrow(CosmosAddressError);
-    });
-
     it('should handle API errors', async () => {
       mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid response format'] }));
       await expect(translateCOSMOS.getTokenBalances(validChain, validCosmosAddress)).rejects.toThrow(TransactionError);

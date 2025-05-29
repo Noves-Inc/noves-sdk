@@ -423,15 +423,32 @@ const customBalances = await translate.getTokenBalances(
 ```typescript
 interface SVMTokenBalance {
   balance: string;
-  usdValue: string;
+  usdValue: string | null;
   token: {
     symbol: string;
     name: string;
     decimals: number;
     address: string;
-    price: string;
+    price: string | null;
   };
 }
+```
+
+#### Example Response
+```json
+[
+  {
+    "balance": "0.00114144",
+    "usdValue": "0.194717744328279489504",
+    "token": {
+      "symbol": "SOL",
+      "name": "SOL",
+      "decimals": 9,
+      "address": "SOL",
+      "price": "170.5895573383441"
+    }
+  }
+]
 ```
 
 ### getTransactionCount(chain: string, accountAddress: string)

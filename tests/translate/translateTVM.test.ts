@@ -8,31 +8,25 @@ jest.setTimeout(10000);
 
 const BASE_URL = 'https://translate.noves.fi';
 
-const mockRequest = jest.fn();
-
-jest.mock('../../src/utils/apiUtils', () => ({
-  createTranslateClient: () => mockRequest
-}));
-
-let translate: TranslateTVM;
-
-beforeEach(() => {
-    nock.cleanAll();
-    // Add a 1-second delay between test runs to avoid rate limiting
-    return new Promise(resolve => setTimeout(resolve, 1000));
-});
-
-beforeEach(() => {
-    translate = new TranslateTVM('test-api-key');
-    jest.clearAllMocks();
-});
-
 describe('TranslateTVM', () => {
+    let translate: TranslateTVM;
+    let mockRequest: jest.Mock;
+
+    beforeEach(() => {
+        nock.cleanAll();
+    });
+
+    beforeEach(() => {
+        mockRequest = jest.fn();
+        translate = new TranslateTVM('test-api-key');
+        (translate as any).makeRequest = mockRequest;
+    });
+
     it('should fetch chains successfully', async () => {
         const mockChains = [
             { name: 'tron', displayName: 'TRON' }
         ];
-        mockRequest.mockResolvedValue({ succeeded: true, response: mockChains });
+        mockRequest.mockResolvedValue(mockChains);
 
         const chains = await translate.getChains();
         expect(chains).toEqual(mockChains);
@@ -40,14 +34,14 @@ describe('TranslateTVM', () => {
 
     it('should get chain by name', async () => {
         const mockChain = { name: 'tron', displayName: 'TRON' };
-        mockRequest.mockResolvedValue({ succeeded: true, response: [mockChain] });
+        mockRequest.mockResolvedValue([mockChain]);
 
         const chain = await translate.getChain('tron');
         expect(chain).toEqual(mockChain);
     });
 
     it('should throw error for non-existent chain', async () => {
-        mockRequest.mockResolvedValue({ succeeded: true, response: [] });
+        mockRequest.mockResolvedValue([]);
         await expect(translate.getChain('nonexistent')).rejects.toThrow();
     });
 
@@ -64,7 +58,7 @@ describe('TranslateTVM', () => {
             }
         };
 
-        mockRequest.mockResolvedValue({ succeeded: true, response: mockTransaction });
+        mockRequest.mockResolvedValue(mockTransaction);
 
         const response = await translate.getTransaction('tron', 'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462');
         expect(response).toEqual(mockTransaction);
@@ -72,17 +66,11 @@ describe('TranslateTVM', () => {
 
     it('should handle transaction validation errors', async () => {
         const mockErrorResponse = {
-            succeeded: false,
-            response: {
-                status: 400,
-                errors: {
-                    chain: ['The field chain is invalid. Valid chains: tron'],
-                    txHash: ['The field txHash must be a valid Transaction Hash.'],
-                },
-            },
+            chain: ['The field chain is invalid. Valid chains: tron'],
+            txHash: ['The field txHash must be a valid Transaction Hash.']
         };
 
-        mockRequest.mockResolvedValue(mockErrorResponse);
+        mockRequest.mockRejectedValue(new TransactionError(mockErrorResponse));
 
         await expect(translate.getTransaction('invalidChain', 'invalidTxHash'))
             .rejects.toThrow(TransactionError);
@@ -151,7 +139,7 @@ describe('TranslateTVM', () => {
             nextPageUrl: "https://translate.noves.fi/tvm/tron/txs/TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR?pageSize=10&sort=desc&pageKey=next"
         };
 
-        mockRequest.mockResolvedValue({ succeeded: true, response: mockTransactions });
+        mockRequest.mockResolvedValue(mockTransactions);
 
         const transactions = await translate.Transactions('tron', 'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR');
         expect(transactions).toBeInstanceOf(TransactionsPage);
@@ -165,7 +153,7 @@ describe('TranslateTVM', () => {
             description: 'Sent 100 TRX'
         };
 
-        mockRequest.mockResolvedValue({ succeeded: true, response: mockDescription });
+        mockRequest.mockResolvedValue(mockDescription);
 
         const response = await translate.describeTransaction(
             'tron',
@@ -186,7 +174,7 @@ describe('TranslateTVM', () => {
             }
         ];
 
-        mockRequest.mockResolvedValue({ succeeded: true, response: mockDescriptions });
+        mockRequest.mockResolvedValue(mockDescriptions);
 
         const response = await translate.describeTransactions(
             'tron',
@@ -202,7 +190,7 @@ describe('TranslateTVM', () => {
             timestamp: 1234567890
         };
 
-        mockRequest.mockResolvedValue({ succeeded: true, response: mockStatus });
+        mockRequest.mockResolvedValue(mockStatus);
 
         const response = await translate.getTransactionStatus(
             'tron',
@@ -237,7 +225,7 @@ describe('TranslateTVM', () => {
             }
         };
 
-        mockRequest.mockResolvedValue({ succeeded: true, response: mockRawTx });
+        mockRequest.mockResolvedValue(mockRawTx);
 
         const response = await translate.getRawTransaction(
             'tron',
@@ -248,13 +236,22 @@ describe('TranslateTVM', () => {
 });
 
 describe('Balances Job', () => {
+    let translate: TranslateTVM;
+    let mockRequest: jest.Mock;
+
+    beforeEach(() => {
+        mockRequest = jest.fn();
+        translate = new TranslateTVM('test-api-key');
+        (translate as any).makeRequest = mockRequest;
+    });
+
     it('should start and get balances job results', async () => {
         const mockJob = {
             jobId: 'job123',
             status: 'pending'
         };
 
-        mockRequest.mockResolvedValue({ succeeded: true, response: mockJob });
+        mockRequest.mockResolvedValue(mockJob);
 
         const response = await translate.startBalancesJob(
             'tron',

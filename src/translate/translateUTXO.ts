@@ -36,16 +36,16 @@ export class TranslateUTXO {
     try {
       const result = await this.request('chains');
       if (!result || !result.response) {
-        throw new TransactionError({ general: ['Invalid response format'] });
+        throw new TransactionError({ message: ['Invalid response format'] });
       }
       return result.response;
     } catch (error) {
       if (error instanceof Response) {
         const errorResponse = await error.json();
         if (errorResponse.status === 500) {
-          throw new TransactionError({ general: ['Internal server error occurred'] });
+          throw new TransactionError({ message: ['Internal server error occurred'] });
         }
-        throw new TransactionError({ general: [errorResponse.error || 'Failed to fetch chains'] });
+        throw new TransactionError({ message: [errorResponse.error || 'Failed to fetch chains'] });
       }
       throw error;
     }
@@ -61,7 +61,7 @@ export class TranslateUTXO {
     try {
       const result = await this.request('chains');
       if (!result || !result.response) {
-        throw new TransactionError({ general: ['Invalid response format'] });
+        throw new TransactionError({ message: ['Invalid response format'] });
       }
       const chain = result.response.find((chain: Chain) => chain.name.toLowerCase() === name.toLowerCase());
       if (!chain) {
@@ -74,7 +74,7 @@ export class TranslateUTXO {
       }
       if (error instanceof Response) {
         const errorResponse = await error.json();
-        throw new TransactionError({ general: [errorResponse.error || 'Failed to fetch chain'] });
+        throw new TransactionError({ message: [errorResponse.error || 'Failed to fetch chain'] });
       }
       throw error;
     }
@@ -148,12 +148,13 @@ export class TranslateUTXO {
    * Returns all of the available transaction information for the chain and transaction hash requested.
    * @param {string} chain - The chain name.
    * @param {string} txHash - The transaction hash.
+   * @param {string} [viewAsAccountAddress] - Optional account address to view the transaction from its perspective.
    * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTransaction(chain: string, txHash: string): Promise<Transaction> {
+  public async getTransaction(chain: string, txHash: string, viewAsAccountAddress?: string): Promise<Transaction> {
     try {
-      const endpoint = `${chain}/tx/${txHash}`;
+      const endpoint = `${chain}/tx/${txHash}${viewAsAccountAddress ? `?viewAsAccountAddress=${viewAsAccountAddress}` : ''}`;
       const result = await this.request(endpoint);
       if (!result || !result.response || typeof result.response !== 'object') {
         throw new TransactionError({ general: ['Invalid response format'] });
@@ -164,8 +165,72 @@ export class TranslateUTXO {
         const errorResponse = await error.json();
         if (errorResponse.status === 400 && errorResponse.errors) {
           throw new TransactionError(errorResponse.errors);
+        } else if (errorResponse.status === 404) {
+          throw new TransactionError({ general: ['Transaction not found'] });
+        } else if (errorResponse.status === 500) {
+          throw new TransactionError({ general: ['Internal server error occurred'] });
         }
         throw new TransactionError({ general: [errorResponse.error || 'Failed to fetch transaction'] });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get token balances for an account address.
+   * @param {string} chain - The chain name.
+   * @param {string} accountAddress - The account address.
+   * @param {number} [blockNumber] - Optional block number to retrieve balances as of.
+   * @param {number} [timestamp] - Optional timestamp to retrieve balances as of.
+   * @param {boolean} [includePrices=true] - Optional. Whether to include token prices in the response.
+   * @param {boolean} [excludeZeroPrices=false] - Optional. Whether to exclude tokens with zero price.
+   * @returns {Promise<Array<{balance: string, token: {symbol: string, name: string, decimals: number, address: string}}>>} A promise that resolves to the balances data.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async getTokenBalances(
+    chain: string,
+    accountAddress: string,
+    blockNumber?: number,
+    timestamp?: number,
+    includePrices: boolean = true,
+    excludeZeroPrices: boolean = false
+  ): Promise<Array<{balance: string, token: {symbol: string, name: string, decimals: number, address: string}}>> {
+    try {
+      const endpoint = `${chain}/tokens/balancesOf/${accountAddress}`;
+      const queryParams = new URLSearchParams();
+      
+      if (blockNumber) queryParams.append('blockNumber', blockNumber.toString());
+      if (timestamp) queryParams.append('timestamp', timestamp.toString());
+      if (!includePrices) queryParams.append('includePrices', 'false');
+      if (excludeZeroPrices) queryParams.append('excludeZeroPrices', 'true');
+      
+      const url = queryParams.toString() ? `${endpoint}?${queryParams.toString()}` : endpoint;
+      const result = await this.request(url);
+
+      if (!result || !result.response || !Array.isArray(result.response)) {
+        throw new TransactionError({ general: ['Invalid response format'] });
+      }
+
+      // Validate each token balance in the array
+      for (const balance of result.response) {
+        if (!balance.balance || !balance.token) {
+          throw new TransactionError({ general: ['Invalid token balance format'] });
+        }
+        if (!balance.token.symbol || !balance.token.name || !balance.token.decimals || !balance.token.address) {
+          throw new TransactionError({ general: ['Invalid token format'] });
+        }
+      }
+
+      return result.response;
+    } catch (error) {
+      if (error instanceof Response) {
+        const errorResponse = await error.json();
+        if (errorResponse.status === 400 && errorResponse.errors) {
+          throw new TransactionError(errorResponse.errors);
+        } else if (errorResponse.status === 500) {
+          throw new TransactionError({ general: ['Internal server error occurred'] });
+        }
+        throw new TransactionError({ general: [errorResponse.error || 'Failed to fetch token balances'] });
       }
       throw error;
     }

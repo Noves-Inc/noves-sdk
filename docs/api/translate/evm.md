@@ -27,13 +27,6 @@ const chains = await evmTranslate.getChains();
 // Returns: [{ name: "eth", ecosystem: "evm" }, ...]
 ```
 
-### getChain(name: string)
-Get detailed information about a specific chain.
-
-```typescript
-const chainInfo = await evmTranslate.getChain("eth");
-```
-
 ### getTransaction(chain: string, txHash: string, v5Format?: boolean)
 Get detailed information about a specific transaction.
 
@@ -173,6 +166,7 @@ const customBalances = await evmTranslate.getTokenBalances(
 ```typescript
 interface BalancesData {
   balance: string;
+  usdValue?: string | null;
   token: {
     symbol: string;
     name: string;
@@ -672,16 +666,26 @@ async function main() {
     console.log("Transaction:", tx);
   }
 
-  // Get block information
-  const blockInfo = await evmTranslate.getBlock("eth", 12345678);
-  console.log("Block info:", blockInfo);
-
-  // Get token information
-  const tokenInfo = await evmTranslate.getTokenInfo(
+  // Get transaction details
+  const txDetails = await evmTranslate.getTransaction(
     "eth",
-    "0x123..."
+    "0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22"
   );
-  console.log("Token info:", tokenInfo);
+  console.log("Transaction details:", txDetails);
+
+  // Get transaction description
+  const txDescription = await evmTranslate.describeTransaction(
+    "eth",
+    "0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22"
+  );
+  console.log("Transaction description:", txDescription);
+
+  // Get raw transaction data
+  const rawTx = await evmTranslate.getRawTransaction(
+    "eth",
+    "0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22"
+  );
+  console.log("Raw transaction data:", rawTx);
 }
 ```
 

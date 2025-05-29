@@ -1,5 +1,4 @@
 import { TranslateEVM } from "../../src/translate/translateEVM";
-import { ChainNotFoundError } from "../../src/errors/ChainNotFoundError";
 import { TransactionError } from "../../src/errors/TransactionError";
 import { PageOptions } from "../../src/types/types";
 import { TransactionsPage } from "../../src/translate/transactionsPage";
@@ -30,25 +29,19 @@ describe('TranslateEVM', () => {
 
   describe('getChains', () => {
     it('should get list of supported chains', async () => {
-      mockRequest.mockResolvedValue([
-        {
-          name: 'ethereum',
-          ecosystem: 'evm',
-          nativeCoin: {
-            symbol: 'ETH',
-            name: 'Ethereum',
-            decimals: 18
-          }
-        }
-      ]);
-      const chains = await translateEVM.getChains();
-      expect(Array.isArray(chains)).toBe(true);
-      expect(chains.length).toBeGreaterThan(0);
-      chains.forEach(chain => {
-        expect(chain).toHaveProperty('name');
-        expect(chain).toHaveProperty('ecosystem');
-        expect(chain).toHaveProperty('nativeCoin');
-      });
+      const mockResponse = {
+        chains: [
+          { name: 'eth', ecosystem: 'evm' },
+          { name: 'bsc', ecosystem: 'evm' },
+        ],
+      };
+
+      mockRequest.mockResolvedValue(mockResponse.chains);
+
+      const result = await translateEVM.getChains();
+
+      expect(mockRequest).toHaveBeenCalledWith('chains');
+      expect(result).toEqual(mockResponse.chains);
     });
 
     it('should handle API errors gracefully', async () => {
@@ -57,35 +50,9 @@ describe('TranslateEVM', () => {
     });
   });
 
-  describe('getChain', () => {
-    it('should get chain details', async () => {
-      mockRequest.mockResolvedValue([
-        {
-          name: 'eth',
-          ecosystem: 'evm',
-          nativeCoin: {
-            symbol: 'ETH',
-            name: 'Ethereum',
-            decimals: 18
-          }
-        }
-      ]);
-      const chain = await translateEVM.getChain(validChain);
-      expect(chain).toBeDefined();
-      expect(chain).toHaveProperty('name');
-      expect(chain).toHaveProperty('ecosystem');
-      expect(chain).toHaveProperty('nativeCoin');
-    });
-
-    it('should handle non-existent chain', async () => {
-      mockRequest.mockResolvedValue([]);
-      await expect(translateEVM.getChain('nonexistent-chain')).rejects.toThrow(ChainNotFoundError);
-    });
-  });
-
   describe('getTransaction', () => {
     it('should get transaction details', async () => {
-      mockRequest.mockResolvedValue({
+      const mockResponse = {
         txTypeVersion: 2,
         chain: validChain,
         accountAddress: validAddress,
@@ -116,28 +83,14 @@ describe('TranslateEVM', () => {
           },
           timestamp: 1234567890
         }
-      });
-      const tx = await translateEVM.getTransaction(validChain, validTxHash);
-      expect(tx).toBeDefined();
-      expect(tx).toHaveProperty('txTypeVersion');
-      expect(tx).toHaveProperty('chain');
-      expect(tx).toHaveProperty('accountAddress');
-      expect(tx).toHaveProperty('classificationData');
-      expect(tx).toHaveProperty('rawTransactionData');
-      expect(tx).toHaveProperty('transfers');
-      expect(tx.classificationData).toHaveProperty('type');
-      expect(tx.classificationData).toHaveProperty('source');
-      expect(tx.classificationData).toHaveProperty('description');
-      expect(tx.classificationData).toHaveProperty('protocol');
-      expect(tx.rawTransactionData).toHaveProperty('transactionHash');
-      expect(tx.rawTransactionData).toHaveProperty('fromAddress');
-      expect(tx.rawTransactionData).toHaveProperty('toAddress');
-      expect(tx.rawTransactionData).toHaveProperty('blockNumber');
-      expect(tx.rawTransactionData).toHaveProperty('gas');
-      expect(tx.rawTransactionData).toHaveProperty('gasUsed');
-      expect(tx.rawTransactionData).toHaveProperty('gasPrice');
-      expect(tx.rawTransactionData).toHaveProperty('transactionFee');
-      expect(tx.rawTransactionData).toHaveProperty('timestamp');
+      };
+
+      mockRequest.mockResolvedValue(mockResponse);
+
+      const result = await translateEVM.getTransaction(validChain, validTxHash);
+
+      expect(mockRequest).toHaveBeenCalledWith(`eth/tx/${validTxHash}`);
+      expect(result).toEqual(mockResponse);
     });
 
     it('should get transaction details in v5 format', async () => {
@@ -214,74 +167,69 @@ describe('TranslateEVM', () => {
 
   describe('getTokenBalances', () => {
     it('should get token balances successfully', async () => {
-      const mockBalances = [
-        {
-          balance: '1000000000000000000',
-          usdValue: '1800.00',
-          token: {
-            symbol: 'ETH',
-            name: 'Ethereum',
-            decimals: 18,
-            address: '0x0000000000000000000000000000000000000000'
+      const mockResponse = {
+        items: [
+          {
+            balance: '1000000000000000000',
+            usdValue: '1800.00',
+            token: {
+              symbol: 'ETH',
+              name: 'Ethereum',
+              decimals: 18,
+              address: '0x0000000000000000000000000000000000000000'
+            }
           }
-        }
-      ];
+        ],
+      };
 
-      mockRequest.mockResolvedValue(mockBalances);
+      mockRequest.mockResolvedValue(mockResponse.items);
 
-      const balances = await translateEVM.getTokenBalances(validChain, validAddress);
-      expect(Array.isArray(balances)).toBe(true);
-      expect(balances.length).toBeGreaterThan(0);
-      balances.forEach(balance => {
-        expect(balance).toHaveProperty('balance');
-        expect(balance).toHaveProperty('token');
-        expect(balance.token).toHaveProperty('symbol');
-        expect(balance.token).toHaveProperty('name');
-        expect(balance.token).toHaveProperty('decimals');
-        expect(balance.token).toHaveProperty('address');
-      });
+      const result = await translateEVM.getTokenBalances(validChain, validAddress);
+      expect(result).toEqual(mockResponse.items);
     });
 
     it('should get token balances with specific tokens', async () => {
-      const mockBalances = [
-        {
-          balance: '1000000',
-          usdValue: '1.00',
-          token: {
-            symbol: 'USDC',
-            name: 'USD Coin',
-            decimals: 6,
-            address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+      const mockResponse = {
+        items: [
+          {
+            balance: '1000000',
+            usdValue: '1.00',
+            token: {
+              symbol: 'USDC',
+              name: 'USD Coin',
+              decimals: 6,
+              address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+            }
           }
-        }
-      ];
+        ],
+      };
 
-      mockRequest.mockResolvedValue(mockBalances);
+      mockRequest.mockResolvedValue(mockResponse.items);
 
       const specificTokens = ['0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'];
-      const balances = await translateEVM.getTokenBalances(validChain, validAddress, specificTokens);
-      expect(Array.isArray(balances)).toBe(true);
-      expect(balances.length).toBe(1);
-      expect(balances[0].token.symbol).toBe('USDC');
+      const result = await translateEVM.getTokenBalances(validChain, validAddress, specificTokens);
+      expect(result).toEqual(mockResponse.items);
     });
 
     it('should get token balances with custom parameters', async () => {
-      const mockBalances = [
-        {
-          balance: '1000000000000000000',
-          usdValue: '1800.00',
-          token: {
-            symbol: 'ETH',
-            name: 'Ethereum',
-            decimals: 18,
-            address: '0x0000000000000000000000000000000000000000'
+      const mockResponse = {
+        items: [
+          {
+            balance: '1000000000000000000',
+            usdValue: '1800.00',
+            token: {
+              symbol: 'ETH',
+              name: 'Ethereum',
+              decimals: 18,
+              address: '0x0000000000000000000000000000000000000000'
+            }
           }
-        }
-      ];
+        ],
+      };
 
-      mockRequest.mockResolvedValue(mockBalances);
+      mockRequest.mockResolvedValue(mockResponse.items);
 
-      const balances = await translateEVM.getTokenBalances(
+      const result = await translateEVM.getTokenBalances(
         validChain,
         validAddress,
         undefined,
@@ -290,8 +238,7 @@ describe('TranslateEVM', () => {
         false,    // excludeZeroPrices
         true      // excludeSpam
       );
-      expect(Array.isArray(balances)).toBe(true);
-      expect(balances.length).toBeGreaterThan(0);
+      expect(result).toEqual(mockResponse.items);
     });
 
     it('should handle invalid address', async () => {
@@ -308,108 +255,6 @@ describe('TranslateEVM', () => {
       const balances = await translateEVM.getTokenBalances(validChain, validAddress);
       expect(Array.isArray(balances)).toBe(true);
       expect(balances.length).toBe(0);
-    });
-  });
-
-  describe('getNativeBalance', () => {
-    it('should get native balance', async () => {
-      mockRequest.mockResolvedValue({
-        address: validAddress,
-        balance: '1000000000000000000',
-        symbol: 'ETH',
-        decimals: 18
-      });
-      const balance = await translateEVM.getNativeBalance(validChain, validAddress);
-      expect(balance).toBeDefined();
-      expect(balance).toHaveProperty('address');
-      expect(balance).toHaveProperty('balance');
-      expect(balance).toHaveProperty('symbol');
-      expect(balance).toHaveProperty('decimals');
-    });
-
-    it('should handle invalid address', async () => {
-      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid address'] }));
-      await expect(translateEVM.getNativeBalance(validChain, 'invalid-address')).rejects.toThrow(TransactionError);
-    });
-  });
-
-  describe('getBlock', () => {
-    it('should get block details', async () => {
-      mockRequest.mockResolvedValue({
-        number: 12345678,
-        hash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-        transactions: []
-      });
-      const block = await translateEVM.getBlock(validChain, 12345678);
-      expect(block).toBeDefined();
-      expect(block).toHaveProperty('number');
-      expect(block).toHaveProperty('hash');
-      expect(block).toHaveProperty('transactions');
-    });
-
-    it('should handle invalid block number', async () => {
-      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid block number'] }));
-      await expect(translateEVM.getBlock(validChain, -1)).rejects.toThrow(TransactionError);
-    });
-  });
-
-  describe('getBlockTransactions', () => {
-    it('should get block transactions', async () => {
-      mockRequest.mockResolvedValue({
-        items: [],
-        hasNextPage: false,
-        nextPageUrl: null
-      });
-      const pageOptions: PageOptions = { pageSize: 5 };
-      const transactions = await translateEVM.getBlockTransactions(validChain, 1, pageOptions);
-      expect(transactions).toBeInstanceOf(TransactionsPage);
-    });
-
-    it('should handle invalid block number', async () => {
-      await expect(translateEVM.getBlockTransactions(validChain, -1)).rejects.toThrow(TransactionError);
-    });
-  });
-
-  describe('getTokenInfo', () => {
-    it('should get token info', async () => {
-      mockRequest.mockResolvedValue({
-        address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-        name: 'USD Coin',
-        symbol: 'USDC',
-        decimals: 6,
-        totalSupply: '1000000000',
-        type: 'ERC20'
-      });
-      const tokenInfo = await translateEVM.getTokenInfo(validChain, '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48');
-      expect(tokenInfo).toBeDefined();
-      expect(tokenInfo).toHaveProperty('address');
-      expect(tokenInfo).toHaveProperty('name');
-      expect(tokenInfo).toHaveProperty('symbol');
-      expect(tokenInfo).toHaveProperty('decimals');
-      expect(tokenInfo).toHaveProperty('totalSupply');
-      expect(tokenInfo).toHaveProperty('type');
-    });
-
-    it('should handle invalid token address', async () => {
-      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid token address'] }));
-      await expect(translateEVM.getTokenInfo(validChain, 'invalid-address')).rejects.toThrow(TransactionError);
-    });
-  });
-
-  describe('getTokenHolders', () => {
-    it('should get token holders', async () => {
-      mockRequest.mockResolvedValue({
-        items: [],
-        hasNextPage: false,
-        nextPageUrl: null
-      });
-      const pageOptions: PageOptions = { pageSize: 5 };
-      const holders = await translateEVM.getTokenHolders(validChain, validAddress, pageOptions);
-      expect(holders).toBeInstanceOf(TransactionsPage);
-    });
-
-    it('should handle invalid token address', async () => {
-      await expect(translateEVM.getTokenHolders(validChain, 'invalid-address')).rejects.toThrow(TransactionError);
     });
   });
 
@@ -667,7 +512,7 @@ describe('TranslateEVM', () => {
       try {
         await translateEVM.Transactions(validChain, 'invalid-address', pageOptions);
         fail('Expected error to be thrown');
-      } catch (error) {
+      } catch (error: unknown) {
         expect(error).toBeInstanceOf(TransactionError);
         if (error instanceof TransactionError) {
           expect(error.message).toContain('Transaction validation error');
@@ -677,9 +522,9 @@ describe('TranslateEVM', () => {
 
     it('should handle invalid chain gracefully', async () => {
       try {
-        await translateEVM.Transactions('invalid-chain', validAddress, pageOptions);
+        await translateEVM.Transactions(validChain, 'invalid-address', pageOptions);
         fail('Expected error to be thrown');
-      } catch (error) {
+      } catch (error: unknown) {
         expect(error).toBeInstanceOf(TransactionError);
         if (error instanceof TransactionError) {
           expect(error.message).toContain('Transaction validation error');

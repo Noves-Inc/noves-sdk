@@ -374,7 +374,8 @@ describe('TranslateSVM', () => {
             symbol: 'SOL',
             name: 'Solana',
             decimals: 9,
-            address: 'SOL'
+            address: 'SOL',
+            price: '170.5895573383441'
           }
         }
       ];
@@ -386,11 +387,13 @@ describe('TranslateSVM', () => {
       expect(balances.length).toBeGreaterThan(0);
       balances.forEach(balance => {
         expect(balance).toHaveProperty('balance');
+        expect(balance).toHaveProperty('usdValue');
         expect(balance).toHaveProperty('token');
         expect(balance.token).toHaveProperty('symbol');
         expect(balance.token).toHaveProperty('name');
         expect(balance.token).toHaveProperty('decimals');
         expect(balance.token).toHaveProperty('address');
+        expect(balance.token).toHaveProperty('price');
       });
     });
 
@@ -403,7 +406,8 @@ describe('TranslateSVM', () => {
             symbol: 'SOL',
             name: 'Solana',
             decimals: 9,
-            address: 'SOL'
+            address: 'SOL',
+            price: '170.5895573383441'
           }
         }
       ];
@@ -445,7 +449,8 @@ describe('TranslateSVM', () => {
             symbol: 'SOL',
             name: 'Solana',
             decimals: 9,
-            address: 'SOL'
+            address: 'SOL',
+            price: '170.5895573383441'
           }
         }
       ];

@@ -129,7 +129,17 @@ async function solanaTranslateExample() {
       'solana',
       'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4'
     );
-    console.log("Token balances:", balances);
+    console.log("Token balances:", balances.map(b => ({
+      balance: b.balance,
+      usdValue: b.usdValue,
+      token: {
+        symbol: b.token.symbol,
+        name: b.token.name,
+        decimals: b.token.decimals,
+        address: b.token.address,
+        price: b.token.price
+      }
+    })));
 
     // Get transaction count
     console.log("\nFetching transaction count...");

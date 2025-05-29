@@ -9,7 +9,7 @@ The Translate API provides functionality to interact with multiple blockchain ec
 
 - [EVM Documentation](./translate/evm.md)
 - [Cosmos Documentation](./translate/cosmos.md)
-- [Solana Documentation](./translate/solana.md)
+- [SVM Documentation](./translate/svm.md)
 - [UTXO Documentation](./translate/utxo.md)
 - [TVM Documentation](./translate/tvm.md)
 - [Polkadot Documentation](./translate/polkadot.md)

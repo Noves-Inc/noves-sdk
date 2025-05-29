@@ -48,18 +48,224 @@ Get paginated transactions for an account.
 ```typescript
 const transactions = await translate.Transactions('btc', address, {
   pageSize: 10,
+  startBlock: 865798,
+  endBlock: 868128,
   sort: 'desc'
 });
 ```
 
+#### Parameters
+- `chain` (string): The chain name (e.g., "btc")
+- `accountAddress` (string): The account address to fetch transactions for
+- `pageOptions` (object, optional):
+  - `pageSize` (number, optional): Number of transactions per page. Default: 10, Max: 100
+  - `startBlock` (number, optional): Starting block number to filter by
+  - `endBlock` (number, optional): Ending block number to filter by
+  - `startTimestamp` (number, optional): Starting timestamp in milliseconds to filter by
+  - `endTimestamp` (number, optional): Ending timestamp in milliseconds to filter by
+  - `sort` (string, optional): Sort order. Valid values: 'desc' (default) or 'asc'
+
+#### Response Format
+```typescript
+interface TransactionsResponse {
+  items: Array<{
+    txTypeVersion: number;
+    chain: string;
+    accountAddress: string;
+    classificationData: {
+      type: string;
+      source: {
+        type: string;
+      };
+      description: string;
+      protocol: Record<string, any>;
+      sent: Array<{
+        action: string;
+        from: {
+          name: string | null;
+          address: string;
+        };
+        to: {
+          name: string | null;
+          address: string;
+        };
+        amount: string;
+        token: {
+          symbol: string;
+          name: string;
+          decimals: number;
+          address: string;
+        };
+      }>;
+      received: Array<{
+        action: string;
+        from: {
+          name: string | null;
+          address: string;
+        };
+        to: {
+          name: string | null;
+          address: string;
+        };
+        amount: string;
+        token: {
+          symbol: string;
+          name: string;
+          decimals: number;
+          address: string;
+        };
+      }>;
+      utxo: {
+        summary: {
+          inputs: Array<{
+            senders: string[];
+            totalSent: {
+              amount: string;
+              token: {
+                symbol: string;
+                name: string;
+                decimals: number;
+                address: string;
+              };
+            };
+          }>;
+          outputs: Array<{
+            receivers: string[];
+            totalReceived: {
+              amount: string;
+              token: {
+                symbol: string;
+                name: string;
+                decimals: number;
+                address: string;
+              };
+            };
+          }>;
+        };
+      };
+    };
+    rawTransactionData: {
+      transactionHash: string;
+      blockNumber: number;
+      transactionFee: {
+        amount: string;
+        token: {
+          symbol: string;
+          name: string;
+          decimals: number;
+          address: string;
+        };
+      };
+      timestamp: number;
+    };
+  }>;
+  pageNumber: number;
+  pageSize: number;
+  hasNextPage: boolean;
+  nextPageUrl: string | null;
+}
+```
+
+#### Example Response
+```json
+{
+  "items": [
+    {
+      "txTypeVersion": 2,
+      "chain": "btc",
+      "accountAddress": "3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL",
+      "classificationData": {
+        "type": "receiveToken",
+        "source": {
+          "type": "human"
+        },
+        "description": "",
+        "protocol": {},
+        "sent": [],
+        "received": [
+          {
+            "action": "receiveToken",
+            "from": {
+              "name": "",
+              "address": "3FcoNNfPJSfo58w9Zv5B1DmJBMe4Up17HF"
+            },
+            "to": {
+              "name": null,
+              "address": "3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL"
+            },
+            "amount": "0.00016199",
+            "token": {
+              "symbol": "BTC",
+              "name": "Bitcoin",
+              "decimals": 8,
+              "address": "BTC"
+            }
+          }
+        ],
+        "utxo": {
+          "summary": {
+            "inputs": [
+              {
+                "senders": ["3FcoNNfPJSfo58w9Zv5B1DmJBMe4Up17HF"],
+                "totalSent": {
+                  "amount": "0.00024735",
+                  "token": {
+                    "symbol": "BTC",
+                    "name": "Bitcoin",
+                    "decimals": 8,
+                    "address": "BTC"
+                  }
+                }
+              }
+            ],
+            "outputs": [
+              {
+                "receivers": ["36UsxVpZcQjydzke8NpvXTCDd1mvB7NM5p", "3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL"],
+                "totalReceived": {
+                  "amount": "0.00023769",
+                  "token": {
+                    "symbol": "BTC",
+                    "name": "Bitcoin",
+                    "decimals": 8,
+                    "address": "BTC"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "rawTransactionData": {
+        "transactionHash": "002dbd999b8f3c9d3c3cb57875a0e83512d072df03eeca0c6089374cc1168c78",
+        "blockNumber": 868128,
+        "transactionFee": {
+          "amount": "0.00000966",
+          "token": {
+            "symbol": "BTC",
+            "name": "Bitcoin",
+            "decimals": 8,
+            "address": "BTC"
+          }
+        },
+        "timestamp": 1730310693
+      }
+    }
+  ],
+  "pageNumber": 1,
+  "pageSize": 10,
+  "hasNextPage": true,
+  "nextPageUrl": "https://translate.noves.fi/utxo/btc/txs/3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL?endBlock=865798&pageSize=10"
+}
+```
+
 ### getAddressesByXpub(xpub: string)
-Utility endpoint for Bitcoin. Returns a list of derived addresses for the given xpub address. This endpoint is useful for deriving Bitcoin addresses from an extended public key (xpub) without needing to perform the derivation locally.
+Utility endpoint for Bitcoin. Returns a list of derived addresses for the given xpub, ypub or zpub master key. This endpoint is useful for deriving Bitcoin addresses from an extended public key without needing to perform the derivation locally.
 
 ```typescript
 const addresses = await translate.getAddressesByXpub('xpub...');
 ```
 
-Response format:
+#### Response Format
 ```typescript
 string[] // Array of derived Bitcoin addresses
 ```
@@ -67,139 +273,103 @@ string[] // Array of derived Bitcoin addresses
 Example response:
 ```json
 [
-  "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-  "1B1zP1eP5QGefi2DMPTfTL5SLmv7DivfNb"
+  "1FZMpLkc9W9hqv5dFvtTPqDwzEP8tZvm7z",
+  "1NPBJiJSvdPrRtYt2Y9732Hvvhs5tCAiw9",
+  "1AD83uQSNhQ3FMeiigaRAxkGowrnVpHXPk"
 ]
 ```
 
-Error handling:
-- Returns `TransactionError` if the xpub format is invalid
-- Returns `TransactionError` with a general error message if there's an internal server error
+#### Error Handling
+The endpoint may return the following errors:
 
-### getTransaction(chain: string, txHash: string)
+- `TransactionError` with status 400 if:
+  - The xpub format is invalid
+  - The xpub is not a valid Bitcoin extended public key
+- `TransactionError` with status 500 if there's an internal server error
+
+Example error response:
+```json
+{
+  "status": 400,
+  "errors": {
+    "xpub": ["Invalid xpub format"]
+  }
+}
+```
+
+### getTransaction(chain: string, txHash: string, viewAsAccountAddress?: string)
 Get detailed information about a specific transaction.
 
 ```typescript
 const txInfo = await translate.getTransaction('btc', '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e');
+// Or with viewAsAccountAddress parameter
+const txInfo = await translate.getTransaction(
+  'btc',
+  '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e',
+  '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
+);
 ```
 
-Response format:
+#### Parameters
+- `chain` (string): The chain name (e.g., "btc")
+- `txHash` (string): The transaction hash
+- `viewAsAccountAddress` (string, optional): The account address to view the transaction from its perspective
+
+#### Response Format
+The response format is the same as a single transaction item in the Transactions endpoint response.
+
+### getTokenBalances(chain: string, accountAddress: string, options?: TokenBalanceOptions)
+Get token balances for an account address.
+
 ```typescript
-interface Transaction {
-  txTypeVersion: number;
-  chain: string;
-  accountAddress: string;
-  classificationData: {
-    type: string;
-    source: {
-      type: string;
-    };
-    description: string;
-    protocol: Record<string, any>;
-    sent: Array<{
-      action: string;
-      from: {
-        name: string | null;
-        address: string;
-      };
-      to: {
-        name: string | null;
-        address: string;
-      };
-      amount: string;
-      token: {
-        symbol: string;
-        name: string;
-        decimals: number;
-        address: string;
-      };
-    }>;
-    received: Array<{
-      action: string;
-      from: {
-        name: string | null;
-        address: string;
-      };
-      to: {
-        name: string | null;
-        address: string;
-      };
-      amount: string;
-      token: {
-        symbol: string;
-        name: string;
-        decimals: number;
-        address: string;
-      };
-    }>;
-    utxo: {
-      summary: {
-        inputs: Array<{
-          senders: string[];
-          totalSent: {
-            amount: string;
-            token: {
-              symbol: string;
-              name: string;
-              decimals: number;
-              address: string;
-            };
-          };
-        }>;
-        outputs: Array<{
-          receivers: string[];
-          totalReceived: {
-            amount: string;
-            token: {
-              symbol: string;
-              name: string;
-              decimals: number;
-              address: string;
-            };
-          };
-        }>;
-      };
-    };
-  };
-  rawTransactionData: {
-    transactionHash: string;
-    blockNumber: number;
-    transactionFee: {
-      amount: string;
-      token: {
-        symbol: string;
-        name: string;
-        decimals: number;
-        address: string;
-      };
-    };
-    timestamp: number;
+// Get current balances
+const balances = await translate.getTokenBalances('btc', '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa');
+
+// Get balances as of a specific block
+const balancesAtBlock = await translate.getTokenBalances('btc', '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', {
+  blockNumber: 865798
+});
+
+// Get balances with custom options
+const balancesWithOptions = await translate.getTokenBalances('btc', '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', {
+  includePrices: true,
+  excludeZeroPrices: false
+});
+```
+
+#### Parameters
+- `chain` (string): The chain name (e.g., "btc")
+- `accountAddress` (string): The account address to fetch balances for
+- `options` (object, optional):
+  - `blockNumber` (number, optional): Block number to retrieve balances as of
+  - `timestamp` (number, optional): Timestamp to retrieve balances as of
+  - `includePrices` (boolean, optional): Whether to include token prices in the response. Default: true
+  - `excludeZeroPrices` (boolean, optional): Whether to exclude tokens with zero price. Default: false
+
+#### Response Format
+```typescript
+interface TokenBalance {
+  balance: string;  // Token balance as a string
+  token: {
+    symbol: string;    // Token symbol (e.g., "BTC")
+    name: string;      // Token name (e.g., "Bitcoin")
+    decimals: number;  // Number of decimals for the token
+    address: string;   // Token address
   };
 }
 ```
 
-## Error Handling
-
-The API uses the following error types:
-
-- `ChainNotFoundError`: Thrown when a requested chain is not supported
-- `TransactionError`: Thrown for transaction-related errors
-
-## Example Usage
-
-```typescript
-import { Translate } from '@noves/sdk';
-
-// Initialize the UTXO translator
-const translate = Translate.utxo('your-api-key');
-
-// Get all supported chains
-const chains = await translate.getChains();
-console.log('Supported chains:', chains);
-
-// Get transactions for a Bitcoin address
-const transactions = await translate.Transactions('btc', '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa');
-for await (const tx of transactions) {
-  console.log('Transaction:', tx);
-}
-``` 
+Example response:
+```json
+[
+  {
+    "balance": "103.06212305",
+    "token": {
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "decimals": 8,
+      "address": "BTC"
+    }
+  }
+]
+```

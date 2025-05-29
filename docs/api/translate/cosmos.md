@@ -138,9 +138,7 @@ The SDK provides specific error types for Cosmos-related operations:
 try {
   const balances = await cosmosTranslate.getTokenBalances(chain, address);
 } catch (error) {
-  if (error instanceof CosmosAddressError) {
-    console.error("Invalid Cosmos address:", error.message);
-  } else if (error instanceof TransactionError) {
+  if (error instanceof TransactionError) {
     console.error("Transaction error:", error.message);
   } else {
     console.error("Unexpected error:", error);
@@ -150,7 +148,6 @@ try {
 
 ### Error Types
 - `CosmosError`: Base error class for Cosmos-related errors
-- `CosmosAddressError`: Thrown when a Cosmos address is invalid
 - `CosmosTransactionJobError`: Thrown when a transaction job fails
 - `TransactionError`: Thrown for general transaction-related errors
 

@@ -11,7 +11,7 @@ The official SDK for interacting with the [Noves API](https://docs.noves.fi/refe
 - **Translate**: Understand what transactions do with clear labels and rich metadata
 - **Foresight**: Get pre-sign insights about transactions before execution
 - **Pricing**: Access real-time and historical token prices across chains
-- **Multi-chain Support**: EVM, Cosmos, Solana, UTXO, TVM, and Polkadot
+- **Multi-chain Support**: EVM, Cosmos, SVM, UTXO, TVM, and Polkadot
 - **TypeScript Support**: Full type definitions and autocompletion
 
 ## 📦 Installation
@@ -44,7 +44,7 @@ For detailed documentation, please visit our [Documentation Site](https://docs.n
 - [Translate API](docs/api/translate/README.md)
   - [EVM](docs/api/translate/evm.md)
   - [Cosmos](docs/api/translate/cosmos.md)
-  - [Solana](docs/api/translate/svm.md)
+  - [SVM](docs/api/translate/svm.md)
   - [UTXO](docs/api/translate/utxo.md)
   - [TVM](docs/api/translate/tvm.md)
   - [Polkadot](docs/api/translate/polkadot.md)

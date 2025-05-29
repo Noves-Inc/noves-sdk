@@ -11,122 +11,6 @@ import { BaseTranslate } from './baseTranslate';
 const ECOSYSTEM = 'evm';
 
 /**
- * Represents a transaction receipt in the EVM ecosystem.
- */
-export interface TransactionReceipt {
-  blockHash: string;
-  blockNumber: number;
-  contractAddress: string | null;
-  cumulativeGasUsed: string;
-  effectiveGasPrice: string;
-  from: string;
-  gasUsed: string;
-  logs: Array<{
-    address: string;
-    topics: string[];
-    data: string;
-    blockNumber: number;
-    transactionHash: string;
-    logIndex: number;
-  }>;
-  status: boolean;
-  to: string;
-  transactionHash: string;
-  transactionIndex: number;
-  type: string;
-}
-
-/**
- * Represents the status of a transaction in the EVM ecosystem.
- */
-export interface TransactionStatus {
-  status: 'pending' | 'confirmed' | 'failed';
-  blockNumber?: number;
-  confirmations?: number;
-  error?: string;
-}
-
-/**
- * Represents a native token balance in the EVM ecosystem.
- */
-export interface NativeBalance {
-  address: string;
-  balance: string;
-  symbol: string;
-  decimals: number;
-}
-
-/**
- * Represents a block in the EVM ecosystem.
- */
-export interface Block {
-  number: number;
-  hash: string;
-  parentHash: string;
-  nonce: string;
-  sha3Uncles: string;
-  logsBloom: string;
-  transactionsRoot: string;
-  stateRoot: string;
-  receiptsRoot: string;
-  miner: string;
-  difficulty: string;
-  totalDifficulty: string;
-  size: number;
-  extraData: string;
-  gasLimit: string;
-  gasUsed: string;
-  timestamp: number;
-  transactions: string[];
-  uncles: string[];
-}
-
-/**
- * Represents token information in the EVM ecosystem.
- */
-export interface TokenInfo {
-  address: string;
-  name: string;
-  symbol: string;
-  decimals: number;
-  totalSupply: string;
-  owner?: string;
-  type: 'ERC20' | 'ERC721' | 'ERC1155';
-}
-
-/**
- * Represents a token holder in the EVM ecosystem.
- */
-export interface TokenHolder {
-  address: string;
-  balance: string;
-  share: number;
-}
-
-/**
- * Represents a transaction job in the EVM ecosystem.
- */
-export interface TransactionJob {
-  jobId: string;
-  status: 'pending' | 'completed' | 'failed';
-  createdAt: string;
-  updatedAt: string;
-}
-
-/**
- * Represents a transaction job response in the EVM ecosystem.
- */
-export interface TransactionJobResponse {
-  jobId: string;
-  status: 'pending' | 'completed' | 'failed';
-  results?: {
-    transactions: Transaction[];
-    totalCount: number;
-  };
-  error?: string;
-}
-
-/**
  * Represents a raw transaction response from the EVM Translate API.
  */
 export interface RawTransactionResponse {
@@ -238,29 +122,6 @@ export class TranslateEVM extends BaseTranslate {
   }
 
   /**
-   * Get a chain by its name.
-   * @param {string} name - The name of the chain to retrieve.
-   * @returns {Promise<Chain>} A promise that resolves to the chain object or undefined if not found.
-   * @throws {ChainNotFoundError} Will throw an error if the chain is not found.
-   */
-  public async getChain(name: string): Promise<Chain> {
-    try {
-      const validatedName = name.toLowerCase() === 'ethereum' ? 'eth' : name.toLowerCase();
-      const chains = await this.getChains();
-      const chain = chains.find((chain: Chain) => chain.name.toLowerCase() === validatedName.toLowerCase());
-      if (!chain) {
-        throw new ChainNotFoundError(name);
-      }
-      return chain;
-    } catch (error) {
-      if (error instanceof ChainNotFoundError) {
-        throw error;
-      }
-      throw new TransactionError({ message: ['Failed to get chain'] });
-    }
-  }
-
-  /**
    * For any given transaction, it returns only the description and the type.
    * Useful in cases where you're pulling a large number of transactions but only need this data for purposes of displaying on a UI or similar.
    * @param {string} chain - The chain name.
@@ -335,12 +196,14 @@ export class TranslateEVM extends BaseTranslate {
       const result = await this.makeRequest(endpoint);
       
       if (v5Format) {
-        if (!this.validateResponse(result, ['txTypeVersion', 'chain', 'accountAddress', 'classificationData', 'rawTransactionData', 'transfers'])) {
+        if (!this.validateResponse(result, ['txTypeVersion', 'chain', 'accountAddress', 'classificationData', 'rawTransactionData'])) {
           throw new TransactionError({ message: ['Invalid transaction response format'] });
         }
-        if (!this.validateResponse(result.classificationData, ['type', 'source', 'description', 'protocol'])) {
+        if (!this.validateResponse(result.classificationData, ['type', 'source', 'description', 'protocol', 'transfers'])) {
           throw new TransactionError({ message: ['Invalid v5 transaction format'] });
         }
+        // Add transfers at root level for v5 format
+        result.transfers = result.classificationData.transfers;
         return result as TransactionV5;
       } else {
         if (!this.validateResponse(result, ['txTypeVersion', 'chain', 'accountAddress', 'classificationData', 'rawTransactionData'])) {
@@ -349,6 +212,8 @@ export class TranslateEVM extends BaseTranslate {
         if (!this.validateResponse(result.classificationData, ['type', 'source', 'description', 'protocol', 'sent', 'received'])) {
           throw new TransactionError({ message: ['Invalid v2 transaction format'] });
         }
+        // Add empty transfers array for v4 format
+        result.transfers = [];
         return result as TransactionV4;
       }
     } catch (error) {
@@ -384,7 +249,7 @@ export class TranslateEVM extends BaseTranslate {
   ): Promise<BalancesData[]> {
     try {
       const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
-      let endpoint = `${validatedChain}/token/balancesOf/${accountAddress}`;
+      let endpoint = `${validatedChain}/tokens/balancesOf/${accountAddress}`;
       
       const queryParams = new URLSearchParams();
       if (block) queryParams.append('block', block.toString());
@@ -398,7 +263,7 @@ export class TranslateEVM extends BaseTranslate {
 
       if (tokens && tokens.length > 0) {
         const result = await this.makeRequest(endpoint, 'POST', {
-          body: JSON.stringify({ tokens })
+          body: JSON.stringify(tokens)
         });
         if (!Array.isArray(result)) {
           throw new TransactionError({ message: ['Invalid response format'] });
@@ -529,228 +394,6 @@ export class TranslateEVM extends BaseTranslate {
         throw error;
       }
       throw new TransactionError({ message: ['Failed to get transaction types'] });
-    }
-  }
-
-  /**
-   * Get detailed information about a specific chain.
-   * @param {string} chain - The chain name.
-   * @returns {Promise<Chain>} A promise that resolves to the chain information.
-   * @throws {ChainNotFoundError} If the chain is not found.
-   * @throws {TransactionError} If there are validation errors in the request.
-   */
-  public async getChainInfo(chain: string): Promise<Chain> {
-    try {
-      const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
-      const result = await this.makeRequest(`${validatedChain}/info`);
-      return result.response;
-    } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Get the receipt of a specific transaction.
-   * @param {string} chain - The chain name.
-   * @param {string} txHash - The transaction hash.
-   * @returns {Promise<TransactionReceipt>} A promise that resolves to the transaction receipt.
-   * @throws {TransactionError} If there are validation errors in the request.
-   */
-  public async getTransactionReceipt(chain: string, txHash: string): Promise<TransactionReceipt> {
-    try {
-      const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
-      const result = await this.makeRequest(`${validatedChain}/tx/${txHash}/receipt`);
-      return result.response;
-    } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Get the status of a specific transaction.
-   * @param {string} chain - The chain name.
-   * @param {string} txHash - The transaction hash.
-   * @returns {Promise<TransactionStatus>} A promise that resolves to the transaction status.
-   * @throws {TransactionError} If there are validation errors in the request.
-   */
-  public async getTransactionStatus(chain: string, txHash: string): Promise<TransactionStatus> {
-    try {
-      const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
-      const result = await this.makeRequest(`${validatedChain}/tx/${txHash}/status`);
-      return result.response;
-    } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Get the native token balance of an account.
-   * @param {string} chain - The chain name.
-   * @param {string} accountAddress - The account address.
-   * @returns {Promise<NativeBalance>} A promise that resolves to the native token balance.
-   * @throws {TransactionError} If there are validation errors in the request.
-   */
-  public async getNativeBalance(chain: string, accountAddress: string): Promise<NativeBalance> {
-    try {
-      const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
-      const result = await this.makeRequest(`${validatedChain}/balance/${accountAddress}`);
-      if (!this.validateResponse(result, ['address', 'balance', 'symbol', 'decimals'])) {
-        throw new TransactionError({ message: ['Invalid response format'] });
-      }
-      return result;
-    } catch (error) {
-      if (error instanceof TransactionError) {
-        throw error;
-      }
-      throw new TransactionError({ message: ['Failed to get native balance'] });
-    }
-  }
-
-  /**
-   * Get information about a specific block.
-   * @param {string} chain - The chain name.
-   * @param {number} blockNumber - The block number.
-   * @returns {Promise<Block>} A promise that resolves to the block information.
-   * @throws {TransactionError} If there are validation errors in the request.
-   */
-  public async getBlock(chain: string, blockNumber: number): Promise<Block> {
-    try {
-      const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
-      const result = await this.makeRequest(`${validatedChain}/block/${blockNumber}`);
-      if (!this.validateResponse(result, ['number', 'hash', 'transactions'])) {
-        throw new TransactionError({ message: ['Invalid response format'] });
-      }
-      return result;
-    } catch (error) {
-      if (error instanceof TransactionError) {
-        throw error;
-      }
-      throw new TransactionError({ message: ['Failed to get block'] });
-    }
-  }
-
-  /**
-   * Get transactions in a specific block with pagination.
-   * @param {string} chain - The chain name.
-   * @param {number} blockNumber - The block number.
-   * @param {PageOptions} pageOptions - The page options object.
-   * @returns {Promise<TransactionsPage<TransactionV4 | TransactionV5>>} A promise that resolves to a TransactionsPage instance.
-   * @throws {TransactionError} If there are validation errors in the request.
-   */
-  public async getBlockTransactions(
-    chain: string,
-    blockNumber: number,
-    pageOptions: PageOptions = {}
-  ): Promise<TransactionsPage<TransactionV4 | TransactionV5>> {
-    try {
-      const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
-      const endpoint = `${validatedChain}/block/${blockNumber}/txs`;
-      const url = constructUrl(endpoint, pageOptions);
-      const result = await this.makeRequest(url);
-
-      if (!this.validateResponse(result, ['items', 'hasNextPage'])) {
-        throw new TransactionError({ message: ['Invalid response format'] });
-      }
-
-      const initialData = {
-        chain: chain,
-        blockNumber: blockNumber,
-        transactions: result.items,
-        currentPageKeys: pageOptions,
-        nextPageKeys: result.hasNextPage ? parseUrl(result.nextPageUrl) : null,
-      };
-      return new TransactionsPage(this, initialData);
-    } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Get information about a specific token.
-   * @param {string} chain - The chain name.
-   * @param {string} tokenAddress - The token address.
-   * @returns {Promise<TokenInfo>} A promise that resolves to the token information.
-   * @throws {TransactionError} If there are validation errors in the request.
-   */
-  public async getTokenInfo(chain: string, tokenAddress: string): Promise<TokenInfo> {
-    try {
-      const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
-      const result = await this.makeRequest(`${validatedChain}/token/${tokenAddress}`);
-      if (!this.validateResponse(result, ['address', 'name', 'symbol', 'decimals'])) {
-        throw new TransactionError({ message: ['Invalid response format'] });
-      }
-      return result;
-    } catch (error) {
-      if (error instanceof TransactionError) {
-        throw error;
-      }
-      throw new TransactionError({ message: ['Failed to get token info'] });
-    }
-  }
-
-  /**
-   * Get holders of a specific token with pagination.
-   * @param {string} chain - The chain name.
-   * @param {string} tokenAddress - The token address.
-   * @param {PageOptions} pageOptions - The page options object.
-   * @returns {Promise<TransactionsPage<TokenHolder>>} A promise that resolves to a TransactionsPage instance.
-   * @throws {TransactionError} If there are validation errors in the request.
-   */
-  public async getTokenHolders(
-    chain: string,
-    tokenAddress: string,
-    pageOptions: PageOptions = {}
-  ): Promise<TransactionsPage<TokenHolder>> {
-    try {
-      const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
-      const endpoint = `${validatedChain}/token/${tokenAddress}/holders`;
-      const url = constructUrl(endpoint, pageOptions);
-      const result = await this.makeRequest(url);
-
-      if (!this.validateResponse(result, ['items', 'hasNextPage'])) {
-        throw new TransactionError({ message: ['Invalid response format'] });
-      }
-
-      const initialData = {
-        chain: chain,
-        tokenAddress: tokenAddress,
-        transactions: result.items,
-        currentPageKeys: pageOptions,
-        nextPageKeys: result.hasNextPage ? parseUrl(result.nextPageUrl) : null,
-      };
-      return new TransactionsPage(this, initialData);
-    } catch (error) {
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        if (errorResponse.status === 400 && errorResponse.errors) {
-          throw new TransactionError(errorResponse.errors);
-        }
-      }
-      throw error;
     }
   }
 

@@ -73,9 +73,9 @@ interface Source {
 }
 
 /**
- * Interface representing a Solana transaction response
+ * Interface representing a SVM transaction response
  */
-export interface SolanaTransaction extends PaginatedItem {
+export interface SVMTransaction extends PaginatedItem {
   txTypeVersion: number;
   source: Source;
   timestamp: number;
@@ -137,10 +137,10 @@ export class TranslateSVM extends BaseTranslate {
    * Returns all of the available transaction information for the signature requested.
    * @param {string} chain - The chain name. Defaults to solana.
    * @param {string} signature - The transaction signature.
-   * @returns {Promise<SolanaTransaction>} A promise that resolves to the transaction details.
+   * @returns {Promise<SVMTransaction>} A promise that resolves to the transaction details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTransaction(chain: string = 'solana', signature: string): Promise<SolanaTransaction> {
+  public async getTransaction(chain: string = 'solana', signature: string): Promise<SVMTransaction> {
     try {
       const result = await this.makeRequest(`${chain}/tx/v5/${signature}`);
       if (!this.validateResponse(result, [
@@ -167,9 +167,9 @@ export class TranslateSVM extends BaseTranslate {
    * @param {string} chain - The chain name.
    * @param {string} accountAddress - The account address.
    * @param {PageOptions} pageOptions - The page options object.
-   * @returns {Promise<TransactionsPage<SolanaTransaction>>} A promise that resolves to a TransactionsPage instance.
+   * @returns {Promise<TransactionsPage<SVMTransaction>>} A promise that resolves to a TransactionsPage instance.
    */
-  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<SolanaTransaction>> {
+  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<SVMTransaction>> {
     try {
       // Use v4 format if specified, otherwise default to v5
       const format = pageOptions.v5Format === false ? 'v4' : 'v5';
@@ -360,7 +360,7 @@ export class TranslateSVM extends BaseTranslate {
     excludeZeroPrices: boolean = false
   ): Promise<SVMTokenBalance[]> {
     try {
-      const endpoint = `${chain}/token/balancesOf/${accountAddress}`;
+      const endpoint = `${chain}/tokens/balancesOf/${accountAddress}`;
       const url = constructUrl(endpoint, { includePrices, excludeZeroPrices });
       const result = await this.makeRequest(url);
       
@@ -370,10 +370,10 @@ export class TranslateSVM extends BaseTranslate {
       
       // Validate each token balance in the array
       for (const balance of result) {
-        if (!this.validateResponse(balance, ['balance', 'token'])) {
+        if (!this.validateResponse(balance, ['balance', 'usdValue', 'token'])) {
           throw new TransactionError({ message: ['Invalid token balance format'] });
         }
-        if (!this.validateResponse(balance.token, ['symbol', 'name', 'decimals', 'address'])) {
+        if (!this.validateResponse(balance.token, ['symbol', 'name', 'decimals', 'address', 'price'])) {
           throw new TransactionError({ message: ['Invalid token format'] });
         }
       }

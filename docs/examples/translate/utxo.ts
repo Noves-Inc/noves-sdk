@@ -44,6 +44,19 @@ async function main() {
     const txDetails = await translate.getTransaction('btc', txHash);
     console.log('Transaction details:', JSON.stringify(txDetails, null, 2));
 
+    // Example of getting token balances
+    console.log('\nFetching token balances...');
+    const balances = await translate.getTokenBalances('btc', address);
+    console.log('Token balances:', JSON.stringify(balances, null, 2));
+
+    // Example of getting token balances with options
+    console.log('\nFetching token balances with options...');
+    const balancesWithOptions = await translate.getTokenBalances(
+      'btc',
+      address
+    );
+    console.log('Token balances with options:', JSON.stringify(balancesWithOptions, null, 2));
+
   } catch (error) {
     console.error('Error:', error);
   }

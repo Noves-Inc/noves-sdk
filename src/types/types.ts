@@ -647,7 +647,7 @@ export interface SVMStakingEpochResponse {
   };
 }
 
-export interface SolanaTransaction {
+export interface SVMTransaction {
   txTypeVersion: number;
   source: {
     type: string | null;

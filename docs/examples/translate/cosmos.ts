@@ -1,5 +1,6 @@
 import { TranslateCOSMOS } from "../../../src/translate/translateCOSMOS";
-import { CosmosAddressError, CosmosTransactionJobError } from "../../../src/errors/CosmosError";
+import { CosmosTransactionJobError } from "../../../src/errors/CosmosError";
+import { TransactionError } from "../../../src/errors/TransactionError";
 
 /**
  * Example demonstrating the usage of the Cosmos Translate API
@@ -78,12 +79,12 @@ async function cosmosTranslateExample() {
 async function cosmosErrorHandlingExample() {
   const cosmosTranslate = new TranslateCOSMOS("YOUR_API_KEY");
 
-  // Example 1: Invalid address
+  // Example 1: API error handling
   try {
     await cosmosTranslate.getTokenBalances("cosmoshub", "invalid-address");
   } catch (error) {
-    if (error instanceof CosmosAddressError) {
-      console.error("Invalid address error:", error.message);
+    if (error instanceof TransactionError) {
+      console.error("Transaction error:", error.message);
     }
   }
 

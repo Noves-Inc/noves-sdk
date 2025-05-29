@@ -97,18 +97,7 @@ async function evmTranslateExample() {
 
     console.log(`\nTotal transactions processed: ${count}`);
 
-    // 4. Get block information
-    console.log("\nFetching block information...");
-    const blockInfo = await evmTranslate.getBlock("eth", 12345678);
-    console.log("Block info:", blockInfo);
-
-    // 5. Get token information
-    const tokenAddress = "0x1234567890123456789012345678901234567890";
-    console.log("\nFetching token information...");
-    const tokenInfo = await evmTranslate.getTokenInfo("eth", tokenAddress);
-    console.log("Token info:", tokenInfo);
-
-    // 6. Get available transaction types
+    // 4. Get available transaction types
     console.log("\nFetching available transaction types...");
     const txTypes = await evmTranslate.getTxTypes();
     console.log("Available transaction types:", txTypes.transactionTypes.map(type => ({
@@ -117,7 +106,7 @@ async function evmTranslateExample() {
     })));
     console.log("Transaction types version:", txTypes.version);
 
-    // 4. Start a transaction job
+    // 5. Start a transaction job
     console.log("\nStarting transaction job...");
     const job = await evmTranslate.startTransactionJob(
       "eth",
@@ -129,7 +118,7 @@ async function evmTranslateExample() {
     );
     console.log("Job started:", job);
 
-    // 5. Get job results
+    // 6. Get job results
     if (job.jobId) {
       console.log("\nFetching job results...");
       const results = await evmTranslate.getTransactionJobResults("eth", job.jobId);
@@ -141,7 +130,7 @@ async function evmTranslateExample() {
       console.log("Job deleted successfully");
     }
 
-    // 2. Get detailed transaction information
+    // 7. Get detailed transaction information
     const txHash = "0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22";
     console.log("\nFetching transaction details...");
     const txDetails = await evmTranslate.getTransaction("eth", txHash);
@@ -152,9 +141,7 @@ async function evmTranslateExample() {
       classificationData: {
         type: txDetails.classificationData.type,
         description: txDetails.classificationData.description,
-        protocol: txDetails.classificationData.protocol,
-        sent: txDetails.classificationData.sent,
-        received: txDetails.classificationData.received
+        protocol: txDetails.classificationData.protocol
       },
       rawTransactionData: {
         transactionHash: txDetails.rawTransactionData.transactionHash,
@@ -169,7 +156,7 @@ async function evmTranslateExample() {
       }
     });
 
-    // 3. Get transaction descriptions for multiple transactions
+    // 8. Get transaction descriptions for multiple transactions
     console.log("\nFetching descriptions for multiple transactions...");
     const txHashes = [
       "0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22",
@@ -178,17 +165,7 @@ async function evmTranslateExample() {
     const txDescriptions = await evmTranslate.describeTransactions("eth", txHashes);
     console.log("Transaction descriptions:", txDescriptions);
 
-    // 4. Get transaction receipt
-    console.log("\nFetching transaction receipt...");
-    const receipt = await evmTranslate.getTransactionReceipt("eth", txHash);
-    console.log("Transaction receipt:", receipt);
-
-    // 4. Get transaction status
-    console.log("\nFetching transaction status...");
-    const status = await evmTranslate.getTransactionStatus("eth", txHash);
-    console.log("Transaction status:", status);
-
-    // 5. Get raw transaction data
+    // 9. Get raw transaction data
     console.log("\nFetching raw transaction data...");
     const rawTx = await evmTranslate.getRawTransaction("eth", txHash);
     console.log("Raw transaction data:", {
@@ -225,7 +202,7 @@ async function evmErrorHandlingExample() {
 
   // Example 1: Invalid chain
   try {
-    await evmTranslate.getChain("nonexistent");
+    await evmTranslate.getChains();
   } catch (error) {
     if (error instanceof ChainNotFoundError) {
       console.error("Invalid chain error:", error.message);
@@ -240,90 +217,6 @@ async function evmErrorHandlingExample() {
       console.error("Transaction error:", error.message);
     }
   }
-
-  // Example 3: Invalid token address
-  try {
-    await evmTranslate.getTokenInfo("eth", "invalid-token-address");
-  } catch (error) {
-    if (error instanceof TransactionError) {
-      console.error("Token error:", error.message);
-    }
-  }
-}
-
-/**
- * Example demonstrating advanced usage of the EVM Translate API
- */
-async function evmAdvancedExample() {
-  const evmTranslate = new TranslateEVM("YOUR_API_KEY");
-  const accountAddress = "0x1234567890123456789012345678901234567890";
-
-  try {
-    // 1. Monitor token balances
-    console.log("Monitoring token balances...");
-    const initialBalances = await evmTranslate.getTokenBalances("eth", accountAddress);
-    console.log("Initial balances:", initialBalances);
-
-    // 2. Get detailed transaction information
-    const txHash = "0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22";
-    console.log("\nFetching transaction details...");
-    const txDetails = await evmTranslate.getTransaction("eth", txHash);
-    console.log("Transaction details:", txDetails);
-
-    // 3. Get transaction receipt
-    console.log("\nFetching transaction receipt...");
-    const receipt = await evmTranslate.getTransactionReceipt("eth", txHash);
-    console.log("Transaction receipt:", receipt);
-
-    // 4. Get transaction status
-    console.log("\nFetching transaction status...");
-    const status = await evmTranslate.getTransactionStatus("eth", txHash);
-    console.log("Transaction status:", status);
-
-    // 5. Process paginated transactions with error handling
-    console.log("\nProcessing paginated transactions...");
-    const transactionsPage = await evmTranslate.Transactions(
-      "eth",
-      accountAddress,
-      { pageSize: 10 }
-    );
-
-    // Process current page
-    let currentTransactions = transactionsPage.getTransactions();
-    for (const tx of currentTransactions) {
-      try {
-        // Process each transaction
-        console.log("Processing transaction:", tx.rawTransactionData.transactionHash);
-        // Add your custom processing logic here
-      } catch (error) {
-        console.error(`Error processing transaction ${tx.rawTransactionData.transactionHash}:`, error);
-        // Continue with next transaction
-        continue;
-      }
-    }
-
-    // 6. Get token holders with pagination
-    const tokenAddress = "0x1234567890123456789012345678901234567890";
-    console.log("\nFetching token holders...");
-    const holdersPage = await evmTranslate.getTokenHolders(
-      "eth",
-      tokenAddress,
-      { pageSize: 10 }
-    );
-
-    // Process holders
-    let currentHolders = holdersPage.getTransactions();
-    for (const holder of currentHolders) {
-      console.log("Holder:", {
-        address: holder.address,
-        balance: holder.balance,
-        share: holder.share
-      });
-    }
-
-  } catch (error) {
-    console.error("Error:", error);
-  }
 }
 
 // Run the examples
@@ -333,9 +226,6 @@ async function main() {
 
   console.log("\n=== EVM Error Handling Example ===");
   await evmErrorHandlingExample();
-
-  console.log("\n=== Advanced EVM Example ===");
-  await evmAdvancedExample();
 }
 
 main().catch(console.error); 

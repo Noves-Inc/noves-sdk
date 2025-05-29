@@ -6,7 +6,7 @@ The Translate API provides functionality to interact with multiple blockchain ec
 
 - [EVM](./evm.md) - Ethereum Virtual Machine chains
 - [Cosmos](./cosmos.md) - Cosmos-based chains
-- [Solana](./solana.md) - Solana blockchain
+- [SVM](./svm.md) - Solana Virtual Machine chains
 - [UTXO](./utxo.md) - UTXO-based chains (Bitcoin, etc.)
 - [TVM](./tvm.md) - Tron Virtual Machine
 - [Polkadot](./polkadot.md) - Polkadot ecosystem

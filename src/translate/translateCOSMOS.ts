@@ -83,17 +83,12 @@ export class TranslateCOSMOS extends BaseTranslate {
    * @param {string} chain - The chain name
    * @param {string} accountAddress - The account address
    * @returns {Promise<CosmosBalancesResponse>} A promise that resolves to the balances
-   * @throws {CosmosAddressError} If the account address is invalid
    * @throws {TransactionError} If there are validation errors in the request
    */
   public async getTokenBalances(
     chain: string,
     accountAddress: string
   ): Promise<CosmosBalancesResponse> {
-    if (!validateCosmosAddress(accountAddress)) {
-      throw new CosmosAddressError(accountAddress);
-    }
-
     try {
       const result = await this.makeRequest(`${chain}/tokens/balancesOf/${accountAddress}`);
       
