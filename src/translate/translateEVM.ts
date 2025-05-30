@@ -1,6 +1,6 @@
 // src/translate/translateEVM.ts
 
-import { BalancesData, Chain, DescribeTransaction, HistoryData, PageOptions, Transaction, TransactionTypes, EVMTransactionJob, EVMTransactionJobResponse, TransactionV4, TransactionV5 } from '../types/types';
+import { BalancesData, Chain, DescribeTransaction, HistoryData, PageOptions, TransactionTypes, EVMTransactionJob, EVMTransactionJobResponse, TransactionV2, TransactionV5 } from '../types/types';
 import { TransactionsPage } from './transactionsPage';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
@@ -182,39 +182,39 @@ export class TranslateEVM extends BaseTranslate {
   }
 
   /**
-   * Returns all of the available transaction information for the chain and transaction hash requested.
+   * Returns all of the available transaction information for the hash requested.
    * @param {string} chain - The chain name.
-   * @param {string} txHash - The transaction hash.
-   * @param {boolean} [v5Format=false] - Whether to return the response in v5 format. Defaults to false (v2 format).
-   * @returns {Promise<TransactionV4 | TransactionV5>} A promise that resolves to the transaction details.
+   * @param {string} hash - The transaction hash.
+   * @param {number} [txTypeVersion=5] - Optional. The transaction type version to use (2 or 5). Defaults to 5.
+   * @returns {Promise<TransactionV2 | TransactionV5>} A promise that resolves to the transaction details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTransaction(chain: string, txHash: string, v5Format: boolean = false): Promise<TransactionV4 | TransactionV5> {
+  public async getTransaction(chain: string, hash: string, txTypeVersion: number = 5): Promise<TransactionV2 | TransactionV5> {
     try {
+      if (txTypeVersion !== 2 && txTypeVersion !== 5) {
+        throw new TransactionError({ message: ['Invalid txTypeVersion. Must be either 2 or 5'] });
+      }
+
       const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
-      const endpoint = `${validatedChain}/tx/${txHash}${v5Format ? '?v5Format=true' : ''}`;
+      const endpoint = `${validatedChain}/tx/${hash}${txTypeVersion === 5 ? '?v5Format=true' : ''}`;
       const result = await this.makeRequest(endpoint);
-      
-      if (v5Format) {
-        if (!this.validateResponse(result, ['txTypeVersion', 'chain', 'accountAddress', 'classificationData', 'rawTransactionData'])) {
-          throw new TransactionError({ message: ['Invalid transaction response format'] });
+
+      if (txTypeVersion === 5) {
+        if (!this.validateResponse(result, ['txTypeVersion', 'chain', 'accountAddress', 'classificationData', 'rawTransactionData', 'transfers'])) {
+          throw new TransactionError({ message: ['Invalid v5 transaction response format'] });
         }
-        if (!this.validateResponse(result.classificationData, ['type', 'source', 'description', 'protocol', 'transfers'])) {
+        if (!this.validateResponse(result.classificationData, ['type', 'source', 'description', 'protocol'])) {
           throw new TransactionError({ message: ['Invalid v5 transaction format'] });
         }
-        // Add transfers at root level for v5 format
-        result.transfers = result.classificationData.transfers;
         return result as TransactionV5;
       } else {
-        if (!this.validateResponse(result, ['txTypeVersion', 'chain', 'accountAddress', 'classificationData', 'rawTransactionData'])) {
-          throw new TransactionError({ message: ['Invalid transaction response format'] });
+        if (!this.validateResponse(result, ['chain', 'accountAddress', 'classificationData', 'rawTransactionData'])) {
+          throw new TransactionError({ message: ['Invalid v2 transaction response format'] });
         }
-        if (!this.validateResponse(result.classificationData, ['type', 'source', 'description', 'protocol', 'sent', 'received'])) {
+        if (!this.validateResponse(result.classificationData, ['type', 'source', 'description', 'sent', 'received'])) {
           throw new TransactionError({ message: ['Invalid v2 transaction format'] });
         }
-        // Add empty transfers array for v4 format
-        result.transfers = [];
-        return result as TransactionV4;
+        return result as TransactionV2;
       }
     } catch (error) {
       if (error instanceof TransactionError) {
@@ -307,9 +307,9 @@ export class TranslateEVM extends BaseTranslate {
    * @param {string} chain - The chain name.
    * @param {string} walletAddress - The wallet address.
    * @param {PageOptions} pageOptions - The page options object.
-   * @returns {Promise<TransactionsPage<TransactionV4 | TransactionV5>>} A promise that resolves to a TransactionsPage instance.
+   * @returns {Promise<TransactionsPage<TransactionV2 | TransactionV5>>} A promise that resolves to a TransactionsPage instance.
    */
-  public async Transactions(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<TransactionV4 | TransactionV5>> {
+  public async Transactions(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<TransactionV2 | TransactionV5>> {
     try {
       const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
       const endpoint = `${validatedChain}/txs/${walletAddress}`;

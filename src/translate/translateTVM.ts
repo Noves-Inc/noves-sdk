@@ -1,6 +1,5 @@
-import { Chain, PageOptions, Transaction, DescribeTransaction, TransactionStatus, RawTransactionResponse, TVMTransaction, TVMBalancesJob, TVMBalancesJobResponse } from '../types/types';
+import { Chain, PageOptions, Transaction, TVMTransaction, TVMBalancesJob, TVMBalancesJobResponse } from '../types/types';
 import { TransactionsPage } from './transactionsPage';
-import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
 import { BaseTranslate } from './baseTranslate';
@@ -17,7 +16,7 @@ export class TranslateTVM extends BaseTranslate {
      * @throws Will throw an error if the API key is not provided.
      */
     constructor(apiKey: string) {
-        super(apiKey, ECOSYSTEM);
+        super(ECOSYSTEM, apiKey);
     }
 
     /**
@@ -41,37 +40,15 @@ export class TranslateTVM extends BaseTranslate {
     }
 
     /**
-     * Get a chain by its name.
-     * @param {string} name - The name of the chain to retrieve.
-     * @returns {Promise<Chain>} A promise that resolves to the chain object or undefined if not found.
-     * @throws {ChainNotFoundError} Will throw an error if the chain is not found.
-     */
-    public async getChain(name: string): Promise<Chain> {
-        try {
-            const chains = await this.getChains();
-            const chain = chains.find((chain: Chain) => chain.name.toLowerCase() === name.toLowerCase());
-            if (!chain) {
-                throw new ChainNotFoundError(name);
-            }
-            return chain;
-        } catch (error) {
-            if (error instanceof ChainNotFoundError) {
-                throw error;
-            }
-            throw new TransactionError({ message: ['Failed to get chain'] });
-        }
-    }
-
-    /**
      * Returns all of the available transaction information for the chain and transaction hash requested.
      * @param {string} chain - The chain name.
-     * @param {string} txHash - The transaction hash.
+     * @param {string} hash - The transaction hash.
      * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
      * @throws {TransactionError} If there are validation errors in the request.
      */
-    public async getTransaction(chain: string, txHash: string): Promise<Transaction> {
+    public async getTransaction(chain: string, hash: string): Promise<Transaction> {
         try {
-            const result = await this.makeRequest(`${chain}/tx/${txHash}`);
+            const result = await this.makeRequest(`${chain}/tx/${hash}`);
             return result;
         } catch (error) {
             if (error instanceof TransactionError) {
@@ -107,108 +84,6 @@ export class TranslateTVM extends BaseTranslate {
                 throw error;
             }
             throw new TransactionError({ message: ['Failed to get transactions'] });
-        }
-    }
-
-    /**
-     * For any given transaction, it returns only the description and the type.
-     * Useful in cases where you're pulling a large number of transactions but only need this data for purposes of displaying on a UI or similar.
-     * @param {string} chain - The chain name.
-     * @param {string} txHash - The transaction hash.
-     * @param {string} viewAsAccountAddress - OPTIONAL - Results are returned with the view/perspective of this wallet address.
-     * @returns {Promise<DescribeTransaction>} A promise that resolves to the transaction description.
-     * @throws {TransactionError} If there are validation errors in the request.
-     */
-    public async describeTransaction(chain: string, txHash: string, viewAsAccountAddress?: string): Promise<DescribeTransaction> {
-        try {
-            let endpoint = `${chain}/describeTx/${txHash}`;
-            if (viewAsAccountAddress) {
-                endpoint += `?viewAsAccountAddress=${encodeURIComponent(viewAsAccountAddress)}`;
-            }
-            const result = await this.makeRequest(endpoint);
-            if (!this.validateResponse(result, ['description', 'type'])) {
-                throw new TransactionError({ message: ['Invalid response format'] });
-            }
-            return result;
-        } catch (error) {
-            if (error instanceof TransactionError) {
-                throw error;
-            }
-            throw new TransactionError({ message: ['Failed to describe transaction'] });
-        }
-    }
-
-    /**
-     * For a list of transactions, returns their descriptions and types.
-     * Useful in cases where you need to describe multiple transactions at once.
-     * @param {string} chain - The chain name.
-     * @param {string[]} txHashes - Array of transaction hashes.
-     * @param {string} viewAsAccountAddress - OPTIONAL - Results are returned with the view/perspective of this wallet address.
-     * @returns {Promise<DescribeTransaction[]>} A promise that resolves to an array of transaction descriptions.
-     * @throws {TransactionError} If there are validation errors in the request.
-     */
-    public async describeTransactions(chain: string, txHashes: string[], viewAsAccountAddress?: string): Promise<DescribeTransaction[]> {
-        try {
-            let endpoint = `${chain}/describeTxs`;
-            if (viewAsAccountAddress) {
-                endpoint += `?viewAsAccountAddress=${encodeURIComponent(viewAsAccountAddress)}`;
-            }
-            const result = await this.makeRequest(endpoint, 'POST', {
-                body: JSON.stringify({ txHashes })
-            });
-            if (!Array.isArray(result)) {
-                throw new TransactionError({ message: ['Invalid response format'] });
-            }
-            return result;
-        } catch (error) {
-            if (error instanceof TransactionError) {
-                throw error;
-            }
-            throw new TransactionError({ message: ['Failed to describe transactions'] });
-        }
-    }
-
-    /**
-     * Get the status of a specific transaction.
-     * @param {string} chain - The chain name.
-     * @param {string} txHash - The transaction hash.
-     * @returns {Promise<TransactionStatus>} A promise that resolves to the transaction status.
-     * @throws {TransactionError} If there are validation errors in the request.
-     */
-    public async getTransactionStatus(chain: string, txHash: string): Promise<TransactionStatus> {
-        try {
-            const result = await this.makeRequest(`${chain}/tx/${txHash}/status`);
-            return result;
-        } catch (error) {
-            if (error instanceof Response) {
-                const errorResponse = await error.json();
-                if (errorResponse.status === 400 && errorResponse.errors) {
-                    throw new TransactionError(errorResponse.errors);
-                }
-            }
-            throw error;
-        }
-    }
-
-    /**
-     * Get raw transaction data including traces, event logs, and internal transactions.
-     * @param {string} chain - The chain name.
-     * @param {string} txHash - The transaction hash.
-     * @returns {Promise<RawTransactionResponse>} A promise that resolves to the raw transaction data.
-     * @throws {TransactionError} If there are validation errors in the request.
-     */
-    public async getRawTransaction(chain: string, txHash: string): Promise<RawTransactionResponse> {
-        try {
-            const result = await this.makeRequest(`${chain}/raw/tx/${txHash}`);
-            if (!this.validateResponse(result, ['network', 'rawTx', 'rawTraces'])) {
-                throw new TransactionError({ message: ['Invalid response format'] });
-            }
-            return result;
-        } catch (error) {
-            if (error instanceof TransactionError) {
-                throw error;
-            }
-            throw new TransactionError({ message: ['Failed to get raw transaction'] });
         }
     }
 

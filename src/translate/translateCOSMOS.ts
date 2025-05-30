@@ -34,13 +34,13 @@ export class TranslateCOSMOS extends BaseTranslate {
   /**
    * Returns all of the available transaction information for the signature requested.
    * @param {string} chain - The chain name.
-   * @param {string} txHash - The transaction signature.
+   * @param {string} hash - The transaction signature.
    * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTransaction(chain: string, txHash: string): Promise<Transaction> {
+  public async getTransaction(chain: string, hash: string): Promise<Transaction> {
     try {
-      return await this.makeRequest(`${chain}/tx/${txHash}`);
+      return await this.makeRequest(`${chain}/tx/${hash}`);
     } catch (error) {
       if (error instanceof TransactionError) {
         throw error;

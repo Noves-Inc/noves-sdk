@@ -46,39 +46,6 @@ describe('TranslatePOLKADOT', () => {
         });
     });
 
-    describe('getChain', () => {
-        it('should return a specific chain by name', async () => {
-            const mockChain = {
-                name: 'polkadot',
-                ecosystem: 'polkadot',
-                nativeCoin: {
-                    name: 'Polkadot',
-                    symbol: 'DOT',
-                    address: '0x0000000000000000000000000000000000000000',
-                    decimals: 10
-                },
-                tier: 1
-            };
-
-            global.fetch = jest.fn().mockResolvedValue({
-                ok: true,
-                json: () => Promise.resolve([mockChain])
-            });
-
-            const result = await translate.getChain('polkadot');
-            expect(result).toEqual(mockChain);
-        });
-
-        it('should throw ChainNotFoundError for non-existent chain', async () => {
-            global.fetch = jest.fn().mockResolvedValue({
-                ok: true,
-                json: () => Promise.resolve([])
-            });
-
-            await expect(translate.getChain('nonexistent')).rejects.toThrow(ChainNotFoundError);
-        });
-    });
-
     describe('getTransaction', () => {
         it('should return transaction details', async () => {
             const mockTransaction = {
@@ -264,60 +231,6 @@ describe('TranslatePOLKADOT', () => {
 
             await expect(translate.Transactions('bittensor', '5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7'))
                 .rejects.toThrow(TransactionError);
-        });
-    });
-
-    describe('describeTransaction', () => {
-        it('should return transaction description', async () => {
-            const mockDescription = {
-                type: 'transfer',
-                description: 'Transfer 1 DOT from 0xabc to 0xdef'
-            };
-
-            global.fetch = jest.fn().mockResolvedValue({
-                ok: true,
-                json: () => Promise.resolve(mockDescription)
-            });
-
-            const result = await translate.describeTransaction('polkadot', 123, 0);
-            expect(result).toEqual(mockDescription);
-        });
-
-        it('should throw TransactionError on invalid response', async () => {
-            global.fetch = jest.fn().mockResolvedValue({
-                ok: true,
-                json: () => Promise.resolve({ invalid: 'response' })
-            });
-
-            await expect(translate.describeTransaction('polkadot', 123, 0)).rejects.toThrow(TransactionError);
-        });
-    });
-
-    describe('describeTransactions', () => {
-        it('should return array of transaction descriptions', async () => {
-            const mockDescriptions = [
-                {
-                    type: 'transfer',
-                    description: 'Transfer 1 DOT from 0xabc to 0xdef'
-                }
-            ];
-
-            global.fetch = jest.fn().mockResolvedValue({
-                ok: true,
-                json: () => Promise.resolve(mockDescriptions)
-            });
-
-            const result = await translate.describeTransactions('polkadot', [{ blockNumber: 123, index: 0 }]);
-            expect(result).toEqual(mockDescriptions);
-        });
-
-        it('should throw TransactionError on invalid response', async () => {
-            global.fetch = jest.fn().mockResolvedValue({
-                ok: true,
-                json: () => Promise.resolve({ invalid: 'response' })
-            });
-
-            await expect(translate.describeTransactions('polkadot', [{ blockNumber: 123, index: 0 }])).rejects.toThrow(TransactionError);
         });
     });
 }); 

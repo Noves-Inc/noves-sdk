@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.24] - 2025-05-30
+
+### Changed
+- Enhanced transaction handling across multiple ecosystems:
+  - Updated EVM Translate API:
+    - Improved `getTransaction` method with v2 and v5 format support
+    - Added format version parameter for transaction retrieval
+    - Enhanced validation for transaction response formats
+  - Updated SVM Translate API:
+    - Added v4 and v5 format support for `getTransaction` method
+    - Improved source and classification data handling
+    - Enhanced error handling for transaction responses
+  - Updated TVM Translate API:
+    - Simplified `getTransaction` method implementation
+    - Removed deprecated methods and improved error handling
+  - Updated UTXO Translate API:
+    - Improved `getTransaction` method parameter naming
+    - Enhanced error handling for transaction validation
+  - Updated Polkadot Translate API:
+    - Removed deprecated methods
+    - Improved transaction handling and validation
+- Improved type definitions:
+  - Updated transaction interfaces for better type safety
+  - Renamed `TransactionV4` to `TransactionV2` for consistency
+  - Enhanced validation for transaction response formats
+- Enhanced test coverage:
+  - Added comprehensive tests for transaction format versions
+  - Improved error handling test cases
+  - Updated test assertions for new transaction formats
+
 ## [1.0.23] - 2025-05-29
 
 ### Changed

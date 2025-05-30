@@ -176,9 +176,9 @@ export interface TransactionV5 extends PaginatedItem {
 }
 
 /**
- * Represents a transaction in v4 format with separate sent and received arrays
+ * Represents a transaction in v2 format with separate sent and received arrays
  */
-export interface TransactionV4 extends PaginatedItem {
+export interface TransactionV2 extends PaginatedItem {
     txTypeVersion: number;
     chain: string;
     accountAddress: string;
@@ -240,9 +240,9 @@ export interface TransactionV4 extends PaginatedItem {
 }
 
 /**
- * Represents a transaction that can be either v4 or v5 format
+ * Represents a transaction that can be either v2 or v5 format
  */
-export type Transaction = TransactionV4 | TransactionV5;
+export type Transaction = TransactionV2 | TransactionV5;
 
 export interface ClassificationData {
     type: string;
@@ -510,7 +510,7 @@ export interface EVMTransactionJobResponse {
   jobId: string;
   status: 'pending' | 'completed' | 'failed';
   results?: {
-    transactions: TransactionV4[] | TransactionV5[];
+    transactions: TransactionV2[] | TransactionV5[];
     totalCount: number;
   };
   error?: string;

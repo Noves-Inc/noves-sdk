@@ -38,20 +38,6 @@ Response:
 ]
 ```
 
-### getChain(name: string)
-
-Retrieves details for a specific chain by name.
-
-```typescript
-const chain = await translate.getChain('polkadot');
-```
-
-Response: Same as individual chain object in `getChains()` response.
-
-Throws:
-- `ChainNotFoundError` if the chain is not found
-- `TransactionError` if there are validation errors
-
 ### getTransaction(chain: string, blockNumber: number, index: number)
 
 Returns all available transaction information for a specific transaction.
@@ -128,7 +114,6 @@ Response:
 Throws:
 - `TransactionError` if there are validation errors or the transaction is not found
 
-
 ### Transactions(chain: string, accountAddress: string, pageOptions?: PageOptions)
 
 Returns a paginated list of transactions for an account.
@@ -156,43 +141,6 @@ Response: Returns a `TransactionsPage` object with the following methods:
 - `next()`: Fetch next page of transactions
 - `[Symbol.asyncIterator]()`: Async iterator for all transactions
 
-### describeTransaction(chain: string, blockNumber: number, index: number, viewAsAccountAddress?: string)
-
-Returns a simplified description of a transaction.
-
-```typescript
-const description = await translate.describeTransaction('polkadot', 123456, 0);
-```
-
-Response:
-```typescript
-{
-  type: string;           // Transaction type
-  description: string;    // Human-readable description
-}
-```
-
-### describeTransactions(chain: string, transactions: Array<{blockNumber: number, index: number}>, viewAsAccountAddress?: string)
-
-Returns simplified descriptions for multiple transactions.
-
-```typescript
-const descriptions = await translate.describeTransactions('polkadot', [
-  { blockNumber: 123456, index: 0 },
-  { blockNumber: 123457, index: 0 }
-]);
-```
-
-Response:
-```typescript
-[
-  {
-    type: string;           // Transaction type
-    description: string;    // Human-readable description
-  }
-]
-```
-
 ## Error Handling
 
 All methods throw a `TransactionError` when there are validation errors or API errors. The error object contains details about what went wrong.
@@ -200,7 +148,7 @@ All methods throw a `TransactionError` when there are validation errors or API e
 Example:
 ```typescript
 try {
-  const chain = await translate.getChain('nonexistent');
+  const transaction = await translate.getTransaction('polkadot', 123456, 0);
 } catch (error) {
   if (error instanceof TransactionError) {
     console.error('Error:', error.message);
@@ -234,21 +182,4 @@ if (transactionsPage.getNextPageKeys()) {
 for await (const transaction of transactionsPage) {
   console.log('Transaction:', transaction);
 }
-```
-
-### Getting Transaction Descriptions
-
-```typescript
-const translate = new TranslatePOLKADOT('your-api-key');
-
-// Get description for a single transaction
-const description = await translate.describeTransaction('polkadot', 123456, 0);
-console.log('Description:', description);
-
-// Get descriptions for multiple transactions
-const descriptions = await translate.describeTransactions('polkadot', [
-  { blockNumber: 123456, index: 0 },
-  { blockNumber: 123457, index: 0 }
-]);
-console.log('Descriptions:', descriptions);
 ``` 

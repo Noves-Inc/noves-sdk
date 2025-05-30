@@ -147,14 +147,14 @@ export class TranslateUTXO {
   /**
    * Returns all of the available transaction information for the chain and transaction hash requested.
    * @param {string} chain - The chain name.
-   * @param {string} txHash - The transaction hash.
+   * @param {string} hash - The transaction hash.
    * @param {string} [viewAsAccountAddress] - Optional account address to view the transaction from its perspective.
    * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTransaction(chain: string, txHash: string, viewAsAccountAddress?: string): Promise<Transaction> {
+  public async getTransaction(chain: string, hash: string, viewAsAccountAddress?: string): Promise<Transaction> {
     try {
-      const endpoint = `${chain}/tx/${txHash}${viewAsAccountAddress ? `?viewAsAccountAddress=${viewAsAccountAddress}` : ''}`;
+      const endpoint = `${chain}/tx/${hash}${viewAsAccountAddress ? `?viewAsAccountAddress=${viewAsAccountAddress}` : ''}`;
       const result = await this.request(endpoint);
       if (!result || !result.response || typeof result.response !== 'object') {
         throw new TransactionError({ general: ['Invalid response format'] });

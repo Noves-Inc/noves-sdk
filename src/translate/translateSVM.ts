@@ -68,24 +68,47 @@ interface RawTransactionData {
  * Interface representing the source of the transaction
  */
 interface Source {
-  type: string;
-  name: string;
+  type: string | null;
+  name: string | null;
 }
 
 /**
- * Interface representing a SVM transaction response
+ * Interface representing a V4 SVM transaction response
  */
-export interface SVMTransaction extends PaginatedItem {
-  txTypeVersion: number;
-  source: Source;
+export interface SVMTransactionV4 extends PaginatedItem {
+  txTypeVersion: 4;
+  source: {
+    type: string;
+    name: string;
+  };
+  timestamp: number;
+  classificationData: {
+    type: string;
+  };
+  transfers: Transfer[];
+  rawTransactionData: RawTransactionData;
+}
+
+/**
+ * Interface representing a V5 SVM transaction response
+ */
+export interface SVMTransactionV5 extends PaginatedItem {
+  txTypeVersion: 5;
+  source: {
+    type: string | null;
+    name: string | null;
+  };
   timestamp: number;
   classificationData: {
     type: string;
     description: string | null;
   };
   transfers: Transfer[];
+  values: any[];
   rawTransactionData: RawTransactionData;
 }
+
+export type SVMTransaction = SVMTransactionV4 | SVMTransactionV5;
 
 /**
  * Interface representing SPL accounts response
@@ -137,23 +160,61 @@ export class TranslateSVM extends BaseTranslate {
    * Returns all of the available transaction information for the signature requested.
    * @param {string} chain - The chain name. Defaults to solana.
    * @param {string} signature - The transaction signature.
-   * @returns {Promise<SVMTransaction>} A promise that resolves to the transaction details.
+   * @param {number} [txTypeVersion=5] - Optional. The transaction type version to use (4 or 5). Defaults to 5.
+   * @returns {Promise<SVMTransactionV4 | SVMTransactionV5>} A promise that resolves to the transaction details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTransaction(chain: string = 'solana', signature: string): Promise<SVMTransaction> {
+  public async getTransaction(chain: string = 'solana', signature: string, txTypeVersion: number = 5): Promise<SVMTransactionV4 | SVMTransactionV5> {
     try {
-      const result = await this.makeRequest(`${chain}/tx/v5/${signature}`);
-      if (!this.validateResponse(result, [
-        'txTypeVersion',
-        'source',
-        'timestamp',
-        'classificationData',
-        'transfers',
-        'rawTransactionData'
-      ])) {
-        throw new TransactionError({ message: ['Invalid response format'] });
+      if (txTypeVersion !== 4 && txTypeVersion !== 5) {
+        throw new TransactionError({ message: ['Invalid txTypeVersion. Must be either 4 or 5'] });
       }
-      return result;
+      const result = await this.makeRequest(`${chain}/tx/v${txTypeVersion}/${signature}`);
+      
+      // Check if the response indicates an error
+      if (result.classificationData?.type === 'error') {
+        throw new TransactionError({ message: ['Transaction not found or invalid'] });
+      }
+
+      if (txTypeVersion === 5) {
+        if (!this.validateResponse(result, [
+          'txTypeVersion',
+          'source',
+          'timestamp',
+          'classificationData',
+          'transfers',
+          'values',
+          'rawTransactionData'
+        ])) {
+          throw new TransactionError({ message: ['Invalid v5 transaction response format'] });
+        }
+        if (!this.validateResponse(result.classificationData, ['type', 'description'])) {
+          throw new TransactionError({ message: ['Invalid v5 transaction format'] });
+        }
+        return result as SVMTransactionV5;
+      } else {
+        if (!this.validateResponse(result, [
+          'txTypeVersion',
+          'source',
+          'timestamp',
+          'classificationData',
+          'transfers',
+          'rawTransactionData'
+        ])) {
+          throw new TransactionError({ message: ['Invalid v4 transaction response format'] });
+        }
+        if (!this.validateResponse(result.classificationData, ['type'])) {
+          throw new TransactionError({ message: ['Invalid v4 transaction format'] });
+        }
+        // Ensure source has the correct format for v4
+        if (!result.source.type) {
+          result.source.type = 'blockchain';
+        }
+        if (!result.source.name) {
+          result.source.name = chain;
+        }
+        return result as SVMTransactionV4;
+      }
     } catch (error) {
       if (error instanceof TransactionError) {
         throw error;

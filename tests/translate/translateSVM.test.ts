@@ -56,7 +56,7 @@ describe('TranslateSVM', () => {
   });
 
   describe('getTransaction', () => {
-    it('should fetch transaction details successfully', async () => {
+    it('should fetch transaction details successfully with default v5 format', async () => {
       const mockTransaction = {
         txTypeVersion: 5,
         source: {
@@ -97,6 +97,7 @@ describe('TranslateSVM', () => {
             }
           }
         ],
+        values: [],
         rawTransactionData: {
           signature: validSignature,
           blockNumber: 281779550,
@@ -111,9 +112,57 @@ describe('TranslateSVM', () => {
       expect(response).toEqual(mockTransaction);
       expect(response.txTypeVersion).toBe(5);
       expect(response.source.type).toBeNull();
-      expect(response.classificationData.description).toBeNull();
+      expect(response.source.name).toBeNull();
+      
+      // Type guard for v5 transaction
+      if (response.txTypeVersion === 5) {
+        expect(response.classificationData.description).toBeNull();
+        expect(response.values).toBeDefined();
+      }
+      
       expect(response.transfers).toHaveLength(1);
       expect(response.rawTransactionData.signature).toBe(validSignature);
+    });
+
+    it('should fetch transaction details successfully with v4 format', async () => {
+      const mockTransaction = {
+        txTypeVersion: 4,
+        source: {
+          type: 'blockchain',
+          name: 'solana'
+        },
+        timestamp: 1722892419,
+        classificationData: {
+          type: 'unclassified'
+        },
+        transfers: [],
+        rawTransactionData: {
+          signature: validSignature,
+          blockNumber: 281779550,
+          signer: validAddress,
+          interactedAccounts: ['11111111111111111111111111111111']
+        }
+      };
+
+      mockRequest.mockResolvedValue(mockTransaction);
+
+      const response = await translate.getTransaction(validChain, validSignature, 4);
+      expect(response).toEqual(mockTransaction);
+      expect(response.txTypeVersion).toBe(4);
+      expect(response.source.type).toBe('blockchain');
+      expect(response.source.name).toBe('solana');
+      
+      // Type guard for v4 transaction
+      if (response.txTypeVersion === 4) {
+        expect(response.classificationData).not.toHaveProperty('description');
+        expect(response).not.toHaveProperty('values');
+      }
+    });
+
+    it('should throw error for invalid txTypeVersion', async () => {
+      await expect(translate.getTransaction(validChain, validSignature, 3))
+        .rejects
+        .toThrow(TransactionError);
     });
 
     it('should handle validation errors', async () => {
@@ -126,6 +175,34 @@ describe('TranslateSVM', () => {
     it('should handle invalid response format', async () => {
       mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid response format'] }));
       await expect(translate.getTransaction(validChain, validSignature)).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle error response from API', async () => {
+      const errorResponse = {
+        txTypeVersion: 5,
+        source: {
+          type: null,
+          name: null
+        },
+        timestamp: null,
+        classificationData: {
+          type: 'error',
+          description: 'Transaction not found'
+        },
+        transfers: [],
+        values: [],
+        rawTransactionData: {
+          signature: validSignature,
+          blockNumber: 0,
+          signer: '',
+          interactedAccounts: []
+        }
+      };
+
+      mockRequest.mockResolvedValue(errorResponse);
+      await expect(translate.getTransaction(validChain, validSignature))
+        .rejects
+        .toThrow(TransactionError);
     });
   });
 

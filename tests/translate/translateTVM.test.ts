@@ -32,19 +32,6 @@ describe('TranslateTVM', () => {
         expect(chains).toEqual(mockChains);
     });
 
-    it('should get chain by name', async () => {
-        const mockChain = { name: 'tron', displayName: 'TRON' };
-        mockRequest.mockResolvedValue([mockChain]);
-
-        const chain = await translate.getChain('tron');
-        expect(chain).toEqual(mockChain);
-    });
-
-    it('should throw error for non-existent chain', async () => {
-        mockRequest.mockResolvedValue([]);
-        await expect(translate.getChain('nonexistent')).rejects.toThrow();
-    });
-
     it('should fetch a transaction successfully', async () => {
         const mockTransaction = {
             hash: 'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462',
@@ -67,7 +54,7 @@ describe('TranslateTVM', () => {
     it('should handle transaction validation errors', async () => {
         const mockErrorResponse = {
             chain: ['The field chain is invalid. Valid chains: tron'],
-            txHash: ['The field txHash must be a valid Transaction Hash.']
+            hash: ['The field hash must be a valid Transaction Hash.']
         };
 
         mockRequest.mockRejectedValue(new TransactionError(mockErrorResponse));
@@ -147,92 +134,6 @@ describe('TranslateTVM', () => {
         expect(transactions.getNextPageKeys()).not.toBeNull();
     });
 
-    it('should describe a transaction successfully', async () => {
-        const mockDescription = {
-            type: 'sendToken',
-            description: 'Sent 100 TRX'
-        };
-
-        mockRequest.mockResolvedValue(mockDescription);
-
-        const response = await translate.describeTransaction(
-            'tron',
-            'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462'
-        );
-        expect(response).toEqual(mockDescription);
-    });
-
-    it('should describe multiple transactions successfully', async () => {
-        const mockDescriptions = [
-            {
-                type: 'sendToken',
-                description: 'Sent 100 TRX'
-            },
-            {
-                type: 'receiveToken',
-                description: 'Received 50 TRX'
-            }
-        ];
-
-        mockRequest.mockResolvedValue(mockDescriptions);
-
-        const response = await translate.describeTransactions(
-            'tron',
-            ['txHash1', 'txHash2']
-        );
-        expect(response).toEqual(mockDescriptions);
-    });
-
-    it('should get transaction status successfully', async () => {
-        const mockStatus = {
-            status: 'confirmed',
-            blockNumber: 123456,
-            timestamp: 1234567890
-        };
-
-        mockRequest.mockResolvedValue(mockStatus);
-
-        const response = await translate.getTransactionStatus(
-            'tron',
-            'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462'
-        );
-        expect(response).toEqual(mockStatus);
-    });
-
-    it('should get raw transaction successfully', async () => {
-        const mockRawTx = {
-            network: 'tron',
-            rawTx: {
-                transactionHash: 'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462',
-                hash: 'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462',
-                blockNumber: 123456,
-                from: 'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR',
-                to: 'TVXk9LFfNUJvtoX8tWFuVLUyPUMN1M3JVC',
-                gas: 21000,
-                gasPrice: 210,
-                value: 100000000,
-                timestamp: 1234567890,
-                gasUsed: 21000,
-                transactionFee: 4410000
-            },
-            rawTraces: [],
-            eventLogs: [],
-            internalTxs: [],
-            txReceipt: {
-                blockNumber: 123456,
-                blockHash: '0x123...',
-                status: 1
-            }
-        };
-
-        mockRequest.mockResolvedValue(mockRawTx);
-
-        const response = await translate.getRawTransaction(
-            'tron',
-            'c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462'
-        );
-        expect(response).toEqual(mockRawTx);
-    });
 });
 
 describe('Balances Job', () => {

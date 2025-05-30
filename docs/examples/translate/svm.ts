@@ -63,9 +63,16 @@ async function solanaTranslateExample() {
     console.log("\nFetching specific transaction...");
     const txSignature = "2ez7gUe9yvM9Hq9wT18tmT2H73k4txu3AFfDEejYeqviMRUxWVWPGtgR71W474FuNcpxV5GQRACvzvNJk5nzEiEL";
     try {
+      // Get transaction in v5 format (default)
       const txInfo = await solanaTranslate.getTransaction("solana", txSignature);
-      console.log("Transaction details:", {
+      console.log("Transaction details (v5):", {
+        txTypeVersion: txInfo.txTypeVersion,
+        source: txInfo.source, // Can be null in v5
         type: txInfo.classificationData.type,
+        ...(txInfo.txTypeVersion === 5 && {
+          description: txInfo.classificationData.description, // Only in v5
+          values: txInfo.values, // Only in v5
+        }),
         timestamp: new Date(txInfo.timestamp * 1000).toISOString(),
         transfers: txInfo.transfers.map(t => ({
           action: t.action,
@@ -79,6 +86,28 @@ async function solanaTranslateExample() {
           blockNumber: txInfo.rawTransactionData.blockNumber,
           signer: txInfo.rawTransactionData.signer,
           interactedAccounts: txInfo.rawTransactionData.interactedAccounts
+        }
+      });
+
+      // Get transaction in v4 format
+      const txInfoV4 = await solanaTranslate.getTransaction("solana", txSignature, 4);
+      console.log("Transaction details (v4):", {
+        txTypeVersion: txInfoV4.txTypeVersion,
+        source: txInfoV4.source, // Always has type and name
+        type: txInfoV4.classificationData.type,
+        timestamp: new Date(txInfoV4.timestamp * 1000).toISOString(),
+        transfers: txInfoV4.transfers.map(t => ({
+          action: t.action,
+          amount: t.amount,
+          token: t.token.symbol,
+          from: t.from.address,
+          to: t.to.address
+        })),
+        rawData: {
+          signature: txInfoV4.rawTransactionData.signature,
+          blockNumber: txInfoV4.rawTransactionData.blockNumber,
+          signer: txInfoV4.rawTransactionData.signer,
+          interactedAccounts: txInfoV4.rawTransactionData.interactedAccounts
         }
       });
     } catch (error) {

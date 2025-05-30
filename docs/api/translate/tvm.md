@@ -42,62 +42,11 @@ interface Chain {
 }
 ```
 
-### getChain(name: string)
-Get detailed information about a specific chain.
-
-```typescript
-const chainInfo = await tvmTranslate.getChain("tron");
-```
-
-### getTransaction(chain: string, txHash: string)
+### getTransaction(chain: string, hash: string)
 Get detailed information about a specific transaction.
 
 ```typescript
 const txInfo = await tvmTranslate.getTransaction(
-  "tron",
-  "c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462"
-);
-```
-
-### describeTransaction(chain: string, txHash: string, viewAsAccountAddress?: string)
-For any given transaction, it returns only the description and the type.
-Useful in cases where you're pulling a large number of transactions but only need this data for purposes of displaying on a UI or similar.
-
-```typescript
-const txDescription = await tvmTranslate.describeTransaction(
-  "tron",
-  "c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462",
-  "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR" // Optional: view as this account
-);
-```
-
-### describeTransactions(chain: string, txHashes: string[], viewAsAccountAddress?: string)
-For a list of transactions, returns their descriptions and types.
-Useful in cases where you need to describe multiple transactions at once.
-
-```typescript
-const txDescriptions = await tvmTranslate.describeTransactions(
-  "tron",
-  ["txHash1", "txHash2"],
-  "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR" // Optional: view as this account
-);
-```
-
-### getTransactionStatus(chain: string, txHash: string)
-Get the status of a specific transaction.
-
-```typescript
-const txStatus = await tvmTranslate.getTransactionStatus(
-  "tron",
-  "c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462"
-);
-```
-
-### getRawTransaction(chain: string, txHash: string)
-Get raw transaction data including traces, event logs, and internal transactions.
-
-```typescript
-const rawTx = await tvmTranslate.getRawTransaction(
   "tron",
   "c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462"
 );
@@ -230,11 +179,6 @@ interface TVMBalancesJobResponse {
 const chains = await tvmTranslate.getChains();
 console.log(chains);
 // Output: [{ name: "tron", ecosystem: "tvm", nativeCoin: { ... } }]
-
-// Get specific chain
-const tronChain = await tvmTranslate.getChain("tron");
-console.log(tronChain);
-// Output: { name: "tron", ecosystem: "tvm", nativeCoin: { ... } }
 ```
 
 ### Getting Transaction Information
@@ -246,30 +190,6 @@ const txInfo = await tvmTranslate.getTransaction(
 );
 console.log(txInfo);
 // Output: { hash: "...", accountAddress: "...", rawTransactionData: { ... }, classificationData: { ... } }
-
-// Get transaction description
-const txDescription = await tvmTranslate.describeTransaction(
-  "tron",
-  "c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462"
-);
-console.log(txDescription);
-// Output: { type: "sendToken", description: "Sent 100 TRX" }
-
-// Get transaction status
-const txStatus = await tvmTranslate.getTransactionStatus(
-  "tron",
-  "c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462"
-);
-console.log(txStatus);
-// Output: { status: "confirmed", blockNumber: 123456, timestamp: 1234567890 }
-
-// Get raw transaction data
-const rawTx = await tvmTranslate.getRawTransaction(
-  "tron",
-  "c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462"
-);
-console.log(rawTx);
-// Output: { network: "tron", rawTx: { ... }, rawTraces: [ ... ], eventLogs: [ ... ] }
 ```
 
 ### Getting Account Transactions
@@ -288,18 +208,15 @@ const nextPage = await transactions.next();
 
 The TVM Translate API uses the following error types:
 
-- `ChainNotFoundError`: Thrown when a requested chain is not found
 - `TransactionError`: Thrown for transaction-related errors
 - `ValidationError`: Thrown for validation errors in request parameters
 
 Example error handling:
 ```typescript
 try {
-  const chain = await tvmTranslate.getChain("nonexistent");
+  const txInfo = await tvmTranslate.getTransaction("tron", "invalid-hash");
 } catch (error) {
-  if (error instanceof ChainNotFoundError) {
-    console.error("Chain not found:", error.message);
-  } else if (error instanceof TransactionError) {
+  if (error instanceof TransactionError) {
     console.error("Transaction error:", error.message);
   }
 }

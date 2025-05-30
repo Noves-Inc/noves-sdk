@@ -297,7 +297,7 @@ Example error response:
 }
 ```
 
-### getTransaction(chain: string, txHash: string, viewAsAccountAddress?: string)
+### getTransaction(chain: string, hash: string, viewAsAccountAddress?: string)
 Get detailed information about a specific transaction.
 
 ```typescript
@@ -312,7 +312,7 @@ const txInfo = await translate.getTransaction(
 
 #### Parameters
 - `chain` (string): The chain name (e.g., "btc")
-- `txHash` (string): The transaction hash
+- `hash` (string): The transaction hash
 - `viewAsAccountAddress` (string, optional): The account address to view the transaction from its perspective
 
 #### Response Format

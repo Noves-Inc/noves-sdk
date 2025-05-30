@@ -53,77 +53,37 @@ describe('TranslateEVM', () => {
   describe('getTransaction', () => {
     it('should get transaction details', async () => {
       const mockResponse = {
-        txTypeVersion: 2,
-        chain: validChain,
-        accountAddress: validAddress,
-        classificationData: {
-          type: 'placeOrder',
-          source: { type: 'human' },
-          description: 'Placed a new order in a decentralized exchange.',
-          protocol: { name: null },
-          sent: [],
-          received: []
-        },
-        rawTransactionData: {
-          transactionHash: validTxHash,
-          fromAddress: validAddress,
-          toAddress: validAddress,
-          blockNumber: 12345678,
-          gas: 21000,
-          gasUsed: 21000,
-          gasPrice: 20000000000,
-          transactionFee: {
-            amount: '0.00042',
-            token: {
-              symbol: 'ETH',
-              name: 'Ethereum',
-              decimals: 18,
-              address: 'ETH'
-            }
-          },
-          timestamp: 1234567890
-        }
-      };
-
-      mockRequest.mockResolvedValue(mockResponse);
-
-      const result = await translateEVM.getTransaction(validChain, validTxHash);
-
-      expect(mockRequest).toHaveBeenCalledWith(`eth/tx/${validTxHash}`);
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should get transaction details in v5 format', async () => {
-      mockRequest.mockResolvedValue({
         txTypeVersion: 5,
         chain: validChain,
         accountAddress: validAddress,
         classificationData: {
           type: 'placeOrder',
-          source: { type: 'human' },
+          source: {
+            type: 'human'
+          },
           description: 'Placed a new order in a decentralized exchange.',
-          protocol: { name: null },
-          transfers: [
-            {
-              action: 'sent',
-              from: {
-                name: null,
-                address: validAddress
-              },
-              to: {
-                name: null,
-                address: '0x1234567890123456789012345678901234567890'
-              },
-              amount: '1.0',
-              token: {
-                symbol: 'ETH',
-                name: 'Ethereum',
-                decimals: 18,
-                address: '0x0000000000000000000000000000000000000000'
-              }
-            }
-          ]
+          protocol: { name: null }
         },
+        transfers: [
+          {
+            action: 'sent',
+            from: {
+              name: null,
+              address: validAddress
+            },
+            to: {
+              name: null,
+              address: '0x1234567890123456789012345678901234567890'
+            },
+            amount: '1.0',
+            token: {
+              symbol: 'ETH',
+              name: 'Ethereum',
+              decimals: 18,
+              address: '0x0000000000000000000000000000000000000000'
+            }
+          }
+        ],
         rawTransactionData: {
           transactionHash: validTxHash,
           fromAddress: validAddress,
@@ -135,28 +95,117 @@ describe('TranslateEVM', () => {
           transactionFee: 0.00042,
           timestamp: 1234567890
         }
-      });
-      const tx = await translateEVM.getTransaction(validChain, validTxHash, true);
-      expect(tx).toBeDefined();
-      expect(tx).toHaveProperty('txTypeVersion');
-      expect(tx).toHaveProperty('chain');
-      expect(tx).toHaveProperty('accountAddress');
-      expect(tx).toHaveProperty('classificationData');
-      expect(tx).toHaveProperty('rawTransactionData');
-      expect(tx).toHaveProperty('transfers');
-      expect(tx.classificationData).toHaveProperty('type');
-      expect(tx.classificationData).toHaveProperty('source');
-      expect(tx.classificationData).toHaveProperty('description');
-      expect(tx.classificationData).toHaveProperty('protocol');
-      expect(tx.rawTransactionData).toHaveProperty('transactionHash');
-      expect(tx.rawTransactionData).toHaveProperty('fromAddress');
-      expect(tx.rawTransactionData).toHaveProperty('toAddress');
-      expect(tx.rawTransactionData).toHaveProperty('blockNumber');
-      expect(tx.rawTransactionData).toHaveProperty('gas');
-      expect(tx.rawTransactionData).toHaveProperty('gasUsed');
-      expect(tx.rawTransactionData).toHaveProperty('gasPrice');
-      expect(tx.rawTransactionData).toHaveProperty('transactionFee');
-      expect(tx.rawTransactionData).toHaveProperty('timestamp');
+      };
+
+      mockRequest.mockResolvedValue(mockResponse);
+
+      const result = await translateEVM.getTransaction(validChain, validTxHash);
+
+      expect(mockRequest).toHaveBeenCalledWith(`eth/tx/${validTxHash}?v5Format=true`);
+      expect(result).toEqual(mockResponse);
+      expect(result.txTypeVersion).toBe(5);
+    });
+
+    it('should get transaction details in v5 format', async () => {
+      const mockTransaction = {
+        txTypeVersion: 5,
+        chain: 'eth',
+        accountAddress: '0x123',
+        classificationData: {
+          type: 'transfer',
+          source: 'blockchain',
+          description: 'Transfer of ETH',
+          protocol: 'ethereum'
+        },
+        rawTransactionData: {
+          hash: '0xabc',
+          blockNumber: 123,
+          from: '0x123',
+          to: '0x456',
+          value: '1000000000000000000'
+        },
+        transfers: []
+      };
+
+      mockRequest.mockResolvedValue(mockTransaction);
+
+      const result = await translateEVM.getTransaction(validChain, '0xabc', 5);
+      expect(result).toEqual(mockTransaction);
+      expect(result.txTypeVersion).toBe(5);
+    });
+
+    it('should get transaction details in v2 format', async () => {
+      const mockTransaction = {
+        txTypeVersion: 2,
+        chain: 'eth',
+        accountAddress: '0x123',
+        classificationData: {
+          type: 'transfer',
+          source: {
+            type: 'human'
+          },
+          description: 'Transfer of ETH',
+          protocol: {
+            name: null
+          },
+          sent: [
+            {
+              action: 'sent',
+              from: {
+                name: null,
+                address: '0x123'
+              },
+              to: {
+                name: null,
+                address: '0x456'
+              },
+              amount: '1.0',
+              token: {
+                symbol: 'ETH',
+                name: 'Ethereum',
+                decimals: 18,
+                address: '0x0000000000000000000000000000000000000000'
+              }
+            }
+          ],
+          received: []
+        },
+        rawTransactionData: {
+          transactionHash: '0xabc',
+          fromAddress: '0x123',
+          toAddress: '0x456',
+          blockNumber: 123,
+          gas: 21000,
+          gasUsed: 21000,
+          gasPrice: 20000000000,
+          transactionFee: 0.00042,
+          timestamp: 1234567890
+        }
+      };
+
+      mockRequest.mockResolvedValue(mockTransaction);
+
+      const result = await translateEVM.getTransaction(validChain, '0xabc', 2);
+      expect(result).toEqual(mockTransaction);
+      expect(result.txTypeVersion).toBe(2);
+    });
+
+    it('should throw error for invalid txTypeVersion', async () => {
+      await expect(translateEVM.getTransaction(validChain, '0xabc', 3))
+        .rejects
+        .toThrow(TransactionError);
+    });
+
+    it('should handle validation errors', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ 
+        message: ['The field chain is invalid'] 
+      }));
+      await expect(translateEVM.getTransaction('invalidChain', '0xabc')).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle invalid response format', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid response format'] }));
+      await expect(translateEVM.getTransaction(validChain, '0xabc')).rejects.toThrow(TransactionError);
     });
 
     it('should handle invalid hash', async () => {

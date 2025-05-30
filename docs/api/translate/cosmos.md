@@ -27,7 +27,7 @@ const chains = await cosmosTranslate.getChains();
 // Returns: [{ name: "cosmoshub", ecosystem: "cosmos" }, ...]
 ```
 
-### getTransaction(chain: string, txHash: string)
+### getTransaction(chain: string, hash: string)
 Get detailed information about a specific transaction.
 
 ```typescript

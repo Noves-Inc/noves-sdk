@@ -538,7 +538,7 @@ describe('TranslateUTXO', () => {
     it('should handle validation errors', async () => {
       mockRequest.mockRejectedValue(new Response(JSON.stringify({
         status: 400,
-        errors: { txHash: ['Invalid transaction hash format'] }
+        errors: { hash: ['Invalid transaction hash format'] }
       }), { status: 400 }));
 
       await expect(translate.getTransaction('btc', 'invalid-tx-hash')).rejects.toThrow(TransactionError);

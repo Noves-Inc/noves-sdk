@@ -11,31 +11,13 @@ async function main() {
         const chains = await translate.getChains();
         console.log('Supported chains:', chains);
 
-        // Get details for a specific chain
-        const chainName = 'bittensor';
-        console.log(`\nGetting details for chain: ${chainName}...`);
-        const chain = await translate.getChain(chainName);
-        console.log('Chain details:', chain);
-
         // Get transaction details
+        const chainName = 'bittensor';
         const blockNumber = 4000000;
         const txIndex = 1;
         console.log(`\nGetting transaction details for block ${blockNumber}, index ${txIndex}...`);
         const transaction = await translate.getTransaction(chainName, blockNumber, txIndex);
         console.log('Transaction details:', JSON.stringify(transaction, null, 2));
-
-        // Get transaction description
-        console.log('\nGetting transaction description...');
-        const description = await translate.describeTransaction(chainName, blockNumber, txIndex);
-        console.log('Transaction description:', description);
-
-        // Get multiple transaction descriptions
-        console.log('\nGetting multiple transaction descriptions...');
-        const descriptions = await translate.describeTransactions(chainName, [
-            { blockNumber, index: txIndex },
-            { blockNumber: blockNumber + 1, index: 0 }
-        ]);
-        console.log('Transaction descriptions:', descriptions);
 
         // Get paginated transactions for an account
         const accountAddress = '5FxcZraZACr4L78jWkcYe3FHdiwiAUzrKLVtsSwkvFobBKqq';

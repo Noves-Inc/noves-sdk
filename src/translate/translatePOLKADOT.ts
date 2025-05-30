@@ -44,31 +44,6 @@ export class TranslatePOLKADOT extends BaseTranslate {
     }
 
     /**
-     * Get a chain by its name.
-     * @param {string} name - The name of the chain to retrieve.
-     * @returns {Promise<Chain>} A promise that resolves to the chain object.
-     * @throws {ChainNotFoundError} Will throw an error if the chain is not found.
-     * @throws {TransactionError} If there are validation errors in the request.
-     */
-    public async getChain(name: string): Promise<Chain> {
-        try {
-            const chains = await this.getChains();
-            const chain = chains.find((chain: Chain) =>
-                chain.name.toLowerCase() === name.toLowerCase()
-            );
-            if (!chain) {
-                throw new ChainNotFoundError(name);
-            }
-            return chain;
-        } catch (error) {
-            if (error instanceof ChainNotFoundError) {
-                throw error;
-            }
-            throw new TransactionError({ message: ['Failed to get chain'] });
-        }
-    }
-
-    /**
      * Returns all of the available transaction information for the chain and transaction hash requested.
      * @param {string} chain - The chain name.
      * @param {number} blockNumber - The block number.
@@ -132,72 +107,6 @@ export class TranslatePOLKADOT extends BaseTranslate {
                 throw error;
             }
             throw new TransactionError({ message: ['Failed to get transactions'] });
-        }
-    }
-
-    /**
-     * Get a simplified description of a transaction.
-     * @param {string} chain - The chain name.
-     * @param {number} blockNumber - The block number.
-     * @param {number} index - The index of the transaction in the block.
-     * @param {string} [viewAsAccountAddress] - Optional: view transaction from this address's perspective.
-     * @returns {Promise<{type: string, description: string}>} A promise that resolves to the transaction description.
-     * @throws {TransactionError} If there are validation errors in the request.
-     */
-    public async describeTransaction(
-        chain: string,
-        blockNumber: number,
-        index: number,
-        viewAsAccountAddress?: string
-    ): Promise<{ type: string; description: string }> {
-        try {
-            const endpoint = `${chain}/block/${blockNumber}/tx/${index}/describe`;
-            const url = viewAsAccountAddress ? `${endpoint}?viewAsAccountAddress=${viewAsAccountAddress}` : endpoint;
-            const result = await this.makeRequest(url);
-            
-            if (!result || typeof result.type !== 'string' || typeof result.description !== 'string') {
-                throw new TransactionError({ message: ['Invalid response format'] });
-            }
-            
-            return result;
-        } catch (error) {
-            if (error instanceof TransactionError) {
-                throw error;
-            }
-            throw new TransactionError({ message: ['Failed to describe transaction'] });
-        }
-    }
-
-    /**
-     * Get simplified descriptions for multiple transactions at once.
-     * @param {string} chain - The chain name.
-     * @param {Array<{blockNumber: number, index: number}>} transactions - Array of transaction identifiers.
-     * @param {string} [viewAsAccountAddress] - Optional: view transactions from this address's perspective.
-     * @returns {Promise<Array<{type: string, description: string}>>} A promise that resolves to an array of transaction descriptions.
-     * @throws {TransactionError} If there are validation errors in the request.
-     */
-    public async describeTransactions(
-        chain: string,
-        transactions: Array<{ blockNumber: number; index: number }>,
-        viewAsAccountAddress?: string
-    ): Promise<Array<{ type: string; description: string }>> {
-        try {
-            const endpoint = `${chain}/txs/describe`;
-            const url = viewAsAccountAddress ? `${endpoint}?viewAsAccountAddress=${viewAsAccountAddress}` : endpoint;
-            const result = await this.makeRequest(url, 'POST', {
-                body: JSON.stringify({ transactions })
-            });
-
-            if (!Array.isArray(result)) {
-                throw new TransactionError({ message: ['Invalid response format'] });
-            }
-
-            return result;
-        } catch (error) {
-            if (error instanceof TransactionError) {
-                throw error;
-            }
-            throw new TransactionError({ message: ['Failed to describe transactions'] });
         }
     }
 }

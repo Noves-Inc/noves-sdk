@@ -1,7 +1,7 @@
 // src/translate/TransactionsPage.ts
 
 import { Pagination } from './pagination';
-import { PageOptions, TransactionV4, TransactionV5 } from '../types/types';
+import { PageOptions } from '../types/types';
 
 /**
  * Base interface for paginated items

@@ -26,25 +26,36 @@ interface Chain {
 }
 ```
 
-### getTransaction(chain: string, signature: string)
-Get detailed information about a specific transaction using the v5 endpoint.
+### getTransaction(chain: string, signature: string, txTypeVersion?: number)
+Get detailed information about a specific transaction. Supports both v4 and v5 formats.
 
 ```typescript
+// Get transaction in v5 format (default)
 const txInfo = await translate.getTransaction('solana', '3dAzEfwuZQvykPFqXt7U2bCdpfFrMQ7mR45D2t3ggkvBW88Cm4s35Wxpop831pygvYPA54Ht3i1Ufu3FTtM6ocdq');
+
+// Get transaction in v4 format
+const txInfoV4 = await translate.getTransaction('solana', '3dAzEfwuZQvykPFqXt7U2bCdpfFrMQ7mR45D2t3ggkvBW88Cm4s35Wxpop831pygvYPA54Ht3i1Ufu3FTtM6ocdq', 4);
 ```
 
-Response format:
+#### Parameters
+- `chain` (string): The chain name (e.g., "solana"). Defaults to 'solana'
+- `signature` (string): The transaction signature
+- `txTypeVersion` (number, optional): The transaction type version to use (4 or 5). Defaults to 5
+
+#### Response Format
+The response format differs between v4 and v5:
+
+##### V4 Format
 ```typescript
-interface SolanaTransaction {
-  txTypeVersion: number;
+interface SVMTransactionV4 {
+  txTypeVersion: 4;
   source: {
-    type: string | null;
-    name: string | null;
+    type: string;      // Always 'blockchain'
+    name: string;      // Always matches the chain name
   };
   timestamp: number;
   classificationData: {
     type: string;
-    description: string | null;
   };
   transfers: Array<{
     action: string;
@@ -81,6 +92,69 @@ interface SolanaTransaction {
   };
 }
 ```
+
+##### V5 Format
+```typescript
+interface SVMTransactionV5 {
+  txTypeVersion: 5;
+  source: {
+    type: string | null;  // Can be null in v5
+    name: string | null;  // Can be null in v5
+  };
+  timestamp: number;
+  classificationData: {
+    type: string;
+    description: string | null;  // Additional field in v5
+  };
+  transfers: Array<{
+    action: string;
+    amount: string;
+    token: {
+      decimals: number;
+      address: string;
+      name: string;
+      symbol: string;
+      icon: string | null;
+    };
+    from: {
+      name: string | null;
+      address: string;
+      owner: {
+        name: string | null;
+        address: string | null;
+      };
+    };
+    to: {
+      name: string | null;
+      address: string | null;
+      owner: {
+        name: string | null;
+        address: string | null;
+      };
+    };
+  }>;
+  values: any[];  // Additional field in v5
+  rawTransactionData: {
+    signature: string;
+    blockNumber: number;
+    signer: string;
+    interactedAccounts: string[];
+  };
+}
+```
+
+#### Key Differences
+- V4 has non-null `source.type` and `source.name` fields
+- V5 includes additional `description` field in `classificationData`
+- V5 includes a `values` array for additional transaction data
+- V5 allows null values for `source.type` and `source.name`
+
+#### Error Handling
+The method will throw a `TransactionError` if:
+- The transaction signature is invalid
+- The chain is not supported
+- The txTypeVersion is not 4 or 5
+- The API returns an error response
 
 ### Transactions(chain: string, accountAddress: string, pageOptions?: PageOptions)
 Get a paginated list of transactions for an account address using the v5 endpoint.

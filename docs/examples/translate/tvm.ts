@@ -36,15 +36,7 @@ async function tvmTranslateExample() {
       });
     }
 
-    // 3. Get transaction status
-    const txHash = currentTransactions[0]?.rawTransactionData.transactionHash;
-    if (txHash) {
-      console.log("\nFetching transaction status...");
-      const txStatus = await tvmTranslate.getTransactionStatus("tron", txHash);
-      console.log("Transaction status:", txStatus);
-    }
-
-    // 4. Start a balances job
+    // 3. Start a balances job
     console.log("\nStarting balances job...");
     const job = await tvmTranslate.startBalancesJob(
       "tron",
@@ -54,7 +46,7 @@ async function tvmTranslateExample() {
     );
     console.log("Job started:", job);
 
-    // 5. Get job results
+    // 4. Get job results
     if (job.jobId) {
       console.log("\nFetching job results...");
       const results = await tvmTranslate.getBalancesJobResults("tron", job.jobId);
