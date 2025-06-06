@@ -1,5 +1,5 @@
 import { createTranslateClient } from '../utils/apiUtils';
-import { ApiResponse } from '../types/types';
+import { ApiResponse } from '../types/common';
 import { TransactionError } from '../errors/TransactionError';
 
 /**
@@ -42,6 +42,9 @@ export abstract class BaseTranslate {
       }
       if (result.response?.message === 'Rate limit exceeded') {
         throw new TransactionError({ message: ['Rate limit exceeded'] });
+      }
+      if (result.response?.message === 'Job not ready yet') {
+        throw new TransactionError({ message: ['Job is still processing. Please try again in a few moments.'] });
       }
       if (result.response?.message === 'Invalid response format') {
         throw new TransactionError({ message: ['Invalid response format from API'] });

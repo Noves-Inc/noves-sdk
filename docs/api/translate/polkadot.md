@@ -25,12 +25,12 @@ Response:
 ```typescript
 [
   {
-    name: string;          // Chain name (e.g., "polkadot")
+    name: string;          // Chain name (e.g., "bittensor")
     ecosystem: string;     // Always "polkadot"
     nativeCoin: {
-      name: string;        // Native coin name (e.g., "Polkadot")
-      symbol: string;      // Native coin symbol (e.g., "DOT")
-      address: string;     // Native coin address
+      name: string;        // Native coin name (e.g., "TAO")
+      symbol: string;      // Native coin symbol (e.g., "TAO")
+      address: string;     // Native coin address (e.g., "TAO")
       decimals: number;    // Number of decimals
     };
     tier: number;          // Chain tier level
@@ -114,12 +114,52 @@ Response:
 Throws:
 - `TransactionError` if there are validation errors or the transaction is not found
 
+### getTransactions(chain: string, accountAddress: string, pageOptions?: PageOptions)
+
+Returns all transactions for the requested chain and account, given a timerange. This method provides direct access to the API response.
+
+```typescript
+const response = await translate.getTransactions('bittensor', 'account-address', {
+  pageSize: 10,
+  startBlock: 123456,
+  endBlock: 123466
+});
+```
+
+The `pageOptions` parameter supports the following options:
+- `pageSize`: Number of transactions per page (default: 10)
+- `startBlock`: Starting block number
+- `endBlock`: Ending block number
+- `startTimestamp`: Starting timestamp in milliseconds
+- `endTimestamp`: Ending timestamp in milliseconds
+- `sort`: Sort order ('desc' or 'asc')
+- `viewAsAccountAddress`: View transactions from this address's perspective
+
+Response:
+```typescript
+{
+  items: POLKADOTTranslateTransaction[];  // Array of transactions
+  nextPageSettings: {
+    hasNextPage: boolean;                 // Whether there's a next page
+    endBlock: number | null;              // End block for next page
+    nextPageUrl: string | null;           // URL for next page
+  };
+}
+```
+
+Each transaction in the `items` array follows the same structure as the `getTransaction` response.
+
+Throws:
+- `TransactionError` if there are validation errors or the request fails
+
 ### Transactions(chain: string, accountAddress: string, pageOptions?: PageOptions)
+
+**⚠️ Deprecated:** Use `getTransactions()` instead. This method will be removed in a future version.
 
 Returns a paginated list of transactions for an account.
 
 ```typescript
-const transactionsPage = await translate.Transactions('polkadot', 'account-address', {
+const transactionsPage = await translate.Transactions('bittensor', 'account-address', {
   pageSize: 10,
   startBlock: 123456,
   endBlock: 123466
@@ -148,7 +188,7 @@ All methods throw a `TransactionError` when there are validation errors or API e
 Example:
 ```typescript
 try {
-  const transaction = await translate.getTransaction('polkadot', 123456, 0);
+  const transaction = await translate.getTransaction('bittensor', 123456, 0);
 } catch (error) {
   if (error instanceof TransactionError) {
     console.error('Error:', error.message);
@@ -158,13 +198,34 @@ try {
 
 ## Examples
 
-### Getting Transaction History
+### Getting Transaction History with Direct API Response
+
+```typescript
+const translate = new TranslatePOLKADOT('your-api-key');
+
+// Get transactions directly from API
+const response = await translate.getTransactions('bittensor', 'account-address', {
+  pageSize: 10,
+  endBlock: 4000001
+});
+
+console.log('Transactions:', response.items);
+console.log('Has next page:', response.nextPageSettings.hasNextPage);
+
+// Handle pagination manually
+if (response.nextPageSettings.hasNextPage && response.nextPageSettings.nextPageUrl) {
+  // You can parse the nextPageUrl to get pagination parameters
+  // or use the deprecated Transactions method for automatic pagination
+}
+```
+
+### Getting Transaction History with Pagination Helper (Deprecated)
 
 ```typescript
 const translate = new TranslatePOLKADOT('your-api-key');
 
 // Get transactions for an account
-const transactionsPage = await translate.Transactions('polkadot', 'account-address');
+const transactionsPage = await translate.Transactions('bittensor', 'account-address');
 
 // Get first page of transactions
 const transactions = transactionsPage.getTransactions();

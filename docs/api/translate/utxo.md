@@ -22,9 +22,9 @@ const chains = await translate.getChains();
 
 Response format:
 ```typescript
-interface Chain {
+interface UTXOTranslateChain {
   name: string;        // Chain identifier (e.g., "btc", "avalanche-p-chain")
-  ecosystem: string;   // Always "utxo"
+  ecosystem: 'utxo';   // Always "utxo"
   nativeCoin: {
     name: string;      // Native coin name (e.g., "BTC", "AVAX")
     symbol: string;    // Native coin symbol
@@ -35,24 +35,21 @@ interface Chain {
 }
 ```
 
-### getChain(name: string)
-Get details for a specific UTXO chain by name.
 
-```typescript
-const chain = await translate.getChain('btc');
-```
 
-### Transactions(chain: string, accountAddress: string, pageOptions?: PageOptions)
+### getTransactions(chain: string, accountAddress: string, pageOptions?: PageOptions)
 Get paginated transactions for an account.
 
 ```typescript
-const transactions = await translate.Transactions('btc', address, {
+const transactions = await translate.getTransactions('btc', address, {
   pageSize: 10,
   startBlock: 865798,
   endBlock: 868128,
   sort: 'desc'
 });
 ```
+
+**Note:** The deprecated `Transactions` method is still available for backward compatibility but will be removed in v2.0.0. Please use `getTransactions` instead.
 
 #### Parameters
 - `chain` (string): The chain name (e.g., "btc")
@@ -83,11 +80,11 @@ interface TransactionsResponse {
         action: string;
         from: {
           name: string | null;
-          address: string;
+          address: string | null;
         };
         to: {
           name: string | null;
-          address: string;
+          address: string | null;
         };
         amount: string;
         token: {
@@ -101,11 +98,11 @@ interface TransactionsResponse {
         action: string;
         from: {
           name: string | null;
-          address: string;
+          address: string | null;
         };
         to: {
           name: string | null;
-          address: string;
+          address: string | null;
         };
         amount: string;
         token: {
@@ -258,8 +255,27 @@ interface TransactionsResponse {
 }
 ```
 
-### getAddressesByXpub(xpub: string)
-Utility endpoint for Bitcoin. Returns a list of derived addresses for the given xpub, ypub or zpub master key. This endpoint is useful for deriving Bitcoin addresses from an extended public key without needing to perform the derivation locally.
+### getAddressesByMasterKey(masterKey: string)
+Utility endpoint for Bitcoin. Returns a list of derived addresses for the given master key (xpub, ypub, or zpub). This endpoint is useful for deriving Bitcoin addresses from an extended public key without needing to perform the derivation locally.
+
+```typescript
+// Using xpub
+const addresses = await translate.getAddressesByMasterKey('xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz');
+
+// Using ypub
+const addresses = await translate.getAddressesByMasterKey('ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNpj8ahQn9dDfJdLUKD1Bou4EQvjnyWYCJ8VGzHoLYpqJHYJg9Q7GvgEBXEZj6vDFkJ9pq8ABCD');
+
+// Using zpub
+const addresses = await translate.getAddressesByMasterKey('zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a');
+```
+
+#### Parameters
+- `masterKey` (string): The master key - can be xpub (legacy P2PKH), ypub (P2SH-wrapped SegWit), or zpub (native SegWit)
+
+### getAddressesByXpub(xpub: string) **(Deprecated)**
+**⚠️ Deprecated:** Use `getAddressesByMasterKey` instead. This method will be removed in v2.0.0.
+
+Utility endpoint for Bitcoin. Returns a list of derived addresses for the given xpub master key.
 
 ```typescript
 const addresses = await translate.getAddressesByXpub('xpub...');
@@ -363,7 +379,7 @@ Example response:
 ```json
 [
   {
-    "balance": "103.06212305",
+    "balance": "103.06451383",
     "token": {
       "symbol": "BTC",
       "name": "Bitcoin",

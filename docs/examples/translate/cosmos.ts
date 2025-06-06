@@ -21,8 +21,33 @@ async function cosmosTranslateExample() {
     const balances = await cosmosTranslate.getTokenBalances("cosmoshub", accountAddress);
     console.log("Token balances:", balances);
 
-    // 3. Get transaction history with pagination
-    console.log("\nFetching transaction history...");
+    // 3. Get transactions directly (recommended approach)
+    console.log("\nFetching transactions directly...");
+    const response = await cosmosTranslate.getTransactions(
+      "cosmoshub",
+      accountAddress,
+      { pageSize: 5 }
+    );
+
+    console.log("Account:", response.account);
+    console.log("Page size:", response.pageSize);
+    console.log("Has next page:", response.hasNextPage);
+    console.log("Total transactions in this page:", response.items.length);
+
+    // Process transactions
+    response.items.forEach((tx, index) => {
+      console.log(`Transaction ${index + 1}:`, {
+        hash: tx.rawTransactionData.txhash || "Genesis transaction (no hash)",
+        timestamp: tx.rawTransactionData.timestamp,
+        type: tx.classificationData.type,
+        description: tx.classificationData.description,
+        height: tx.rawTransactionData.height,
+        gasUsed: tx.rawTransactionData.gas_used
+      });
+    });
+
+    // 4. Get transaction history with pagination (legacy method)
+    console.log("\nFetching transaction history with pagination...");
     const transactionsPage = await cosmosTranslate.Transactions(
       "cosmoshub",
       accountAddress,
@@ -36,10 +61,12 @@ async function cosmosTranslateExample() {
     // Process current page
     for (const tx of currentTransactions) {
       console.log(`Transaction ${++count}:`, {
-        hash: tx.rawTransactionData.transactionHash,
+        hash: tx.rawTransactionData.txhash || "Genesis transaction (no hash)",
         timestamp: tx.rawTransactionData.timestamp,
         type: tx.classificationData.type,
-        description: tx.classificationData.description
+        description: tx.classificationData.description,
+        height: tx.rawTransactionData.height,
+        gasUsed: tx.rawTransactionData.gas_used
       });
     }
 
@@ -48,20 +75,22 @@ async function cosmosTranslateExample() {
       currentTransactions = transactionsPage.getTransactions();
       for (const tx of currentTransactions) {
         console.log(`Transaction ${++count}:`, {
-          hash: tx.rawTransactionData.transactionHash,
+          hash: tx.rawTransactionData.txhash || "Genesis transaction (no hash)",
           timestamp: tx.rawTransactionData.timestamp,
           type: tx.classificationData.type,
-          description: tx.classificationData.description
+          description: tx.classificationData.description,
+          height: tx.rawTransactionData.height,
+          gasUsed: tx.rawTransactionData.gas_used
         });
       }
     }
 
-    // 4. Start a transaction job
+    // 5. Start a transaction job
     console.log("\nStarting transaction job...");
     const job = await cosmosTranslate.startTransactionJob("cosmoshub", accountAddress);
     console.log("Job started:", job);
 
-    // 5. Get job results
+    // 6. Get job results
     if (job.pageId) {
       console.log("\nFetching job results...");
       const results = await cosmosTranslate.getTransactionJobResults("cosmoshub", job.pageId);
@@ -120,7 +149,47 @@ async function cosmosAdvancedExample() {
     const txDetails = await cosmosTranslate.getTransaction("cosmoshub", txHash);
     console.log("Transaction details:", txDetails);
 
-    // 3. Process paginated transactions with error handling
+    // 3. Process transactions with proper null handling
+    console.log("\nProcessing transactions with null handling...");
+    const response = await cosmosTranslate.getTransactions(
+      "cosmoshub",
+      accountAddress,
+      { pageSize: 10 }
+    );
+
+    // Process transactions with proper null handling
+    for (let index = 0; index < response.items.length; index++) {
+      const tx = response.items[index];
+      try {
+        // Handle nullable txhash properly
+        const txHash = tx.rawTransactionData.txhash;
+        if (txHash) {
+          console.log(`Processing transaction ${index + 1} with hash: ${txHash}`);
+        } else {
+          console.log(`Processing genesis transaction ${index + 1} (no hash)`);
+        }
+        
+        // Process transfers
+        tx.transfers.forEach((transfer, transferIndex) => {
+          console.log(`  Transfer ${transferIndex + 1}:`, {
+            action: transfer.action,
+            amount: transfer.amount,
+            asset: transfer.asset.symbol,
+            from: transfer.from.address || "Unknown",
+            to: transfer.to.address || "Unknown"
+          });
+        });
+        
+        // Add your custom processing logic here
+      } catch (error) {
+        const txHash = tx.rawTransactionData.txhash || "genesis";
+        console.error(`Error processing transaction ${txHash}:`, error);
+        // Continue with next transaction
+        continue;
+      }
+    }
+
+    // 4. Process paginated transactions with error handling (legacy method)
     console.log("\nProcessing paginated transactions...");
     const transactionsPage = await cosmosTranslate.Transactions(
       "cosmoshub",
@@ -132,11 +201,17 @@ async function cosmosAdvancedExample() {
     let currentTransactions = transactionsPage.getTransactions();
     for (const tx of currentTransactions) {
       try {
-        // Process each transaction
-        console.log("Processing transaction:", tx.rawTransactionData.transactionHash);
+        // Process each transaction with null handling
+        const txHash = tx.rawTransactionData.txhash;
+        if (txHash) {
+          console.log("Processing transaction:", txHash);
+        } else {
+          console.log("Processing genesis transaction (no hash)");
+        }
         // Add your custom processing logic here
       } catch (error) {
-        console.error(`Error processing transaction ${tx.rawTransactionData.transactionHash}:`, error);
+        const txHash = tx.rawTransactionData.txhash || "genesis";
+        console.error(`Error processing transaction ${txHash}:`, error);
         // Continue with next transaction
         continue;
       }
@@ -147,11 +222,17 @@ async function cosmosAdvancedExample() {
       currentTransactions = transactionsPage.getTransactions();
       for (const tx of currentTransactions) {
         try {
-          // Process each transaction
-          console.log("Processing transaction:", tx.rawTransactionData.transactionHash);
+          // Process each transaction with null handling
+          const txHash = tx.rawTransactionData.txhash;
+          if (txHash) {
+            console.log("Processing transaction:", txHash);
+          } else {
+            console.log("Processing genesis transaction (no hash)");
+          }
           // Add your custom processing logic here
         } catch (error) {
-          console.error(`Error processing transaction ${tx.rawTransactionData.transactionHash}:`, error);
+          const txHash = tx.rawTransactionData.txhash || "genesis";
+          console.error(`Error processing transaction ${txHash}:`, error);
           // Continue with next transaction
           continue;
         }

@@ -3,7 +3,16 @@ jest.setTimeout(10000);
 import { Foresight } from '../../src/foresight/foresight';
 import { createForesightClient } from '../../src/utils/apiUtils';
 import { TransactionError } from '../../src/errors/TransactionError';
-import { Chain, UnsignedTransaction, UserOperation } from '../../src/types/types';
+import { 
+  EVMTranslateUserOperation, 
+  EVMForesightChain, 
+  EVMForesightPreviewResponse, 
+  EVMForesightPreview4337Response,
+  EVMTranslateUnsignedTransaction,
+  EVMForesightScreenResponse,
+  EVMForesightScreen4337Response
+} from '../../src/types/evm';
+import { ForesightUrlScreenResponse } from '../../src/types/common';
 
 jest.mock('../../src/utils/apiUtils', () => {
   const originalModule = jest.requireActual('../../src/utils/apiUtils');
@@ -40,9 +49,8 @@ describe('Foresight', () => {
 
   describe('getChains', () => {
     it('should return a list of chains', async () => {
-      const mockChains: Chain[] = [{
+      const mockChains: EVMForesightChain[] = [{
         name: 'ethereum',
-        evmChainId: 1,
         ecosystem: 'evm',
         nativeCoin: {
           name: 'ETH',
@@ -56,13 +64,13 @@ describe('Foresight', () => {
       const result = await foresight.getChains();
 
       expect(result).toEqual(mockChains);
-      expect(mockRequest).toHaveBeenCalledWith('chains');
+      expect(mockRequest).toHaveBeenCalledWith('evm/chains');
     });
   });
 
   describe('preview', () => {
     const mockChain = 'ethereum';
-    const mockUnsignedTx: UnsignedTransaction = {
+    const mockUnsignedTx: EVMTranslateUnsignedTransaction = {
         to: '0x123', value: '0x0',
         from: null,
         data: null,
@@ -72,7 +80,63 @@ describe('Foresight', () => {
         maxPriorityFeePerGas: null,
         type: null
     };
-    const mockResponse = { hash: '0xabc', description: 'Test transaction' };
+    const mockResponse: EVMForesightPreviewResponse = {
+      txTypeVersion: 2,
+      chain: "eth",
+      accountAddress: "0xabCDEF1234567890ABcDEF1234567890aBCDeF12",
+      classificationData: {
+        type: "sendToken",
+        source: {
+          type: "human"
+        },
+        description: "Will send 0 ETH.",
+        protocol: {},
+        sent: [
+          {
+            action: "sent",
+            from: {
+              name: "This wallet",
+              address: "0xabCDEF1234567890ABcDEF1234567890aBCDeF12"
+            },
+            to: {
+              name: "NULL: 0x123...890",
+              address: "0x1234567890123456789012345678901234567890"
+            },
+            amount: "0",
+            token: {
+              symbol: "ETH",
+              name: "ETH",
+              decimals: 18,
+              address: "ETH"
+            }
+          },
+          {
+            action: "paidGas",
+            from: {
+              name: "This wallet",
+              address: "0xabCDEF1234567890ABcDEF1234567890aBCDeF12"
+            },
+            to: {
+              name: null,
+              address: null
+            },
+            amount: "0.00042",
+            token: {
+              symbol: "ETH",
+              name: "ETH",
+              decimals: 18,
+              address: "ETH"
+            }
+          }
+        ],
+        received: []
+      },
+      rawTransactionData: {
+        fromAddress: "0xabCDEF1234567890ABcDEF1234567890aBCDeF12",
+        toAddress: "0x1234567890123456789012345678901234567890",
+        gasUsed: 21000
+      }
+    };
 
     it('should preview a transaction', async () => {
       mockRequest.mockResolvedValue({ response: mockResponse });
@@ -81,7 +145,7 @@ describe('Foresight', () => {
 
       expect(result).toEqual(mockResponse);
       expect(mockRequest).toHaveBeenCalledWith(
-        `${mockChain}/preview`, 
+        `evm/${mockChain}/preview`, 
         'POST', 
         { body: JSON.stringify({ transaction: mockUnsignedTx, stateOverrides: {} }) }
       );
@@ -96,7 +160,7 @@ describe('Foresight', () => {
       await foresight.preview(mockChain, mockUnsignedTx, stateOverridesWithStateDiff);
 
       expect(mockRequest).toHaveBeenCalledWith(
-        `${mockChain}/preview`, 
+        `evm/${mockChain}/preview`, 
         'POST', 
         { body: JSON.stringify({ transaction: mockUnsignedTx, stateOverrides: stateOverridesWithStateDiff }) }
       );
@@ -109,7 +173,7 @@ describe('Foresight', () => {
       await foresight.preview(mockChain, mockUnsignedTx, undefined, viewAsAccountAddress);
 
       expect(mockRequest).toHaveBeenCalledWith(
-        `${mockChain}/preview?viewAsAccountAddress=${viewAsAccountAddress}`, 
+        `evm/${mockChain}/preview?viewAsAccountAddress=${viewAsAccountAddress}`, 
         'POST', 
         { body: JSON.stringify({ transaction: mockUnsignedTx, stateOverrides: {} }) }
       );
@@ -122,7 +186,7 @@ describe('Foresight', () => {
       await foresight.preview(mockChain, mockUnsignedTx, undefined, undefined, block);
 
       expect(mockRequest).toHaveBeenCalledWith(
-        `${mockChain}/preview?block=${block}`, 
+        `evm/${mockChain}/preview?block=${block}`, 
         'POST', 
         { body: JSON.stringify({ transaction: mockUnsignedTx, stateOverrides: {} }) }
       );
@@ -136,7 +200,7 @@ describe('Foresight', () => {
       await foresight.preview(mockChain, mockUnsignedTx, undefined, viewAsAccountAddress, block);
 
       expect(mockRequest).toHaveBeenCalledWith(
-        `${mockChain}/preview?block=${block}&viewAsAccountAddress=${viewAsAccountAddress}`, 
+        `evm/${mockChain}/preview?block=${block}&viewAsAccountAddress=${viewAsAccountAddress}`, 
         'POST', 
         { body: JSON.stringify({ transaction: mockUnsignedTx, stateOverrides: {} }) }
       );
@@ -152,7 +216,7 @@ describe('Foresight', () => {
 
   describe('preview4337', () => {
     const mockChain = 'ethereum';
-    const mockUserOp: UserOperation = {
+    const mockUserOp: EVMTranslateUserOperation = {
         sender: '0x123', nonce: 0,
         initCode: null,
         callData: null,
@@ -164,7 +228,7 @@ describe('Foresight', () => {
         paymasterAndData: null,
         signature: null
     };
-    const mockResponse = {
+    const mockResponse: EVMForesightPreview4337Response = {
       txTypeVersion: 2,
       chain: "eth",
       accountAddress: "0x0576A174D229e3cfa37253523E645a78a0C91b37",
@@ -192,7 +256,7 @@ describe('Foresight', () => {
 
       expect(result).toEqual(mockResponse);
       expect(mockRequest).toHaveBeenCalledWith(
-        `${mockChain}/preview4337`, 
+        `evm/${mockChain}/preview4337`, 
         'POST', 
         { body: JSON.stringify({ userOp: mockUserOp }) }
       );
@@ -204,7 +268,7 @@ describe('Foresight', () => {
 
       await foresight.preview4337(mockChain, mockUserOp, block);
 
-      expect(mockRequest).toHaveBeenCalledWith(`${mockChain}/preview4337?block=${block}`, 'POST', { body: JSON.stringify({ userOp: mockUserOp }) });
+      expect(mockRequest).toHaveBeenCalledWith(`evm/${mockChain}/preview4337?block=${block}`, 'POST', { body: JSON.stringify({ userOp: mockUserOp }) });
     });
 
     it('should throw TransactionError on validation errors', async () => {
@@ -217,7 +281,7 @@ describe('Foresight', () => {
 
   describe('describe', () => {
     const mockChain = 'ethereum';
-    const mockUnsignedTx: UnsignedTransaction = {
+    const mockUnsignedTx: EVMTranslateUnsignedTransaction = {
         to: '0x123', value: '0x0',
         from: '0x456',
         data: '0x',
@@ -236,7 +300,7 @@ describe('Foresight', () => {
 
       expect(result).toEqual(mockResponse);
       expect(mockRequest).toHaveBeenCalledWith(
-        `${mockChain}/describe`, 
+        `evm/${mockChain}/describe`, 
         'POST', 
         { body: JSON.stringify({ transaction: mockUnsignedTx }) }
       );
@@ -252,7 +316,7 @@ describe('Foresight', () => {
 
   describe('describe4337', () => {
     const mockChain = 'ethereum';
-    const mockUserOp: UserOperation = {
+    const mockUserOp: EVMTranslateUserOperation = {
         sender: '0x123', nonce: 0,
         initCode: null,
         callData: null,
@@ -273,7 +337,7 @@ describe('Foresight', () => {
 
       expect(result).toEqual(mockResponse);
       expect(mockRequest).toHaveBeenCalledWith(
-        `${mockChain}/describe4337`, 
+        `evm/${mockChain}/describe4337`, 
         'POST', 
         { body: JSON.stringify({ userOp: mockUserOp }) }
       );
@@ -301,7 +365,7 @@ describe('Foresight', () => {
 
   describe('screen', () => {
     const mockChain = 'ethereum';
-    const mockUnsignedTx: UnsignedTransaction = {
+    const mockUnsignedTx: EVMTranslateUnsignedTransaction = {
       from: '0x8071Ed00bf71D8A9a3ff34BEFbbDFf9DF6f72E65',
       to: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
       value: '0x16345785d8a0000',
@@ -312,7 +376,7 @@ describe('Foresight', () => {
       maxPriorityFeePerGas: '0x3b9aca00',
       type: '0x2'
     };
-    const mockResponse = {
+    const mockResponse: EVMForesightScreenResponse = {
       simulation: {
         txTypeVersion: 2,
         chain: "eth",
@@ -345,6 +409,11 @@ describe('Foresight', () => {
             }
           ],
           received: []
+        },
+        rawTransactionData: {
+          fromAddress: "0x8071Ed00bf71D8A9a3ff34BEFbbDFf9DF6f72E65",
+          toAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+          gasUsed: 21000
         }
       },
       toAddress: {
@@ -372,7 +441,7 @@ describe('Foresight', () => {
 
       expect(result).toEqual(mockResponse);
       expect(mockRequest).toHaveBeenCalledWith(
-        `${mockChain}/screen`,
+        `evm/${mockChain}/screen`,
         'POST',
         { body: JSON.stringify({ transaction: mockUnsignedTx }) }
       );
@@ -388,7 +457,7 @@ describe('Foresight', () => {
 
   describe('screen4337', () => {
     const mockChain = 'ethereum';
-    const mockUserOp: UserOperation = {
+    const mockUserOp: EVMTranslateUserOperation = {
       sender: '0x8071Ed00bf71D8A9a3ff34BEFbbDFf9DF6f72E65',
       nonce: 0,
       initCode: '0x',
@@ -401,7 +470,7 @@ describe('Foresight', () => {
       paymasterAndData: '0x',
       signature: '0x'
     };
-    const mockResponse = {
+    const mockResponse: EVMForesightScreen4337Response = {
       simulation: {
         txTypeVersion: 2,
         chain: "eth",
@@ -447,7 +516,7 @@ describe('Foresight', () => {
 
       expect(result).toEqual(mockResponse);
       expect(mockRequest).toHaveBeenCalledWith(
-        `${mockChain}/screen4337`,
+        `evm/${mockChain}/screen4337`,
         'POST',
         { body: JSON.stringify({ userOp: mockUserOp }) }
       );
@@ -463,7 +532,7 @@ describe('Foresight', () => {
 
   describe('screenUrl', () => {
     const mockUrl = 'https://uniswap-v3.com';
-    const mockResponse = {
+    const mockResponse: ForesightUrlScreenResponse = {
       domain: 'uniswap-v3.com',
       risksDetected: [{ type: 'blacklisted' }]
     };

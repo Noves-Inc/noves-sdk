@@ -1,7 +1,7 @@
 import nock from 'nock';
 import { TransactionError } from '../../src/errors/TransactionError';
 import { TransactionsPage } from '../../src/translate/transactionsPage';
-import { TVMTransaction } from '../../src/types/types';
+import { TVMTranslateTransaction } from '../../src/types/tvm';
 import { TranslateTVM } from '../../src/translate/translateTVM';
 
 jest.setTimeout(10000);
@@ -24,7 +24,17 @@ describe('TranslateTVM', () => {
 
     it('should fetch chains successfully', async () => {
         const mockChains = [
-            { name: 'tron', displayName: 'TRON' }
+            {
+                name: 'tron',
+                ecosystem: 'tvm',
+                nativeCoin: {
+                    name: 'TRX',
+                    symbol: 'TRX',
+                    address: 'TRX',
+                    decimals: 6
+                },
+                tier: 0
+            }
         ];
         mockRequest.mockResolvedValue(mockChains);
 
@@ -122,6 +132,7 @@ describe('TranslateTVM', () => {
                     }
                 }
             ],
+            pageSize: 10,
             hasNextPage: true,
             nextPageUrl: "https://translate.noves.fi/tvm/tron/txs/TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR?pageSize=10&sort=desc&pageKey=next"
         };
@@ -130,51 +141,81 @@ describe('TranslateTVM', () => {
 
         const transactions = await translate.Transactions('tron', 'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR');
         expect(transactions).toBeInstanceOf(TransactionsPage);
-        expect(transactions.getTransactions()).toEqual(mockTransactions.items as TVMTransaction[]);
+        expect(transactions.getTransactions()).toEqual(mockTransactions.items as TVMTranslateTransaction[]);
+        expect(transactions.getNextPageKeys()).not.toBeNull();
+    });
+
+    it('should fetch first page transactions successfully with getTransactions method', async () => {
+        const mockTransactions = {
+            items: [
+                {
+                    txTypeVersion: 2,
+                    chain: "tron",
+                    accountAddress: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR",
+                    classificationData: {
+                        type: "receiveToken",
+                        source: {
+                            type: "human"
+                        },
+                        description: "Received 0.000001 TRX.",
+                        protocol: {
+                            name: null
+                        },
+                        sent: [],
+                        received: [
+                            {
+                                action: "received",
+                                from: {
+                                    name: null,
+                                    address: "TVXk9LFfNUJvtoX8tWFuVLUyPUMN1M3JVC"
+                                },
+                                to: {
+                                    name: "This wallet",
+                                    address: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR"
+                                },
+                                amount: "0.000001",
+                                token: {
+                                    symbol: "TRX",
+                                    name: "Tron",
+                                    decimals: 6,
+                                    address: "TRX"
+                                }
+                            }
+                        ]
+                    },
+                    rawTransactionData: {
+                        transactionHash: "5a07965ab7bb7c4d0856c67a0301e9c6e4ee8713dc4e82d24d8af52ae6eedb6a",
+                        fromAddress: "TVXk9LFfNUJvtoX8tWFuVLUyPUMN1M3JVC",
+                        toAddress: "TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR",
+                        blockNumber: 69937362,
+                        gas: 0,
+                        gasUsed: 0,
+                        gasPrice: 210,
+                        transactionFee: {
+                            amount: "0",
+                            token: {
+                                symbol: "TRX",
+                                name: "Tron",
+                                decimals: 6,
+                                address: "TRX"
+                            }
+                        },
+                        timestamp: 1740464547
+                    }
+                }
+            ],
+            pageSize: 10,
+            hasNextPage: true,
+            nextPageUrl: "https://translate.noves.fi/tvm/tron/txs/TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR?pageSize=10&sort=desc&pageKey=next"
+        };
+
+        mockRequest.mockResolvedValue(mockTransactions);
+
+        const transactions = await translate.getTransactions('tron', 'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR');
+        expect(transactions).toBeInstanceOf(TransactionsPage);
+        expect(transactions.getTransactions()).toEqual(mockTransactions.items as TVMTranslateTransaction[]);
         expect(transactions.getNextPageKeys()).not.toBeNull();
     });
 
 });
 
-describe('Balances Job', () => {
-    let translate: TranslateTVM;
-    let mockRequest: jest.Mock;
-
-    beforeEach(() => {
-        mockRequest = jest.fn();
-        translate = new TranslateTVM('test-api-key');
-        (translate as any).makeRequest = mockRequest;
-    });
-
-    it('should start and get balances job results', async () => {
-        const mockJob = {
-            jobId: 'job123',
-            status: 'pending'
-        };
-
-        mockRequest.mockResolvedValue(mockJob);
-
-        const response = await translate.startBalancesJob(
-            'tron',
-            'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR',
-            'TRX',
-            123456
-        );
-        expect(response).toEqual(mockJob);
-    });
-
-    it('should handle invalid address in startBalancesJob', async () => {
-        mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid address'] }));
-        await expect(translate.startBalancesJob(
-            'tron',
-            'invalid-address',
-            'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t',
-            72049264
-        )).rejects.toThrow(TransactionError);
-    });
-
-    it('should handle non-existent job ID', async () => {
-        mockRequest.mockRejectedValue(new TransactionError({ message: ['Job not found'] }));
-        await expect(translate.getBalancesJobResults('tron', 'nonexistent-id')).rejects.toThrow(TransactionError);
-    });
-});

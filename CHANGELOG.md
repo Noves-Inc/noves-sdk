@@ -5,6 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-06-06
+
+### Added
+- New UTXO Pricing API implementation:
+  - New `PricingUTXO` class for UTXO chain pricing
+  - New `getChains` method for retrieving supported UTXO chains
+  - New `getPrice` method for token price retrieval with timestamp support
+  - New documentation file for UTXO Pricing API
+  - New examples directory with UTXO Pricing usage examples
+
+### Changed
+- **BREAKING CHANGE**: Major type system restructuring from monolithic to ecosystem-first organization:
+  - Removed monolithic `src/types/types.ts` file
+  - Restructured types into ecosystem-specific modules:
+    - `src/types/common.ts` - Shared types across all ecosystems
+    - `src/types/evm.ts` - EVM-specific types and interfaces
+    - `src/types/svm.ts` - Solana Virtual Machine types
+    - `src/types/cosmos.ts` - Cosmos ecosystem types
+    - `src/types/polkadot.ts` - Polkadot ecosystem types
+    - `src/types/tvm.ts` - TON Virtual Machine types
+    - `src/types/utxo.ts` - Bitcoin and UTXO chain types
+    - `src/types/move.ts` - Move ecosystem types
+    - `src/types/index.ts` - Centralized type exports
+- Enhanced type safety and organization across all APIs:
+  - Updated all Translate APIs to use ecosystem-specific types
+  - Updated all Pricing APIs to use ecosystem-specific types  
+  - Updated Foresight API to use new type system
+  - Improved import paths and type consistency
+- Enhanced API implementations:
+  - Updated EVM Translate API with improved type safety
+  - Updated SVM Translate API with ecosystem-specific types
+  - Updated UTXO Translate API with enhanced functionality
+  - Updated TVM, Cosmos, and Polkadot APIs with new type system
+  - Updated all Pricing APIs with consistent type usage
+  - Enhanced Foresight API with improved type definitions
+- Improved utility functions:
+  - Enhanced `apiUtils.ts` with better type handling
+  - Updated `urlUtils.ts` with improved parameter handling
+  - Streamlined `cosmosUtils.ts` removing deprecated functions
+- Updated documentation and examples:
+  - Comprehensive updates to all API documentation files
+  - Updated all example files to use new type system
+  - Enhanced code examples with better type safety
+- Updated test coverage:
+  - Comprehensive test updates across all modules
+  - Enhanced test assertions with new type system
+  - Improved test reliability and maintainability
+
+### Fixed
+- Resolved type inconsistencies across different ecosystems
+- Fixed import path issues with the new type organization
+- Improved type safety in API responses and requests
+- Enhanced error handling with ecosystem-specific type validation
+
 ## [1.0.24] - 2025-05-30
 
 ### Changed
@@ -144,7 +198,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced Move Pricing API coverage:
     - New `PricingMove` class for Move ecosystem pricing
     - New `getChains` method for retrieving supported Move chains
-    - New `getChain` method for retrieving specific chain information
     - New `getPriceFromPool` method for token price retrieval from liquidity pools
     - New documentation file for Move Pricing API
     - New examples directory with Move Pricing usage examples
@@ -189,7 +242,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - New `PricingSVM` class for Solana Virtual Machine pricing
     - New `PriceType` enum for standardized price type selection
     - New `getChains` method for retrieving supported SVM chains
-    - New `getChain` method for retrieving specific chain information
     - New `getPrice` method for token price retrieval with timestamp support
     - New documentation file for SVM Pricing API
     - New examples directory with SVM Pricing usage examples

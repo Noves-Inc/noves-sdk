@@ -1,6 +1,5 @@
 import { PricingEVM } from '../../src/pricing/pricingEVM';
 import { createPricingClient } from '../../src/utils/apiUtils';
-import { ChainNotFoundError } from '../../src/errors/ChainNotFoundError';
 
 jest.mock('../../src/utils/apiUtils', () => ({
   createPricingClient: jest.fn(),
@@ -64,91 +63,42 @@ describe('PricingEVM', () => {
     });
   });
 
-  describe('getChain', () => {
-    it('should return a specific chain', async () => {
-      const mockChains = [
-        {
-          name: "eth",
-          ecosystem: "evm",
-          nativeCoin: {
-            name: "ETH",
-            symbol: "ETH",
-            address: "ETH",
-            decimals: 18
-          }
-        },
-        {
-          name: "bsc",
-          ecosystem: "evm",
-          nativeCoin: {
-            name: "BNB",
-            symbol: "BNB",
-            address: "BNB",
-            decimals: 18
-          }
-        }
-      ];
-      mockRequest.mockResolvedValue({ response: mockChains });
-
-      const result = await pricingEVM.getChain('eth');
-
-      expect(result).toEqual(mockChains[0]);
-      expect(mockRequest).toHaveBeenCalledWith('chains');
-    });
-
-    it('should transform "ethereum" to "eth" when looking for a chain', async () => {
-      const mockChains = [
-        {
-          name: "eth",
-          ecosystem: "evm",
-          nativeCoin: {
-            name: "ETH",
-            symbol: "ETH",
-            address: "ETH",
-            decimals: 18
-          }
-        }
-      ];
-      mockRequest.mockResolvedValue({ response: mockChains });
-
-      const result = await pricingEVM.getChain('ethereum');
-
-      expect(result).toEqual(mockChains[0]);
-      expect(mockRequest).toHaveBeenCalledWith('chains');
-    });
-
-    it('should throw ChainNotFoundError if chain is not found', async () => {
-      mockRequest.mockResolvedValue({ response: [] });
-
-      await expect(pricingEVM.getChain('invalid-chain')).rejects.toThrow(ChainNotFoundError);
-    });
-  });
-
   describe('getPrice', () => {
     it('should return a price for a token', async () => {
       const mockPrice = {
         chain: 'eth',
-        block: '12345678',
+        block: '22640795',
         token: {
-          address: '0x1234567890123456789012345678901234567890',
-          symbol: 'TOKEN',
-          name: 'Test Token'
+          address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+          symbol: 'WETH',
+          name: 'Wrapped Ether'
         },
         price: {
-          amount: '1.234',
+          amount: '2482.5646628243689774470371336',
           currency: 'USD',
-          status: 'success'
+          status: 'resolved'
         },
-        pricedBy: 'dex',
+        pricedBy: {
+          poolAddress: '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640',
+          exchange: {
+            name: 'Uniswap'
+          },
+          liquidity: 110641728.42236452025287110906,
+          baseToken: {
+            address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+            symbol: 'USDC',
+            name: 'USD Coin'
+          }
+        },
         priceType: 'dexHighestLiquidity',
-        priceStatus: 'success'
+        priceStatus: 'resolved'
       };
       mockRequest.mockResolvedValue({ response: mockPrice });
 
-      const result = await pricingEVM.getPrice('eth', '0x1234567890123456789012345678901234567890');
+      const result = await pricingEVM.getPrice('eth', '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2');
 
       expect(result).toEqual(mockPrice);
-      expect(mockRequest).toHaveBeenCalledWith('eth/price/0x1234567890123456789012345678901234567890?priceType=dexHighestLiquidity');
+      expect(mockRequest).toHaveBeenCalledWith('eth/price/0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2?priceType=dexHighestLiquidity');
     });
 
     it('should transform "ethereum" to "eth"', async () => {
@@ -185,36 +135,36 @@ describe('PricingEVM', () => {
       const mockPoolPrice = {
         chain: 'eth',
         exchange: {
-          name: 'Uniswap V3'
+          name: 'Uniswap'
         },
-        poolAddress: '0x1234567890123456789012345678901234567890',
+        poolAddress: '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640',
         baseToken: {
-          address: '0x2345678901234567890123456789012345678901',
-          symbol: 'BASE',
-          name: 'Base Token',
+          address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+          symbol: 'WETH',
+          name: 'Wrapped Ether',
           decimals: 18
         },
         quoteToken: {
-          address: '0x3456789012345678901234567890123456789012',
-          symbol: 'QUOTE',
-          name: 'Quote Token',
-          decimals: 18
+          address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+          symbol: 'USDC',
+          name: 'USD Coin',
+          decimals: 6
         },
         price: {
-          amount: '1.234'
+          amount: '2426.971529'
         }
       };
       mockRequest.mockResolvedValue({ response: mockPoolPrice });
 
       const result = await pricingEVM.getPriceFromPool(
         'eth',
-        '0x1234567890123456789012345678901234567890',
-        '0x2345678901234567890123456789012345678901'
+        '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640',
+        '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
       );
 
       expect(result).toEqual(mockPoolPrice);
       expect(mockRequest).toHaveBeenCalledWith(
-        'eth/priceFromPool/0x1234567890123456789012345678901234567890/0x2345678901234567890123456789012345678901'
+        'eth/priceFromPool/0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
       );
     });
 
@@ -238,20 +188,64 @@ describe('PricingEVM', () => {
     it('should pre-fetch prices for multiple tokens', async () => {
       const mockTokens = [
         {
-          tokenAddress: '0x1234567890123456789012345678901234567890',
+          tokenAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
           chain: 'eth',
-          priceType: 'dexHighestLiquidity' as const
+          priceType: 'dexHighestLiquidity'
         },
         {
-          tokenAddress: '0x2345678901234567890123456789012345678901',
-          chain: 'bsc',
-          priceType: 'coingecko' as const,
+          tokenAddress: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+          chain: 'eth',
+          priceType: 'coingecko',
           timestamp: 1625097600
         }
       ];
       const mockResults = [
-        { /* price data for token 1 */ },
-        { /* price data for token 2 */ }
+        {
+          request: {
+            tokenAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+            chain: 'eth',
+            priceType: 'dexHighestLiquidity',
+            timestamp: null,
+            blockNumber: 22640917
+          },
+          result: {
+            blockNumber: 22640917,
+            priceStatus: 'resolved',
+            token: {
+              symbol: 'USDC',
+              name: 'USD Coin',
+              decimals: 6,
+              address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+            },
+            price: '0.99973',
+            priceType: 'ChainlinkStablePricer',
+            pricedBy: null
+          },
+          error: null
+        },
+        {
+          request: {
+            tokenAddress: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+            chain: 'eth',
+            priceType: 'coingecko',
+            timestamp: 1625097600,
+            blockNumber: null
+          },
+          result: {
+            blockNumber: 22640918,
+            priceStatus: 'resolved',
+            token: {
+              symbol: 'WBTC',
+              name: 'Wrapped BTC',
+              decimals: 8,
+              address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599'
+            },
+            price: '64250.00',
+            priceType: 'coingecko',
+            pricedBy: null
+          },
+          error: null
+        }
       ];
       mockRequest.mockResolvedValue({ response: { tokens: mockResults } });
 
@@ -261,6 +255,77 @@ describe('PricingEVM', () => {
       expect(mockRequest).toHaveBeenCalledWith('preFetch', 'POST', {
         body: JSON.stringify({ tokens: mockTokens })
       });
+    });
+
+    it('should handle tokens with findingSolution status', async () => {
+      const mockTokens = [
+        {
+          tokenAddress: '0x1234567890123456789012345678901234567890',
+          chain: 'eth',
+          priceType: 'dexHighestLiquidity'
+        }
+      ];
+      const mockResults = [
+        {
+          request: {
+            tokenAddress: '0x1234567890123456789012345678901234567890',
+            chain: 'eth',
+            priceType: 'dexHighestLiquidity',
+            timestamp: null,
+            blockNumber: 22640917
+          },
+          result: {
+            blockNumber: 22640917,
+            priceStatus: 'findingSolution',
+            token: {
+              symbol: 'TEST',
+              name: 'Test Token',
+              decimals: 18,
+              address: '0x1234567890123456789012345678901234567890'
+            },
+            price: '0',
+            priceType: 'dexHighestLiquidity',
+            pricedBy: null
+          },
+          error: null
+        }
+      ];
+      mockRequest.mockResolvedValue({ response: { tokens: mockResults } });
+
+      const result = await pricingEVM.preFetchPrice(mockTokens);
+
+      expect(result).toEqual(mockResults);
+      expect(result[0].result?.priceStatus).toBe('findingSolution');
+    });
+
+    it('should handle error responses', async () => {
+      const mockTokens = [
+        {
+          tokenAddress: '0xinvalidaddress',
+          chain: 'eth',
+          priceType: 'dexHighestLiquidity'
+        }
+      ];
+      const mockResults = [
+        {
+          request: {
+            tokenAddress: '0xinvalidaddress',
+            chain: 'eth',
+            priceType: 'dexHighestLiquidity',
+            timestamp: null,
+            blockNumber: null
+          },
+          result: null,
+          error: 'Invalid token address'
+        }
+      ];
+      mockRequest.mockResolvedValue({ response: { tokens: mockResults } });
+
+      const result = await pricingEVM.preFetchPrice(mockTokens);
+
+      expect(result).toEqual(mockResults);
+      expect(result[0].error).toBe('Invalid token address');
+      expect(result[0].result).toBeNull();
     });
   });
 });

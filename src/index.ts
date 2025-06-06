@@ -6,11 +6,24 @@ import { TranslateTVM } from './translate/translateTVM';
 import { TranslatePOLKADOT } from './translate/translatePOLKADOT';
 
 import { PricingEVM, PriceType } from './pricing/pricingEVM';
-import { PricingSVM } from './pricing/pricingSVM';
+import { PricingSVM, PriceType as SVMPriceType } from './pricing/pricingSVM';
+import { PricingUTXO, PriceType as UTXOPriceType } from './pricing/pricingUTXO';
 import { PricingMove } from './pricing/pricingMove';
 import { PricingCosmos } from './pricing/pricingCosmos';
 
 export { Foresight } from './foresight/foresight';
+
+/**
+ * Foresight object provides access to transaction pre-sign insights.
+ */
+export const ForesightFactory = {
+    /**
+     * Creates a new instance of Foresight for EVM-based blockchains.
+     * @param apiKey - The API key for authentication.
+     * @returns A new Foresight instance.
+     */
+    evm: (apiKey: string) => new (require('./foresight/foresight').Foresight)(apiKey),
+};
 
 /**
  * Translate object provides access to different blockchain translation services.
@@ -90,8 +103,35 @@ export const Pricing = {
      * @returns A new PricingSVM instance.
      */
     svm: (apiKey: string) => new PricingSVM(apiKey),
+
+    /**
+     * Creates a new instance of PricingUTXO for Unspent Transaction Output (UTXO) based blockchains.
+     * @param apiKey - The API key for authentication.
+     * @returns A new PricingUTXO instance.
+     */
+    utxo: (apiKey: string) => new PricingUTXO(apiKey),
 };
 
-export * from "./types/types"
-export { PriceType }
+// Export all types for backward compatibility
+export * from "./types"
+
+// Export individual translate classes
+export { TranslateEVM } from './translate/translateEVM';
+export { TranslateUTXO } from './translate/translateUTXO';
+export { TranslateSVM } from './translate/translateSVM';
+export { TranslateCOSMOS } from './translate/translateCOSMOS';
+export { TranslateTVM } from './translate/translateTVM';
+export { TranslatePOLKADOT } from './translate/translatePOLKADOT';
+
+// Export pricing classes
+export { PricingEVM } from './pricing/pricingEVM';
+export { PricingSVM } from './pricing/pricingSVM';
+export { PricingUTXO } from './pricing/pricingUTXO';
+export { PricingMove } from './pricing/pricingMove';
+export { PricingCosmos } from './pricing/pricingCosmos';
+
+export { PriceType, SVMPriceType, UTXOPriceType }
 export { shortenAddress } from './utils/addressUtils';
+
+// Export error classes
+export { TransactionError } from './errors/TransactionError';

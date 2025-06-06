@@ -28,9 +28,9 @@ const chains = await foresight.getChains();
 
 Response format:
 ```typescript
-interface Chain {
+interface EVMForesightChain {
   name: string;        // Chain identifier (e.g., "eth", "polygon")
-  ecosystem: string;   // Always "evm"
+  ecosystem: "evm";    // Always "evm"
   nativeCoin: {
     name: string;      // Native coin name (e.g., "ETH", "MATIC")
     symbol: string;    // Native coin symbol
@@ -89,7 +89,126 @@ const preview = await foresight.preview(
 );
 ```
 
-### preview4337(chain: string, userOperation: UserOperation, block?: number)
+Response format:
+```typescript
+EVMForesightPreviewResponse {
+  txTypeVersion: number;
+  chain: string;
+  accountAddress: string;
+  classificationData: {
+    type: string;
+    source: {
+      type: string;
+    };
+    description: string;
+    protocol: Record<string, any>;
+    sent: Array<{
+      action: string;
+      from: {
+        name: string | null;
+        address: string | null;
+      };
+      to: {
+        name: string | null;
+        address: string | null;
+      };
+      amount: string;
+      token: {
+        symbol: string;
+        name: string;
+        decimals: number;
+        address: string;
+      };
+    }>;
+    received: Array<{
+      action: string;
+      from: {
+        name: string | null;
+        address: string | null;
+      };
+      to: {
+        name: string | null;
+        address: string | null;
+      };
+      amount: string;
+      token: {
+        symbol: string;
+        name: string;
+        decimals: number;
+        address: string;
+      };
+    }>;
+  };
+  rawTransactionData: {
+    fromAddress: string;
+    toAddress: string;
+    gasUsed: number;
+  };
+}
+```
+
+Example response:
+```json
+{
+  "txTypeVersion": 2,
+  "chain": "eth",
+  "accountAddress": "0xabCDEF1234567890ABcDEF1234567890aBCDeF12",
+  "classificationData": {
+    "type": "sendToken",
+    "source": {
+      "type": "human"
+    },
+    "description": "Will send 0 ETH.",
+    "protocol": {},
+    "sent": [
+      {
+        "action": "sent",
+        "from": {
+          "name": "This wallet",
+          "address": "0xabCDEF1234567890ABcDEF1234567890aBCDeF12"
+        },
+        "to": {
+          "name": "NULL: 0x123...890",
+          "address": "0x1234567890123456789012345678901234567890"
+        },
+        "amount": "0",
+        "token": {
+          "symbol": "ETH",
+          "name": "ETH",
+          "decimals": 18,
+          "address": "ETH"
+        }
+      },
+      {
+        "action": "paidGas",
+        "from": {
+          "name": "This wallet",
+          "address": "0xabCDEF1234567890ABcDEF1234567890aBCDeF12"
+        },
+        "to": {
+          "name": null,
+          "address": null
+        },
+        "amount": "0.00042",
+        "token": {
+          "symbol": "ETH",
+          "name": "ETH",
+          "decimals": 18,
+          "address": "ETH"
+        }
+      }
+    ],
+    "received": []
+  },
+  "rawTransactionData": {
+    "fromAddress": "0xabCDEF1234567890ABcDEF1234567890aBCDeF12",
+    "toAddress": "0x1234567890123456789012345678901234567890",
+    "gasUsed": 21000
+  }
+}
+```
+
+### preview4337(chain: string, userOperation: EVMTranslateUserOperation, block?: number)
 Takes an ERC-4337 userOp object and returns a classified transaction previewing what will happen if the userOp is executed.
 
 ```typescript
@@ -110,6 +229,88 @@ const preview = await foresight.preview4337(
   },
   12345678 // Optional: preview at this block
 );
+```
+
+Response format:
+```typescript
+EVMForesightPreview4337Response {
+  txTypeVersion: number;
+  chain: string;
+  accountAddress: string;
+  classificationData: {
+    type: string;
+    source: {
+      type: string | null;
+    };
+    description: string;
+    protocol: Record<string, any>;
+    sent: Array<{
+      action: string;
+      from: {
+        name: string | null;
+        address: string | null;
+      };
+      to: {
+        name: string | null;
+        address: string | null;
+      };
+      amount: string;
+      token: {
+        symbol: string;
+        name: string;
+        decimals: number;
+        address: string;
+      };
+    }>;
+    received: Array<{
+      action: string;
+      from: {
+        name: string | null;
+        address: string | null;
+      };
+      to: {
+        name: string | null;
+        address: string | null;
+      };
+      amount: string;
+      token: {
+        symbol: string;
+        name: string;
+        decimals: number;
+        address: string;
+      };
+    }>;
+  };
+  rawTransactionData: {
+    fromAddress: string;
+    toAddress: string;
+    gasUsed: number;
+  };
+}
+```
+
+Example response:
+```json
+{
+  "txTypeVersion": 2,
+  "chain": "eth",
+  "accountAddress": "0x8071Ed00bf71D8A9a3ff34BEFbbDFf9DF6f72E65",
+  "classificationData": {
+    "type": "unclassified",
+    "source": {
+      "type": null
+    },
+    "description": "Account abstraction contract will call 'handleOps' on contract 0x5FF1.",
+    "protocol": {},
+    "sent": [],
+    "received": []
+  },
+  "rawTransactionData": {
+    "fromAddress": "0x9B1054d24dC31a54739B6d8950af5a7dbAa56815",
+    "toAddress": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+    "gasUsed": 41115
+  }
+}
 ```
 
 ### describe(chain: string, unsignedTransaction: UnsignedTransaction)
@@ -141,7 +342,7 @@ Example response:
 }
 ```
 
-### describe4337(chain: string, userOperation: UserOperation)
+### describe4337(chain: string, userOperation: EVMTranslateUserOperation)
 Returns a description of what will happen if the ERC-4337 userOp object executes.
 
 ```typescript
@@ -165,7 +366,7 @@ const description = await foresight.describe4337(
 
 Response format:
 ```typescript
-{
+EVMForesightDescribe4337Response {
   description: string;  // Human-readable description of the user operation
   type: string;        // Classification type of the user operation
 }
@@ -179,8 +380,10 @@ Example response:
 }
 ```
 
-### screen(chain: string, unsignedTransaction: UnsignedTransaction)
+### screen(chain: string, unsignedTransaction: EVMTranslateUnsignedTransaction)
 Screens a transaction for potential risks and provides detailed analysis.
+
+**Returns:** `Promise<EVMForesightScreenResponse>`
 
 ```typescript
 const screening = await foresight.screen(
@@ -307,8 +510,10 @@ Example response:
 }
 ```
 
-### screen4337(chain: string, userOperation: UserOperation)
+### screen4337(chain: string, userOperation: EVMTranslateUserOperation)
 Screens an ERC-4337 user operation for potential risks and provides detailed analysis.
+
+**Returns:** `Promise<EVMForesightScreen4337Response>`
 
 ```typescript
 const screening = await foresight.screen4337(
@@ -414,13 +619,15 @@ Example response:
 ### screenUrl(url: string)
 Screens a URL for potential risks and provides detailed analysis.
 
+**Returns:** `Promise<ForesightUrlScreenResponse>`
+
 ```typescript
 const screening = await foresight.screenUrl('https://uniswap-v3.com');
 ```
 
 Response format:
 ```typescript
-{
+interface ForesightUrlScreenResponse {
   domain: string;           // The analyzed domain
   risksDetected: Array<{    // Array of detected risks
     type: string;          // Type of risk (e.g., "blacklisted")

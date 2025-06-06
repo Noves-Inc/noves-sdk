@@ -15,15 +15,15 @@ describe('TranslatePOLKADOT', () => {
         it('should return a list of supported chains', async () => {
             const mockChains = [
                 {
-                    name: 'polkadot',
+                    name: 'bittensor',
                     ecosystem: 'polkadot',
                     nativeCoin: {
-                        name: 'Polkadot',
-                        symbol: 'DOT',
-                        address: '0x0000000000000000000000000000000000000000',
-                        decimals: 10
+                        name: 'TAO',
+                        symbol: 'TAO',
+                        address: 'TAO',
+                        decimals: 9
                     },
-                    tier: 1
+                    tier: 2
                 }
             ];
 
@@ -150,25 +150,47 @@ describe('TranslatePOLKADOT', () => {
         });
     });
 
-    describe('Transactions', () => {
-        it('should return a TransactionsPage instance', async () => {
-            const mockResponse = {
-                items: [
-                    {
-                        txTypeVersion: 5,
-                        chain: 'bittensor',
-                        block: 4000000,
-                        index: 1,
-                        classificationData: {
-                            type: 'transfer',
-                            description: 'Transferred 0.79781 TAO'
+    describe('getTransactions', () => {
+        const mockTransactionsResponse = {
+            items: [
+                {
+                    txTypeVersion: 5,
+                    chain: 'bittensor',
+                    accountAddress: null,
+                    block: 4000000,
+                    index: 12,
+                    classificationData: {
+                        type: 'transfer',
+                        description: 'Transferred 0.79781 TAO from 0x7756c8fd6c4655bc8b0ae5f4785c80ba0b95a01dd40cbbea7dfa3b8b9aef0758 to 0x63dd3321dbb61ef531138dbd937d6c3c266cb353318b0c26d7d4e926163fbc50'
+                    },
+                    transfers: [
+                        {
+                            action: 'transferred',
+                            from: {
+                                name: null,
+                                address: '5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7',
+                                owner: {
+                                    name: null,
+                                    address: '0x7756c8fd6c4655bc8b0ae5f4785c80ba0b95a01dd40cbbea7dfa3b8b9aef0758'
+                                }
+                            },
+                            to: {
+                                name: null,
+                                address: '5EKeJofkJiSkuhMkWJhzcTgnkxQWpjVT7hgiysJdBgDeqd6N',
+                                owner: {
+                                    name: null,
+                                    address: '0x63dd3321dbb61ef531138dbd937d6c3c266cb353318b0c26d7d4e926163fbc50'
+                                }
+                            },
+                            amount: '0.79781',
+                            asset: {
+                                name: 'TAO',
+                                symbol: 'TAO',
+                                decimals: 9
+                            }
                         },
-                        transfers: [],
-                        values: [],
-                        rawTransactionData: {
-                            extrinsicIndex: 1,
-                            blockNumber: 4000000,
-                            timestamp: 1728412584,
+                        {
+                            action: 'paidGas',
                             from: {
                                 name: null,
                                 address: '5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7',
@@ -184,17 +206,147 @@ describe('TranslatePOLKADOT', () => {
                                     name: null,
                                     address: null
                                 }
+                            },
+                            amount: '0.000124559',
+                            asset: {
+                                name: 'TAO',
+                                symbol: 'TAO',
+                                decimals: 9
+                            }
+                        }
+                    ],
+                    values: [
+                        {
+                            key: 'functionCalled',
+                            value: 'Balances.transfer_allow_death'
+                        }
+                    ],
+                    rawTransactionData: {
+                        extrinsicIndex: 12,
+                        blockNumber: 4000000,
+                        timestamp: 1728412584,
+                        from: {
+                            name: null,
+                            address: '5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7',
+                            owner: {
+                                name: null,
+                                address: '0x7756c8fd6c4655bc8b0ae5f4785c80ba0b95a01dd40cbbea7dfa3b8b9aef0758'
+                            }
+                        },
+                        to: {
+                            name: null,
+                            address: null,
+                            owner: {
+                                name: null,
+                                address: null
                             }
                         }
                     }
-                ],
+                }
+            ],
+            nextPageSettings: {
                 hasNextPage: false,
+                endBlock: null,
                 nextPageUrl: null
+            }
+        };
+
+        it('should return transactions response directly', async () => {
+            global.fetch = jest.fn().mockResolvedValue({
+                ok: true,
+                json: () => Promise.resolve(mockTransactionsResponse)
+            });
+
+            const result = await translate.getTransactions('bittensor', '5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7', {
+                pageSize: 10,
+                endBlock: 4000001
+            });
+
+            expect(result).toEqual(mockTransactionsResponse);
+            expect(result.items).toHaveLength(1);
+            expect(result.nextPageSettings.hasNextPage).toBe(false);
+        });
+
+        it('should handle pagination correctly', async () => {
+            const mockResponseWithPagination = {
+                ...mockTransactionsResponse,
+                nextPageSettings: {
+                    hasNextPage: true,
+                    endBlock: 3999999,
+                    nextPageUrl: 'https://translate.noves.fi/polkadot/bittensor/txs/5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7?endBlock=3999999&pageSize=10'
+                }
             };
 
             global.fetch = jest.fn().mockResolvedValue({
                 ok: true,
-                json: () => Promise.resolve(mockResponse)
+                json: () => Promise.resolve(mockResponseWithPagination)
+            });
+
+            const result = await translate.getTransactions('bittensor', '5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7');
+            expect(result.nextPageSettings.hasNextPage).toBe(true);
+            expect(result.nextPageSettings.nextPageUrl).toBeTruthy();
+        });
+
+        it('should throw TransactionError on invalid response', async () => {
+            global.fetch = jest.fn().mockResolvedValue({
+                ok: true,
+                json: () => Promise.resolve({ invalid: 'response' })
+            });
+
+            await expect(translate.getTransactions('bittensor', '5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7'))
+                .rejects.toThrow(TransactionError);
+        });
+    });
+
+    describe('Transactions (deprecated)', () => {
+        const mockTransactionsResponse = {
+            items: [
+                {
+                    txTypeVersion: 5,
+                    chain: 'bittensor',
+                    accountAddress: null,
+                    block: 4000000,
+                    index: 1,
+                    classificationData: {
+                        type: 'transfer',
+                        description: 'Transferred 0.79781 TAO'
+                    },
+                    transfers: [],
+                    values: [],
+                    rawTransactionData: {
+                        extrinsicIndex: 1,
+                        blockNumber: 4000000,
+                        timestamp: 1728412584,
+                        from: {
+                            name: null,
+                            address: '5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7',
+                            owner: {
+                                name: null,
+                                address: '0x7756c8fd6c4655bc8b0ae5f4785c80ba0b95a01dd40cbbea7dfa3b8b9aef0758'
+                            }
+                        },
+                        to: {
+                            name: null,
+                            address: null,
+                            owner: {
+                                name: null,
+                                address: null
+                            }
+                        }
+                    }
+                }
+            ],
+            nextPageSettings: {
+                hasNextPage: false,
+                endBlock: null,
+                nextPageUrl: null
+            }
+        };
+
+        it('should return a TransactionsPage instance', async () => {
+            global.fetch = jest.fn().mockResolvedValue({
+                ok: true,
+                json: () => Promise.resolve(mockTransactionsResponse)
             });
 
             const result = await translate.Transactions('bittensor', '5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7', {
@@ -203,20 +355,23 @@ describe('TranslatePOLKADOT', () => {
             });
 
             expect(result).toBeInstanceOf(TransactionsPage);
-            expect(result.getTransactions()).toEqual(mockResponse.items);
+            expect(result.getTransactions()).toEqual(mockTransactionsResponse.items);
             expect(result.getNextPageKeys()).toBeNull();
         });
 
         it('should handle pagination correctly', async () => {
-            const mockResponse = {
-                items: [],
-                hasNextPage: true,
-                nextPageUrl: 'https://translate.noves.fi/polkadot/bittensor/txs/5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7?endBlock=4000000&pageSize=10'
+            const mockResponseWithPagination = {
+                ...mockTransactionsResponse,
+                nextPageSettings: {
+                    hasNextPage: true,
+                    endBlock: 3999999,
+                    nextPageUrl: 'https://translate.noves.fi/polkadot/bittensor/txs/5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7?endBlock=3999999&pageSize=10'
+                }
             };
 
             global.fetch = jest.fn().mockResolvedValue({
                 ok: true,
-                json: () => Promise.resolve(mockResponse)
+                json: () => Promise.resolve(mockResponseWithPagination)
             });
 
             const result = await translate.Transactions('bittensor', '5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7');

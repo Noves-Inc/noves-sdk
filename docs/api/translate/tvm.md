@@ -29,7 +29,7 @@ const chains = await tvmTranslate.getChains();
 
 Response format:
 ```typescript
-interface Chain {
+interface TVMTranslateChain {
   name: string;        // Chain identifier (e.g., "tron")
   ecosystem: string;   // Always "tvm"
   nativeCoin: {
@@ -52,11 +52,11 @@ const txInfo = await tvmTranslate.getTransaction(
 );
 ```
 
-### Transactions(chain: string, accountAddress: string, pageOptions?: PageOptions)
+### getTransactions(chain: string, accountAddress: string, pageOptions?: PageOptions)
 Get paginated transactions for an account.
 
 ```typescript
-const transactions = await tvmTranslate.Transactions('tron', address, {
+const transactions = await tvmTranslate.getTransactions('tron', address, {
   pageSize: 10,
   sort: 'desc',
   pageNumber: 1,
@@ -64,6 +64,8 @@ const transactions = await tvmTranslate.Transactions('tron', address, {
   viewAsTransactionSender: false
 });
 ```
+
+**Note:** The legacy `Transactions()` method is still available but deprecated. Use `getTransactions()` for new code.
 
 The `pageOptions` parameter supports the following options:
 - `pageSize`: Number of transactions per page (default: 10)
@@ -74,102 +76,15 @@ The `pageOptions` parameter supports the following options:
 
 Response format:
 ```typescript
-interface TransactionsResponse {
-  items: Transaction[];
+interface TVMTranslateTransactionsResponse {
+  items: TVMTranslateTransaction[];
   pageSize: number;
   hasNextPage: boolean;
-  nextPageUrl: string | null;
+  nextPageUrl?: string;
 }
 ```
 
-### startBalancesJob(chain: string, accountAddress: string, tokenAddress: string, blockNumber: number)
-Start a balances job for an account. This method initiates a background job to fetch token balances for the specified account at a given block number.
 
-```typescript
-const job = await tvmTranslate.startBalancesJob(
-  "tron",
-  "TD7beBofzDoDZ7qcGUAeHK1zf2Fnsvz2SP",
-  "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-  72049264
-);
-```
-
-#### Parameters
-- `chain` (string): The chain name (e.g., "tron")
-- `accountAddress` (string): The account address to fetch balances for
-- `tokenAddress` (string): The token address to fetch balance for
-- `blockNumber` (number): The block number to fetch balance at
-
-#### Response Format
-```typescript
-interface TVMBalancesJob {
-  jobId: string;
-  resultUrl: string;
-}
-```
-
-#### Example Response
-```json
-{
-  "jobId": "0xc896b0f15f707bab1ee9d265e3e7741d10dab4fd",
-  "resultUrl": "https://translate.noves.fi/tvm/tron/balances/job/0xc896b0f15f707bab1ee9d265e3e7741d10dab4fd"
-}
-```
-
-### getBalancesJobResults(chain: string, jobId: string)
-Get results from a balances job. This method retrieves the results of a previously started balances job.
-
-```typescript
-const results = await tvmTranslate.getBalancesJobResults(
-  "tron",
-  job.jobId
-);
-```
-
-#### Parameters
-- `chain` (string): The chain name (e.g., "tron")
-- `jobId` (string): The job ID returned from startBalancesJob
-
-#### Response Format
-```typescript
-interface TVMBalancesJobResponse {
-  jobId: string;
-  status: 'pending' | 'completed' | 'failed';
-  results?: {
-    balances: Array<{
-      token: {
-        symbol: string;
-        name: string;
-        decimals: number;
-        address: string;
-      };
-      balance: string;
-    }>;
-  };
-  error?: string;
-}
-```
-
-#### Example Response
-```json
-{
-  "jobId": "0xc896b0f15f707bab1ee9d265e3e7741d10dab4fd",
-  "status": "completed",
-  "results": {
-    "balances": [
-      {
-        "token": {
-          "symbol": "USDT",
-          "name": "Tether USD",
-          "decimals": 6,
-          "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
-        },
-        "balance": "1000000"
-      }
-    ]
-  }
-}
-```
 
 ## Examples
 
@@ -195,7 +110,7 @@ console.log(txInfo);
 ### Getting Account Transactions
 ```typescript
 // Get paginated transactions
-const transactions = await tvmTranslate.Transactions('tron', 'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR', {
+const transactions = await tvmTranslate.getTransactions('tron', 'TMA6mAoXs24NZRy3sWmc3i5FPA6KE1JQRR', {
   pageSize: 10,
   sort: 'desc'
 });

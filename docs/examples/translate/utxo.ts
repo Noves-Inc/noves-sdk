@@ -1,10 +1,13 @@
 import { Translate } from '../../../src';
+import { UTXOTranslateChain } from '../../../src/types/utxo';
 
 async function main() {
   // Initialize the UTXO translator
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error('API_KEY environment variable is not set');
+  // Replace 'your-api-key-here' with your actual Noves API key
+  // Or set the API_KEY environment variable: export API_KEY=your-api-key
+  const apiKey = process.env.API_KEY || 'your-api-key-here';
+  if (apiKey === 'your-api-key-here') {
+    console.warn('Please set your API key either by replacing "your-api-key-here" or setting the API_KEY environment variable');
   }
   const translate = Translate.utxo(apiKey);
 
@@ -14,15 +17,20 @@ async function main() {
     const chains = await translate.getChains();
     console.log('Supported chains:', JSON.stringify(chains, null, 2));
 
-    // Get details for a specific chain
-    console.log('\nFetching Bitcoin chain details...');
-    const btcChain = await translate.getChain('btc');
-    console.log('Bitcoin chain details:', JSON.stringify(btcChain, null, 2));
+    // Find details for a specific chain
+    console.log('\nFinding Bitcoin chain details...');
+    const btcChain = chains.find(chain => chain.name === 'btc');
+    if (btcChain) {
+      console.log('Bitcoin chain details:', JSON.stringify(btcChain, null, 2));
+    } else {
+      console.log('Bitcoin chain not found');
+      return;
+    }
 
     // Get transactions for a Bitcoin address
     console.log('\nFetching transactions for a Bitcoin address...');
     const address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'; // Example Bitcoin address
-    const transactions = await translate.Transactions('btc', address, {
+    const transactions = await translate.getTransactions('btc', address, {
       pageSize: 5,
       sort: 'desc'
     });
@@ -32,11 +40,21 @@ async function main() {
       console.log(JSON.stringify(tx, null, 2));
     }
 
-    // Example of getting derived addresses from an xpub
+    // Example of getting derived addresses from different master key formats
     console.log('\nFetching derived addresses from xpub...');
-    const xpub = 'xpub661MyMwAqRbcFtXgS5sYJABqqG9YLmC4QVaRdMCqMc9gLZq3DzGDbwVtWfGJfLZJvfK69S7jbkQK1nMpEeMg4GiupAVKbBmp2aAixVeAxF1d';
-    const addresses = await translate.getAddressesByXpub(xpub);
-    console.log('Derived addresses:', addresses);
+    const xpub = 'xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz';
+    const xpubAddresses = await translate.getAddressesByMasterKey(xpub);
+    console.log('xpub derived addresses:', xpubAddresses);
+
+    console.log('\nFetching derived addresses from ypub...');
+    const ypub = 'ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNpj8ahQn9dDfJdLUKD1Bou4EQvjnyWYCJ8VGzHoLYpqJHYJg9Q7GvgEBXEZj6vDFkJ9pq8ABCD';
+    const ypubAddresses = await translate.getAddressesByMasterKey(ypub);
+    console.log('ypub derived addresses:', ypubAddresses);
+
+    // Demonstrating backward compatibility
+    console.log('\nUsing deprecated getAddressesByXpub method...');
+    const legacyAddresses = await translate.getAddressesByXpub(xpub);
+    console.log('Legacy method addresses:', legacyAddresses);
 
     // Example of getting transaction details
     console.log('\nFetching transaction details...');

@@ -121,14 +121,45 @@ async function solanaTranslateExample() {
     // 6. Get staking transactions
     console.log("\nFetching staking transactions...");
     const stakingAccount = "6ZuLUCwVTvuQJrN1HrpoHJheQUw9Zk8CtiD3CEpHiA9E";
-    const stakingTxs = await solanaTranslate.getStakingTransactions("solana", stakingAccount);
-    console.log("Staking transactions:", stakingTxs);
+    const stakingTxs = await solanaTranslate.getStakingTransactions("solana", stakingAccount, { numberOfEpochs: 10 });
+    console.log("Staking transactions:", {
+      numberOfEpochs: stakingTxs.numberOfEpochs,
+      failedEpochs: stakingTxs.failedEpochs,
+      itemCount: stakingTxs.items.length,
+      firstItem: stakingTxs.items[0] ? {
+        type: stakingTxs.items[0].classificationData.type,
+        description: stakingTxs.items[0].classificationData.description,
+        timestamp: new Date(stakingTxs.items[0].timestamp * 1000).toISOString(),
+        transfers: stakingTxs.items[0].transfers.map(t => ({
+          action: t.action,
+          amount: t.amount,
+          token: t.token.symbol
+        })),
+        values: stakingTxs.items[0].values,
+        signature: stakingTxs.items[0].rawTransactionData.signature
+      } : null
+    });
 
     // 7. Get staking epoch information
     console.log("\nFetching staking epoch information...");
     const epoch = 777;
     const stakingEpoch = await solanaTranslate.getStakingEpoch("solana", stakingAccount, epoch);
-    console.log("Staking epoch info:", stakingEpoch);
+    console.log("Staking epoch info:", {
+      txTypeVersion: stakingEpoch.txTypeVersion,
+      timestamp: new Date(stakingEpoch.timestamp * 1000).toISOString(),
+      type: stakingEpoch.classificationData.type,
+      description: stakingEpoch.classificationData.description,
+      transfers: stakingEpoch.transfers.map(t => ({
+        action: t.action,
+        amount: t.amount,
+        token: t.token.symbol,
+        from: t.from.name,
+        to: t.to.address
+      })),
+      values: stakingEpoch.values,
+      signature: stakingEpoch.rawTransactionData.signature,
+      blockNumber: stakingEpoch.rawTransactionData.blockNumber
+    });
 
     // 8. Start a transaction job
     console.log("\nStarting transaction job...");
@@ -170,14 +201,25 @@ async function solanaTranslateExample() {
       }
     })));
 
-    // Get transaction count
+    // Get transaction count (uses job-based API internally)
     console.log("\nFetching transaction count...");
     const txCount = await solanaTranslate.getTransactionCount(
       'solana',
       'H6FTjrbVduVKWiMDDiyvyXYacK17apFajQwymchXfyDT'
     );
     console.log("Transaction count:", txCount.account.transactionCount);
+    console.log("Chain:", txCount.chain);
+    console.log("Account address:", txCount.account.address);
     console.log("Timestamp:", new Date(txCount.timestamp * 1000).toISOString());
+
+    // Get transaction count with webhook notification
+    console.log("\nFetching transaction count with webhook...");
+    const txCountWithWebhook = await solanaTranslate.getTransactionCount(
+      'solana',
+      'CTefbX8zKWx73V4zWUZc32vJMShmnzJfvstZ8aMAo5Q2',
+      'https://example.com/webhook'
+    );
+    console.log("Transaction count with webhook:", txCountWithWebhook.account.transactionCount);
 
     // Get token balances with custom parameters
     const customBalances = await solanaTranslate.getTokenBalances(

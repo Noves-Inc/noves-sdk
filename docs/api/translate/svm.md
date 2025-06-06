@@ -156,70 +156,6 @@ The method will throw a `TransactionError` if:
 - The txTypeVersion is not 4 or 5
 - The API returns an error response
 
-### Transactions(chain: string, accountAddress: string, pageOptions?: PageOptions)
-Get a paginated list of transactions for an account address using the v5 endpoint.
-
-```typescript
-const transactions = await translate.Transactions(
-  "solana",
-  "2w31NPGGZ7U2MCd3igujKeG7hggYNzsvknNeotQYJ1FF",
-  { pageSize: 10 }
-);
-
-// Process transactions
-for await (const tx of transactions) {
-  console.log("Transaction:", tx);
-}
-```
-
-Response format:
-```typescript
-interface SolanaTransaction {
-  txTypeVersion: number;
-  source: {
-    type: string | null;
-    name: string | null;
-  };
-  timestamp: number;
-  classificationData: {
-    type: string;
-    description: string | null;
-  };
-  transfers: Array<{
-    action: string;
-    amount: string;
-    token: {
-      decimals: number;
-      address: string;
-      name: string;
-      symbol: string;
-      icon: string | null;
-    };
-    from: {
-      name: string | null;
-      address: string;
-      owner: {
-        name: string | null;
-        address: string | null;
-      };
-    };
-    to: {
-      name: string | null;
-      address: string | null;
-      owner: {
-        name: string | null;
-        address: string | null;
-      };
-    };
-  }>;
-  rawTransactionData: {
-    signature: string;
-    blockNumber: number;
-    signer: string;
-    interactedAccounts: string[];
-  };
-}
-```
 
 ### getSplTokens(accountAddress: string, chain?: string)
 Returns a list of the available SPL token account addresses for the chain and wallet requested.
@@ -263,14 +199,14 @@ Get a list of all available transaction types that can be returned by the API. T
 ```typescript
 const txTypes = await translate.getTxTypes();
 // Returns: {
+//   version: number,
 //   transactionTypes: [
 //     {
 //       type: string,
 //       description: string
 //     },
 //     ...
-//   ],
-//   version: number
+//   ]
 // }
 ```
 
@@ -323,6 +259,7 @@ interface DescribeTransaction {
 Example response:
 ```json
 {
+  "version": 1,
   "transactionTypes": [
     {
       "type": "addLiquidity",
@@ -332,8 +269,7 @@ Example response:
       "type": "swap",
       "description": "Reported when two or more fungible tokens are traded in the transaction, typically by using a decentralized exchange protocol."
     }
-  ],
-  "version": 1
+  ]
 }
 ```
 
@@ -357,17 +293,19 @@ const job = await solanaTranslate.startTransactionJob(
 
 #### Response Format
 ```typescript
-interface EVMTransactionJob {
+interface SVMTransactionJob {
   jobId: string;
   nextPageUrl: string;
+  startTimestamp: number;
 }
 ```
 
 #### Example Response
 ```json
 {
-  "jobId": "0x4e42d22bc63048c545169b3ce8ea872f9fc5c95f",
-  "nextPageUrl": "https://translate.noves.fi/svm/solana/txs/job/0x4e42d22bc63048c545169b3ce8ea872f9fc5c95f?pageNumber=1&pageSize=100&ascending=false"
+  "jobId": "0x041c1db36389ab9bf6ff61354e7e298848a8a014",
+  "nextPageUrl": "https://translate.noves.fi/svm/solana/txs/job/0x041c1db36389ab9bf6ff61354e7e298848a8a014?pageNumber=1&pageSize=100&ascending=false",
+  "startTimestamp": 0
 }
 ```
 
@@ -396,40 +334,76 @@ const results = await solanaTranslate.getTransactionJobResults(
 
 #### Response Format
 ```typescript
-interface EVMTransactionJobResponse {
-  jobId: string;
-  status: 'pending' | 'completed' | 'failed';
-  results?: {
-    transactions: Transaction[];
-    totalCount: number;
-  };
-  error?: string;
+interface SVMTransactionJobResponse {
+  items: SVMTransaction[];
+  pageSize: number;
+  hasNextPage: boolean;
+  nextPageUrl: string | null;
 }
 ```
 
 #### Example Response
 ```json
 {
-  "jobId": "0x4e42d22bc63048c545169b3ce8ea872f9fc5c95f",
-  "status": "completed",
-  "results": {
-    "transactions": [
-      {
-        "txTypeVersion": 1,
-        "chain": "solana",
-        "accountAddress": "DhsqSJHKF71vDk4oAQPTpXp9zdjpsHoogupL86sH6R7t",
-        "classificationData": {
-          "type": "transfer",
-          "description": "Transfer of SOL"
-        },
-        "rawTransactionData": {
-          "signature": "3dAzEfwuZQvykPFqXt7U2bCdpfFrMQ7mR45D2t3ggkvBW88Cm4s35Wxpop831pygvYPA54Ht3i1Ufu3FTtM6ocdq",
-          "timestamp": 1722892419
+  "items": [
+    {
+      "txTypeVersion": 5,
+      "source": {
+        "type": null,
+        "name": null
+      },
+      "timestamp": 1749128257,
+      "classificationData": {
+        "description": null,
+        "type": "unclassified"
+      },
+      "transfers": [
+        {
+          "action": "paidGas",
+          "amount": "0.000025",
+          "token": {
+            "decimals": 9,
+            "address": "SOL",
+            "name": "SOL",
+            "symbol": "SOL",
+            "icon": null
+          },
+          "from": {
+            "name": null,
+            "address": "CTefbX8zKWx73V4zWUZc32vJMShmnzJfvstZ8aMAo5Q2",
+            "owner": {
+              "name": null,
+              "address": null
+            }
+          },
+          "to": {
+            "name": null,
+            "address": null,
+            "owner": {
+              "name": null,
+              "address": null
+            }
+          }
         }
+      ],
+      "values": [],
+      "rawTransactionData": {
+        "signature": "5qtJwk8Jk8q47tYjkA2CqcKRntZniW66bffC4GaoqPocde4vdvBabmnVcDGXEKox28JiogVf7KKKbR7qG8p4Xei3",
+        "blockNumber": 344785125,
+        "signer": "CTefbX8zKWx73V4zWUZc32vJMShmnzJfvstZ8aMAo5Q2",
+        "interactedAccounts": [
+          "ComputeBudget111111111111111111111111111111",
+          "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+          "11111111111111111111111111111111",
+          "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"
+        ]
       }
-    ],
-    "totalCount": 1
-  }
+    }
+  ],
+  "pageSize": 13,
+  "hasNextPage": false,
+  "nextPageUrl": null
 }
 ```
 
@@ -495,17 +469,19 @@ const customBalances = await translate.getTokenBalances(
 
 #### Response Format
 ```typescript
-interface SVMTokenBalance {
+interface SVMTranslateTokenBalance {
   balance: string;
-  usdValue: string | null;
+  usdValue: string;
   token: {
     symbol: string;
     name: string;
     decimals: number;
     address: string;
-    price: string | null;
+    price: string;
   };
 }
+
+type SVMTranslateTokenBalancesResponse = SVMTranslateTokenBalance[];
 ```
 
 #### Example Response
@@ -513,35 +489,59 @@ interface SVMTokenBalance {
 [
   {
     "balance": "0.00114144",
-    "usdValue": "0.194717744328279489504",
+    "usdValue": "0.171773182453313009568",
     "token": {
       "symbol": "SOL",
       "name": "SOL",
       "decimals": 9,
       "address": "SOL",
-      "price": "170.5895573383441"
+      "price": "150.4881399401747"
+    }
+  },
+  {
+    "balance": "40.450355",
+    "usdValue": "40.4493843287059322158505",
+    "token": {
+      "symbol": "USDC",
+      "name": "USD Coin",
+      "decimals": 6,
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "price": "0.9999760033924531"
     }
   }
 ]
 ```
 
-### getTransactionCount(chain: string, accountAddress: string)
-Get the total number of transactions for an account address.
+### getTransactionCount(chain: string, accountAddress: string, webhookUrl?: string)
+Get the total number of transactions for an account address using a job-based approach.
+
+This method internally creates a transaction count job and then retrieves the results. The API uses a two-step process:
+1. Start a transaction count job with the account address
+2. Retrieve the job results with the transaction count
 
 ```typescript
+// Basic usage
 const txCount = await translate.getTransactionCount(
   'solana',
   'H6FTjrbVduVKWiMDDiyvyXYacK17apFajQwymchXfyDT'
+);
+
+// With optional webhook notification
+const txCountWithWebhook = await translate.getTransactionCount(
+  'solana',
+  'H6FTjrbVduVKWiMDDiyvyXYacK17apFajQwymchXfyDT',
+  'https://your-webhook-url.com/notify'
 );
 ```
 
 #### Parameters
 - `chain` (string): The chain name (e.g., "solana"). Defaults to 'solana'
 - `accountAddress` (string): The account address to get transaction count for
+- `webhookUrl` (string, optional): URL to receive a webhook notification when the job completes
 
 #### Response Format
 ```typescript
-interface TransactionCountResponse {
+interface SVMTranslateTransactionCountResponse {
   chain: string;
   timestamp: number;
   account: {
@@ -555,22 +555,49 @@ interface TransactionCountResponse {
 ```json
 {
   "chain": "solana",
-  "timestamp": 1746811093,
+  "timestamp": 1749130527,
   "account": {
-    "address": "H6FTjrbVduVKWiMDDiyvyXYacK17apFajQwymchXfyDT",
-    "transactionCount": 4130239
+    "address": "CTefbX8zKWx73V4zWUZc32vJMShmnzJfvstZ8aMAo5Q2",
+    "transactionCount": 11
   }
 }
 ```
+
+#### API Implementation Details
+The method uses the following endpoints:
+- `POST /svm/{chain}/txCount/job/start` - Start the transaction count job
+- `GET /svm/{chain}/txCount/job/{jobId}` - Get the job results
+
+#### Error Handling
+The method will throw a `TransactionError` if:
+- The account address is invalid
+- The chain is not supported
+- The job start request fails
+- The job results request fails
+- The response format is invalid
 
 ### getStakingTransactions(chain: string, stakingAccount: string, pageOptions?: PageOptions)
 Get staking transactions for a staking account.
 
 ```typescript
+// Get staking transactions with default parameters
 const stakingTxs = await translate.getStakingTransactions('solana', '6ZuLUCwVTvuQJrN1HrpoHJheQUw9Zk8CtiD3CEpHiA9E');
+
+// Get staking transactions for specific number of epochs
+const stakingTxsWithEpochs = await translate.getStakingTransactions(
+  'solana', 
+  '6ZuLUCwVTvuQJrN1HrpoHJheQUw9Zk8CtiD3CEpHiA9E',
+  { numberOfEpochs: 10 }
+);
 ```
 
-Response format:
+#### Parameters
+- `chain` (string): The chain name (e.g., "solana"). Defaults to 'solana'
+- `stakingAccount` (string): The staking account address
+- `pageOptions` (PageOptions, optional): Pagination options including:
+  - `numberOfEpochs` (number, optional): Number of epochs to retrieve staking transactions for
+
+#### Response Format
 ```typescript
 interface SVMStakingTransactionsResponse {
   items: Array<{
@@ -623,13 +650,77 @@ interface SVMStakingTransactionsResponse {
     };
   }>;
   numberOfEpochs: number;
-  failedEpochs: string[];
+  failedEpochs: any[];
   nextPageUrl: string | null;
 }
 ```
 
+#### Example Response
+```json
+{
+  "items": [
+    {
+      "txTypeVersion": 5,
+      "source": {
+        "type": null,
+        "name": null
+      },
+      "timestamp": 1748939361,
+      "classificationData": {
+        "description": "Received 0.003404242 SOL in staking rewards.",
+        "type": "syntheticStakingRewards"
+      },
+      "transfers": [
+        {
+          "action": "rewarded",
+          "amount": "0.003404242",
+          "token": {
+            "decimals": 9,
+            "address": "SOL",
+            "name": "SOL",
+            "symbol": "SOL",
+            "icon": null
+          },
+          "from": {
+            "name": "Staking",
+            "address": null,
+            "owner": {
+              "name": null,
+              "address": null
+            }
+          },
+          "to": {
+            "name": null,
+            "address": "6ZuLUCwVTvuQJrN1HrpoHJheQUw9Zk8CtiD3CEpHiA9E",
+            "owner": {
+              "name": null,
+              "address": null
+            }
+          }
+        }
+      ],
+      "values": [
+        {
+          "key": "epoch",
+          "value": "796"
+        }
+      ],
+      "rawTransactionData": {
+        "signature": "staking-synth-0a7ca482138b5ffda2ab5d6852e73827",
+        "blockNumber": 344304251,
+        "signer": "",
+        "interactedAccounts": null
+      }
+    }
+  ],
+  "numberOfEpochs": 10,
+  "failedEpochs": [],
+  "nextPageUrl": null
+}
+```
+
 ### getStakingEpoch(chain: string, stakingAccount: string, epoch: number)
-Get staking information for a specific epoch.
+Get staking information for a specific epoch. Returns a transaction structure representing the synthetic staking reward for that epoch.
 
 ```typescript
 const stakingEpoch = await translate.getStakingEpoch('solana', '6ZuLUCwVTvuQJrN1HrpoHJheQUw9Zk8CtiD3CEpHiA9E', 777);
@@ -643,16 +734,52 @@ const stakingEpoch = await translate.getStakingEpoch('solana', '6ZuLUCwVTvuQJrN1
 #### Response Format
 ```typescript
 interface SVMStakingEpochResponse {
-  epoch: number;
-  stakingAccount: string;
-  stakedAmount: string;
-  rewards: string;
-  startTimestamp: number;
-  endTimestamp: number;
-  status: 'active' | 'completed';
-  validator: {
-    address: string;
+  txTypeVersion: 5;
+  source: {
+    type: string | null;
     name: string | null;
+  };
+  timestamp: number;
+  classificationData: {
+    description: string;
+    type: string;
+  };
+  transfers: Array<{
+    action: string;
+    amount: string;
+    token: {
+      decimals: number;
+      address: string;
+      name: string;
+      symbol: string;
+      icon: string | null;
+    };
+    from: {
+      name: string | null;
+      address: string | null;
+      owner: {
+        name: string | null;
+        address: string | null;
+      };
+    };
+    to: {
+      name: string | null;
+      address: string | null;
+      owner: {
+        name: string | null;
+        address: string | null;
+      };
+    };
+  }>;
+  values: Array<{
+    key: string;
+    value: string;
+  }>;
+  rawTransactionData: {
+    signature: string;
+    blockNumber: number;
+    signer: string;
+    interactedAccounts: string[] | null;
   };
 }
 ```
@@ -660,16 +787,56 @@ interface SVMStakingEpochResponse {
 #### Example Response
 ```json
 {
-  "epoch": 777,
-  "stakingAccount": "6ZuLUCwVTvuQJrN1HrpoHJheQUw9Zk8CtiD3CEpHiA9E",
-  "stakedAmount": "1000000000",
-  "rewards": "50000000",
-  "startTimestamp": 1746811093,
-  "endTimestamp": 1746814093,
-  "status": "completed",
-  "validator": {
-    "address": "validator123",
-    "name": "Example Validator"
+  "txTypeVersion": 5,
+  "source": {
+    "type": null,
+    "name": null
+  },
+  "timestamp": 1745699126,
+  "classificationData": {
+    "description": "Received 0.003495653 SOL in staking rewards.",
+    "type": "syntheticStakingRewards"
+  },
+  "transfers": [
+    {
+      "action": "rewarded",
+      "amount": "0.003495653",
+      "token": {
+        "decimals": 9,
+        "address": "SOL",
+        "name": "SOL",
+        "symbol": "SOL",
+        "icon": null
+      },
+      "from": {
+        "name": "Staking",
+        "address": null,
+        "owner": {
+          "name": null,
+          "address": null
+        }
+      },
+      "to": {
+        "name": null,
+        "address": "6ZuLUCwVTvuQJrN1HrpoHJheQUw9Zk8CtiD3CEpHiA9E",
+        "owner": {
+          "name": null,
+          "address": null
+        }
+      }
+    }
+  ],
+  "values": [
+    {
+      "key": "epoch",
+      "value": "777"
+    }
+  ],
+  "rawTransactionData": {
+    "signature": "staking-synth-bcd7058d75f7f6d4d41936bf8f56362d",
+    "blockNumber": 336096135,
+    "signer": "",
+    "interactedAccounts": null
   }
 }
 ```

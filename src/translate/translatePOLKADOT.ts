@@ -1,6 +1,13 @@
 // src/translate/translatePOLKADOT.ts
 
-import { Chain, PageOptions, Transaction, PolkadotTransaction, PolkadotStakingRewardsResponse } from '../types/types';
+import { PageOptions } from '../types/common';
+import { 
+    POLKADOTTranslateChain, 
+    POLKADOTTranslateChainsResponse, 
+    POLKADOTTranslateTransaction, 
+    POLKADOTTranslateTransactionsResponse,
+    POLKADOTTranslateStakingRewardsResponse 
+} from '../types/polkadot';
 import { BaseTranslate } from './baseTranslate';
 import { TransactionsPage } from './transactionsPage';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
@@ -25,10 +32,10 @@ export class TranslatePOLKADOT extends BaseTranslate {
     /**
      * Returns a list with the names of the Polkadot blockchains currently supported by this API. 
      * Use the provided chain name when calling other methods.
-     * @returns {Promise<Chain[]>} A promise that resolves to an array of chains.
+     * @returns {Promise<POLKADOTTranslateChainsResponse>} A promise that resolves to an array of chains.
      * @throws {TransactionError} If there are validation errors in the request.
      */
-    public async getChains(): Promise<Chain[]> {
+    public async getChains(): Promise<POLKADOTTranslateChainsResponse> {
         try {
             const result = await this.makeRequest('chains');
             if (!Array.isArray(result)) {
@@ -48,10 +55,10 @@ export class TranslatePOLKADOT extends BaseTranslate {
      * @param {string} chain - The chain name.
      * @param {number} blockNumber - The block number.
      * @param {number} index - The index of the transaction in the block.
-     * @returns {Promise<PolkadotTransaction>} A promise that resolves to the transaction details.
+     * @returns {Promise<POLKADOTTranslateTransaction>} A promise that resolves to the transaction details.
      * @throws {TransactionError} If there are validation errors in the request.
      */
-    public async getTransaction(chain: string, blockNumber: number, index: number): Promise<PolkadotTransaction> {
+    public async getTransaction(chain: string, blockNumber: number, index: number): Promise<POLKADOTTranslateTransaction> {
         try {
             const result = await this.makeRequest(`${chain}/tx/${blockNumber}/${index}`);
             if (!result || typeof result !== 'object') {
@@ -66,7 +73,7 @@ export class TranslatePOLKADOT extends BaseTranslate {
                 }
             }
 
-            return result as PolkadotTransaction;
+            return result as POLKADOTTranslateTransaction;
         } catch (error) {
             if (error instanceof TransactionError) {
                 throw error;
@@ -76,30 +83,54 @@ export class TranslatePOLKADOT extends BaseTranslate {
     }
 
     /**
-     * Get a pagination object to iterate over transactions pages.
+     * Returns all transactions for the requested chain and account, given a timerange. 
+     * This method provides direct access to the API response.
      * @param {string} chain - The chain name.
      * @param {string} accountAddress - The account address.
      * @param {PageOptions} pageOptions - The page options object. 
-     * Use startBlock, endBlock, startTimestamp, endTimestamp,and pageSize to filter the transactions.
-     * @returns {Promise<TransactionsPage<Transaction>>} A promise that resolves to a TransactionsPage instance.
+     * Use startBlock, endBlock, startTimestamp, endTimestamp, and pageSize to filter the transactions.
+     * @returns {Promise<POLKADOTTranslateTransactionsResponse>} A promise that resolves to the transactions response.
      * @throws {TransactionError} If there are validation errors in the request.
      */
-    public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<Transaction>> {
+    public async getTransactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<POLKADOTTranslateTransactionsResponse> {
         try {
             const endpoint = `${chain}/txs/${accountAddress}`;
             const url = constructUrl(endpoint, pageOptions);
             const result = await this.makeRequest(url);
 
-            if (!this.validateResponse(result, ['items', 'hasNextPage'])) {
+            if (!this.validateResponse(result, ['items', 'nextPageSettings'])) {
                 throw new TransactionError({ message: ['Invalid response format'] });
             }
+
+            return result as POLKADOTTranslateTransactionsResponse;
+        } catch (error) {
+            if (error instanceof TransactionError) {
+                throw error;
+            }
+            throw new TransactionError({ message: ['Failed to get transactions'] });
+        }
+    }
+
+    /**
+     * Get a pagination object to iterate over transactions pages.
+     * @param {string} chain - The chain name.
+     * @param {string} accountAddress - The account address.
+     * @param {PageOptions} pageOptions - The page options object. 
+     * Use startBlock, endBlock, startTimestamp, endTimestamp,and pageSize to filter the transactions.
+     * @returns {Promise<TransactionsPage<POLKADOTTranslateTransaction>>} A promise that resolves to a TransactionsPage instance.
+     * @throws {TransactionError} If there are validation errors in the request.
+     * @deprecated Use getTransactions for direct API response access. This method is kept for backward compatibility.
+     */
+    public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<POLKADOTTranslateTransaction>> {
+        try {
+            const response = await this.getTransactions(chain, accountAddress, pageOptions);
 
             const initialData = {
                 chain: chain,
                 accountAddress: accountAddress,
-                transactions: result.items,
+                transactions: response.items,
                 currentPageKeys: pageOptions,
-                nextPageKeys: result.hasNextPage ? parseUrl(result.nextPageUrl) : null,
+                nextPageKeys: response.nextPageSettings.hasNextPage && response.nextPageSettings.nextPageUrl ? parseUrl(response.nextPageSettings.nextPageUrl) : null,
             };
             return new TransactionsPage(this, initialData);
         } catch (error) {

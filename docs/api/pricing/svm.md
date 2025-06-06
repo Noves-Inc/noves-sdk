@@ -24,14 +24,40 @@ Returns a list of supported SVM chains.
 
 ```typescript
 const chains = await svmPricing.getChains();
-// Returns: [{ name: "solana", ecosystem: "svm", nativeCoin: {...} }, ...]
+// Returns: SVMPricingChainsResponse
 ```
 
-### getChain(name: string)
-Get detailed information about a specific chain.
+**Response Type:** `SVMPricingChainsResponse`
 
 ```typescript
-const chainInfo = await svmPricing.getChain("solana");
+interface SVMPricingChain {
+  name: string;
+  ecosystem: string;
+  nativeCoin: {
+    name: string;
+    symbol: string;
+    address: string;
+    decimals: number;
+  };
+}
+
+type SVMPricingChainsResponse = SVMPricingChain[];
+```
+
+Example response:
+```json
+[
+  {
+    "name": "solana",
+    "ecosystem": "svm",
+    "nativeCoin": {
+      "name": "SOL",
+      "symbol": "SOL",
+      "address": "SOL",
+      "decimals": 9
+    }
+  }
+]
 ```
 
 ### getPrice(chain: string, tokenAddress: string, options?: {priceType?: PriceType | string, timestamp?: number})
@@ -77,20 +103,20 @@ const weightedAvgPrice = await svmPricing.getPrice(
 
 #### Response Format
 ```typescript
-interface Pricing {
+interface SVMPricingPrice {
   chain: string;
   token: {
-    address: string | null;
-    symbol: string | null;
-    name: string | null;
+    address: string;
+    symbol: string;
+    name: string;
   };
   price: {
-    amount: string | null;
-    currency: string | null;
-    status: string | null;
+    amount: string;
+    currency: string;
+    status: string;
   };
-  priceType: string | null;
-  priceStatus: string | null;
+  priceType: string;
+  priceStatus: string;
 }
 ```
 
@@ -119,19 +145,13 @@ For complete examples, see the [SVM Pricing Examples](../../examples/pricing/svm
 ## Error Handling
 The SVM Pricing API can throw various errors:
 
-- `ChainNotFoundError`: Thrown when a requested chain is not found
 - Network-related errors when API requests fail
+- Invalid parameters or authentication errors
 
 ```typescript
-import { ChainNotFoundError } from "@noves/noves-sdk";
-
 try {
-  const chainInfo = await svmPricing.getChain("invalid-chain");
+  const price = await svmPricing.getPrice("solana", "invalid-token-address");
 } catch (error) {
-  if (error instanceof ChainNotFoundError) {
-    console.error("Chain not found:", error.message);
-  } else {
-    console.error("Unexpected error:", error);
-  }
+  console.error("API error:", error.message);
 }
 ``` 

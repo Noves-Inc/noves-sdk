@@ -54,55 +54,7 @@ describe('PricingSVM', () => {
     });
   });
 
-  describe('getChain', () => {
-    it('should return a specific chain', async () => {
-      const mockChains = [
-        {
-          name: "solana",
-          ecosystem: "svm",
-          nativeCoin: {
-            name: "SOL",
-            symbol: "SOL",
-            address: "SOL",
-            decimals: 9
-          }
-        }
-      ];
-      mockRequest.mockResolvedValue({ response: mockChains });
 
-      const result = await pricingSVM.getChain('solana');
-
-      expect(result).toEqual(mockChains[0]);
-      expect(mockRequest).toHaveBeenCalledWith('chains');
-    });
-
-    it('should transform "Solana" to "solana" when looking for a chain', async () => {
-      const mockChains = [
-        {
-          name: "solana",
-          ecosystem: "svm",
-          nativeCoin: {
-            name: "SOL",
-            symbol: "SOL",
-            address: "SOL",
-            decimals: 9
-          }
-        }
-      ];
-      mockRequest.mockResolvedValue({ response: mockChains });
-
-      const result = await pricingSVM.getChain('Solana');
-
-      expect(result).toEqual(mockChains[0]);
-      expect(mockRequest).toHaveBeenCalledWith('chains');
-    });
-
-    it('should throw ChainNotFoundError if chain is not found', async () => {
-      mockRequest.mockResolvedValue({ response: [] });
-
-      await expect(pricingSVM.getChain('invalid-chain')).rejects.toThrow(ChainNotFoundError);
-    });
-  });
 
   describe('getPrice', () => {
     it('should return a price for a token', async () => {
@@ -116,11 +68,10 @@ describe('PricingSVM', () => {
         price: {
           amount: '1.0',
           currency: 'USD',
-          status: 'success'
+          status: 'resolved'
         },
-        pricedBy: 'dex',
         priceType: 'dexHighestLiquidity',
-        priceStatus: 'success'
+        priceStatus: 'resolved'
       };
       mockRequest.mockResolvedValue({ response: mockPrice });
 

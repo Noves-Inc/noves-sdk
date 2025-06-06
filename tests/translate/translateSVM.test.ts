@@ -7,22 +7,14 @@ jest.setTimeout(30000);
 describe('TranslateSVM', () => {
   let translate: TranslateSVM;
   let mockRequest: jest.Mock;
-  const apiKey = process.env.API_KEY;
   const validAddress = 'EJCRQ6mtVrvsceBMNdYC7qqXRwrj79KJQoKC5tDWHdho';
   const validSignature = '3dAzEfwuZQvykPFqXt7U2bCdpfFrMQ7mR45D2t3ggkvBW88Cm4s35Wxpop831pygvYPA54Ht3i1Ufu3FTtM6ocdq';
   const validChain = 'solana';
 
   beforeEach(() => {
     mockRequest = jest.fn();
-    translate = new TranslateSVM(apiKey || 'test-api-key');
+    translate = new TranslateSVM('test-api-key');
     (translate as any).makeRequest = mockRequest;
-  });
-
-  beforeAll(() => {
-    if (!apiKey) {
-      throw new Error('API_KEY environment variable is required');
-    }
-    translate = new TranslateSVM(apiKey);
   });
 
   describe('getChains', () => {
@@ -206,7 +198,7 @@ describe('TranslateSVM', () => {
     });
   });
 
-  describe('Transactions', () => {
+  describe('getTransactions', () => {
     it('should fetch transactions successfully', async () => {
       const mockTransactions = {
         items: [
@@ -250,6 +242,7 @@ describe('TranslateSVM', () => {
                 }
               }
             ],
+            values: [],
             rawTransactionData: {
               signature: validSignature,
               blockNumber: 338913770,
@@ -261,12 +254,14 @@ describe('TranslateSVM', () => {
             }
           }
         ],
+        page: 1,
+        pageSize: 10,
         nextPageUrl: 'https://translate.noves.fi/svm/solana/txs/v5/2w31NPGGZ7U2MCd3igujKeG7hggYNzsvknNeotQYJ1FF?pageSize=10&ignoreTransactions=hmaQsG6jQoN12cHkhjK1wkPoPYCsQYm1M7YHXjHo2nyjDCMHrX6GSdPL5jbvooUDkVU22tmfiiEf215Bw8cStJA'
       };
 
       mockRequest.mockResolvedValue(mockTransactions);
 
-      const transactions = await translate.Transactions(validChain, validAddress);
+      const transactions = await translate.getTransactions(validChain, validAddress);
       expect(transactions).toBeInstanceOf(TransactionsPage);
       expect(transactions.getTransactions()).toEqual(mockTransactions.items);
       expect(transactions.getNextPageKeys()).toBeTruthy();
@@ -276,21 +271,60 @@ describe('TranslateSVM', () => {
       mockRequest.mockRejectedValue(new TransactionError({ 
         message: ['The field chain is invalid. Valid chains: solana'] 
       }));
-      await expect(translate.Transactions('invalidChain', 'invalidAddress')).rejects.toThrow(TransactionError);
+      await expect(translate.getTransactions('invalidChain', 'invalidAddress')).rejects.toThrow(TransactionError);
     });
 
     it('should handle pagination correctly', async () => {
       const mockTransactions = {
         items: [],
-        hasNextPage: true,
+        page: 1,
+        pageSize: 5,
         nextPageUrl: 'https://api.example.com/next-page'
       };
 
       mockRequest.mockResolvedValue(mockTransactions);
 
-      const transactions = await translate.Transactions(validChain, validAddress, { pageSize: 5 });
+      const transactions = await translate.getTransactions(validChain, validAddress, { pageSize: 5 });
       expect(transactions).toBeInstanceOf(TransactionsPage);
       expect(transactions.getNextPageKeys()).toBeTruthy();
+    });
+  });
+
+  describe('Transactions (deprecated)', () => {
+    it('should maintain backward compatibility', async () => {
+      const mockTransactions = {
+        items: [
+          {
+            txTypeVersion: 5,
+            source: {
+              type: null,
+              name: null
+            },
+            timestamp: 1746812271,
+            classificationData: {
+              type: 'unclassified',
+              description: null
+            },
+            transfers: [],
+            values: [],
+            rawTransactionData: {
+              signature: validSignature,
+              blockNumber: 338913770,
+              signer: validAddress,
+              interactedAccounts: []
+            }
+          }
+        ],
+        page: 1,
+        pageSize: 10,
+        nextPageUrl: null
+      };
+
+      mockRequest.mockResolvedValue(mockTransactions);
+
+      const transactions = await translate.Transactions(validChain, validAddress);
+      expect(transactions).toBeInstanceOf(TransactionsPage);
+      expect(transactions.getTransactions()).toEqual(mockTransactions.items);
     });
   });
 
@@ -332,19 +366,24 @@ describe('TranslateSVM', () => {
   describe('getTxTypes', () => {
     it('should fetch transaction types successfully', async () => {
       const mockTxTypes = {
+        version: 1,
         transactionTypes: [
-          { type: 'transfer', description: 'Token transfer' },
-          { type: 'swap', description: 'Token swap' }
-        ],
-        version: 1
+          { type: 'addLiquidity', description: 'The user enters a liquidity pool by adding one or more tokens to the pool.' },
+          { type: 'swap', description: 'Reported when two or more fungible tokens are traded in the transaction, typically by using a decentralized exchange protocol.' },
+          { type: 'stake', description: 'The user stakes fungible tokens into a protocol (typically for yield purposes). Also reported when the a validator stakes tokens.' }
+        ]
       };
 
       mockRequest.mockResolvedValue(mockTxTypes);
 
       const response = await translate.getTxTypes();
       expect(response).toEqual(mockTxTypes);
-      expect(response.transactionTypes).toHaveLength(2);
       expect(response.version).toBe(1);
+      expect(response.transactionTypes).toHaveLength(3);
+      expect(response.transactionTypes[0]).toHaveProperty('type');
+      expect(response.transactionTypes[0]).toHaveProperty('description');
+      expect(response.transactionTypes[0].type).toBe('addLiquidity');
+      expect(response.transactionTypes[1].type).toBe('swap');
     });
 
     it('should handle API errors', async () => {
@@ -393,7 +432,8 @@ describe('TranslateSVM', () => {
     it('should start and get transaction job results', async () => {
       const mockJob = {
         jobId: 'job1',
-        nextPageUrl: 'https://api.example.com/job1'
+        nextPageUrl: 'https://api.example.com/job1',
+        startTimestamp: 0
       };
 
       mockRequest.mockResolvedValue(mockJob);
@@ -401,21 +441,21 @@ describe('TranslateSVM', () => {
       const response = await translate.startTransactionJob(validChain, validAddress);
       expect(response).toEqual(mockJob);
       expect(response.jobId).toBe('job1');
+      expect(response.startTimestamp).toBe(0);
 
       const mockResults = {
-        jobId: 'job1',
-        status: 'completed',
-        results: {
-          transactions: [],
-          totalCount: 0
-        }
+        items: [],
+        pageSize: 100,
+        hasNextPage: false,
+        nextPageUrl: null
       };
 
       mockRequest.mockResolvedValue(mockResults);
       const results = await translate.getTransactionJobResults(validChain, 'job1', { pageSize: 100 });
       expect(results).toEqual(mockResults);
-      expect(results.jobId).toBe('job1');
-      expect(results.status).toBe('completed');
+      expect(results.items).toEqual([]);
+      expect(results.pageSize).toBe(100);
+      expect(results.hasNextPage).toBe(false);
     });
 
     it('should handle invalid address in startTransactionJob', async () => {
@@ -517,17 +557,17 @@ describe('TranslateSVM', () => {
       expect(balances.length).toBe(0);
     });
 
-    it('should handle null usdValue', async () => {
+    it('should handle zero price tokens', async () => {
       const mockBalances = [
         {
           balance: '1000000000',
-          usdValue: null,
+          usdValue: '0',
           token: {
-            symbol: 'SOL',
-            name: 'Solana',
-            decimals: 9,
-            address: 'SOL',
-            price: '170.5895573383441'
+            symbol: 'GIRTH',
+            name: 'GIRTH CAT',
+            decimals: 6,
+            address: '9aV8CukSkRXYt4ty8hgAAg9KGbQbLpxSWkF1y43Fpump',
+            price: '0'
           }
         }
       ];
@@ -537,35 +577,108 @@ describe('TranslateSVM', () => {
       const balances = await translate.getTokenBalances(validChain, validAddress);
       expect(Array.isArray(balances)).toBe(true);
       expect(balances.length).toBe(1);
-      expect(balances[0].usdValue).toBeNull();
+      expect(balances[0].usdValue).toBe('0');
+      expect(balances[0].token.price).toBe('0');
     });
   });
 
   describe('getTransactionCount', () => {
     it('should fetch transaction count successfully', async () => {
+      const mockJobStartResponse = {
+        jobId: '0xe3b24185298d4e2d970681eafa3a1abfb17f8813',
+        resultsUrl: 'https://translate.noves.fi/svm/solana/txCount/job/0xe3b24185298d4e2d970681eafa3a1abfb17f8813'
+      };
+
       const mockCount = {
         chain: validChain,
-        timestamp: 1234567890,
+        timestamp: 1749130527,
         account: {
           address: validAddress,
           transactionCount: 100
         }
       };
 
-      mockRequest.mockResolvedValue(mockCount);
+      // Mock the job start response first, then the job results
+      mockRequest
+        .mockResolvedValueOnce(mockJobStartResponse)
+        .mockResolvedValueOnce(mockCount);
 
       const response = await translate.getTransactionCount(validChain, validAddress);
       expect(response).toEqual(mockCount);
       expect(response.account.transactionCount).toBe(100);
+      expect(response.chain).toBe(validChain);
+      expect(response.account.address).toBe(validAddress);
+      
+      // Verify that both API calls were made
+      expect(mockRequest).toHaveBeenCalledTimes(2);
     });
 
-    it('should handle validation errors', async () => {
+    it('should fetch transaction count successfully with webhook URL', async () => {
+      const mockJobStartResponse = {
+        jobId: '0xe3b24185298d4e2d970681eafa3a1abfb17f8813',
+        resultsUrl: 'https://translate.noves.fi/svm/solana/txCount/job/0xe3b24185298d4e2d970681eafa3a1abfb17f8813'
+      };
+
+      const mockCount = {
+        chain: validChain,
+        timestamp: 1749130527,
+        account: {
+          address: validAddress,
+          transactionCount: 50
+        }
+      };
+
+      const webhookUrl = 'https://example.com/webhook';
+
+      mockRequest
+        .mockResolvedValueOnce(mockJobStartResponse)
+        .mockResolvedValueOnce(mockCount);
+
+      const response = await translate.getTransactionCount(validChain, validAddress, webhookUrl);
+      expect(response).toEqual(mockCount);
+      expect(response.account.transactionCount).toBe(50);
+      
+      // Verify that both API calls were made
+      expect(mockRequest).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle validation errors in job start', async () => {
       mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid address'] }));
       await expect(translate.getTransactionCount(validChain, 'invalid')).rejects.toThrow(TransactionError);
     });
 
-    it('should handle invalid response format', async () => {
-      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid response format'] }));
+    it('should handle invalid job start response format', async () => {
+      const invalidJobStartResponse = { invalidField: 'test' };
+      mockRequest.mockResolvedValueOnce(invalidJobStartResponse);
+      
+      await expect(translate.getTransactionCount(validChain, validAddress)).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle invalid final response format', async () => {
+      const mockJobStartResponse = {
+        jobId: '0xe3b24185298d4e2d970681eafa3a1abfb17f8813',
+        resultsUrl: 'https://translate.noves.fi/svm/solana/txCount/job/0xe3b24185298d4e2d970681eafa3a1abfb17f8813'
+      };
+
+      const invalidFinalResponse = { invalidField: 'test' };
+
+      mockRequest
+        .mockResolvedValueOnce(mockJobStartResponse)
+        .mockResolvedValueOnce(invalidFinalResponse);
+
+      await expect(translate.getTransactionCount(validChain, validAddress)).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle job results error', async () => {
+      const mockJobStartResponse = {
+        jobId: '0xe3b24185298d4e2d970681eafa3a1abfb17f8813',
+        resultsUrl: 'https://translate.noves.fi/svm/solana/txCount/job/0xe3b24185298d4e2d970681eafa3a1abfb17f8813'
+      };
+
+      mockRequest
+        .mockResolvedValueOnce(mockJobStartResponse)
+        .mockRejectedValueOnce(new TransactionError({ message: ['Job not found'] }));
+
       await expect(translate.getTransactionCount(validChain, validAddress)).rejects.toThrow(TransactionError);
     });
   });
@@ -577,31 +690,67 @@ describe('TranslateSVM', () => {
           {
             txTypeVersion: 5,
             source: { type: null, name: null },
-            timestamp: 1234567890,
+            timestamp: 1748939361,
             classificationData: {
-              type: 'staking',
-              description: 'Stake tokens'
+              type: 'syntheticStakingRewards',
+              description: 'Received 0.003404242 SOL in staking rewards.'
             },
-            transfers: [],
-            values: [],
+            transfers: [
+              {
+                action: 'rewarded',
+                amount: '0.003404242',
+                token: {
+                  decimals: 9,
+                  address: 'SOL',
+                  name: 'SOL',
+                  symbol: 'SOL',
+                  icon: null
+                },
+                from: {
+                  name: 'Staking',
+                  address: null,
+                  owner: {
+                    name: null,
+                    address: null
+                  }
+                },
+                to: {
+                  name: null,
+                  address: validAddress,
+                  owner: {
+                    name: null,
+                    address: null
+                  }
+                }
+              }
+            ],
+            values: [
+              {
+                key: 'epoch',
+                value: '796'
+              }
+            ],
             rawTransactionData: {
-              signature: validSignature,
-              blockNumber: 100,
-              signer: validAddress,
-              interactedAccounts: []
+              signature: 'staking-synth-0a7ca482138b5ffda2ab5d6852e73827',
+              blockNumber: 344304251,
+              signer: '',
+              interactedAccounts: null
             }
           }
         ],
-        numberOfEpochs: 1,
+        numberOfEpochs: 10,
         failedEpochs: [],
         nextPageUrl: null
       };
 
       mockRequest.mockResolvedValue(mockStakingTxs);
 
-      const response = await translate.getStakingTransactions(validChain, validAddress);
+      const response = await translate.getStakingTransactions(validChain, validAddress, { numberOfEpochs: 10 });
       expect(response).toEqual(mockStakingTxs);
-      expect(response.items[0].classificationData.type).toBe('staking');
+      expect(response.items[0].classificationData.type).toBe('syntheticStakingRewards');
+      expect(response.items[0].rawTransactionData.interactedAccounts).toBeNull();
+      expect(response.failedEpochs).toEqual([]);
+      expect(response.numberOfEpochs).toBe(10);
     });
 
     it('should handle API errors', async () => {
@@ -613,25 +762,68 @@ describe('TranslateSVM', () => {
   describe('getStakingEpoch', () => {
     it('should fetch staking epoch information successfully', async () => {
       const mockEpoch = {
-        epoch: 1,
-        stakingAccount: validAddress,
-        stakedAmount: '100',
-        rewards: '10',
-        startTimestamp: 1234567890,
-        endTimestamp: 1234567899,
-        status: 'active',
-        validator: {
-          address: 'validator1',
-          name: 'Validator 1'
+        txTypeVersion: 5,
+        source: {
+          type: null,
+          name: null
+        },
+        timestamp: 1745699126,
+        classificationData: {
+          description: "Received 0.003495653 SOL in staking rewards.",
+          type: "syntheticStakingRewards"
+        },
+        transfers: [
+          {
+            action: "rewarded",
+            amount: "0.003495653",
+            token: {
+              decimals: 9,
+              address: "SOL",
+              name: "SOL",
+              symbol: "SOL",
+              icon: null
+            },
+            from: {
+              name: "Staking",
+              address: null,
+              owner: {
+                name: null,
+                address: null
+              }
+            },
+            to: {
+              name: null,
+              address: validAddress,
+              owner: {
+                name: null,
+                address: null
+              }
+            }
+          }
+        ],
+        values: [
+          {
+            key: "epoch",
+            value: "777"
+          }
+        ],
+        rawTransactionData: {
+          signature: "staking-synth-bcd7058d75f7f6d4d41936bf8f56362d",
+          blockNumber: 336096135,
+          signer: "",
+          interactedAccounts: null
         }
       };
 
       mockRequest.mockResolvedValue(mockEpoch);
 
-      const response = await translate.getStakingEpoch(validChain, validAddress, 1);
+      const response = await translate.getStakingEpoch(validChain, validAddress, 777);
       expect(response).toEqual(mockEpoch);
-      expect(response.epoch).toBe(1);
-      expect(response.status).toBe('active');
+      expect(response.txTypeVersion).toBe(5);
+      expect(response.classificationData.type).toBe('syntheticStakingRewards');
+      expect(response.transfers[0].action).toBe('rewarded');
+      expect(response.values[0].key).toBe('epoch');
+      expect(response.values[0].value).toBe('777');
     });
 
     it('should handle API errors', async () => {
@@ -642,6 +834,36 @@ describe('TranslateSVM', () => {
     it('should handle validation errors', async () => {
       mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid epoch'] }));
       await expect(translate.getStakingEpoch(validChain, validAddress, -1)).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle invalid response format', async () => {
+      mockRequest.mockResolvedValue({});
+      await expect(translate.getStakingEpoch(validChain, validAddress, 1)).rejects.toThrow(TransactionError);
+    });
+
+    it('should handle null interactedAccounts', async () => {
+      const mockEpoch = {
+        txTypeVersion: 5,
+        source: { type: null, name: null },
+        timestamp: 1745699126,
+        classificationData: {
+          description: "Received 0.003495653 SOL in staking rewards.",
+          type: "syntheticStakingRewards"
+        },
+        transfers: [],
+        values: [],
+        rawTransactionData: {
+          signature: "staking-synth-test",
+          blockNumber: 336096135,
+          signer: "",
+          interactedAccounts: null
+        }
+      };
+
+      mockRequest.mockResolvedValue(mockEpoch);
+
+      const response = await translate.getStakingEpoch(validChain, validAddress, 1);
+      expect(response.rawTransactionData.interactedAccounts).toBeNull();
     });
   });
 });

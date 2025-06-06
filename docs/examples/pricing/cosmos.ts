@@ -1,5 +1,5 @@
-import { Pricing, PriceType } from "../../../src";
-import { ChainNotFoundError } from "../../../src/errors/ChainNotFoundError";
+import { Pricing } from "../../../src";
+import { COSMOSPricingChainsResponse, COSMOSPricingPoolPricing } from "../../../src/types/cosmos";
 
 /**
  * Example demonstrating the usage of the Cosmos Pricing API
@@ -9,41 +9,62 @@ async function cosmosPricingExample() {
   const cosmosPricing = Pricing.cosmos("YOUR_API_KEY");
 
   try {
-    // 1. Get supported chains
+    // 1. Get supported chains with proper typing
     console.log("Fetching supported chains...");
-    const chains = await cosmosPricing.getChains();
+    const chains: COSMOSPricingChainsResponse = await cosmosPricing.getChains();
     console.log("Supported chains:", chains);
+    
+    // Example response structure:
+    // [
+    //   {
+    //     name: "secret",
+    //     ecosystem: "cosmos", 
+    //     nativeCoin: {
+    //       name: "SCRT",
+    //       symbol: "SCRT",
+    //       address: "SCRT",
+    //       decimals: 6
+    //     }
+    //   }
+    // ]
 
-    // 2. Get specific chain information
+    if (chains.length === 0) {
+      console.log("No chains available");
+      return;
+    }
+
+    // 2. Find specific chain information from the chains array
     console.log("\nFetching specific chain information...");
-    const secretChain = await cosmosPricing.getChain("secret");
-    console.log("Secret chain info:", secretChain);
+    const secretChain = chains.find(chain => chain.name === "secret");
+    if (secretChain) {
+      console.log("Secret chain info:", secretChain);
+      
+      // Access typed properties
+      console.log(`Chain name: ${secretChain.name}`);
+      console.log(`Native coin symbol: ${secretChain.nativeCoin.symbol}`);
+      console.log(`Native coin decimals: ${secretChain.nativeCoin.decimals}`);
+    } else {
+      console.log("Secret chain not found");
+      return;
+    }
 
-    // 3. Get token price
-    console.log("\nFetching token price...");
-    const scrtAddress = "secret1k0jntykt7e4g3y88ltc60czgjuqdy4c9e8qzek"; // SCRT
-    const scrtPrice = await cosmosPricing.getPrice("secret", scrtAddress);
-    console.log("SCRT price:", scrtPrice);
-
-    // 4. Get token price with options
-    console.log("\nFetching token price with options...");
-    const scrtPriceWithOptions = await cosmosPricing.getPrice("secret", scrtAddress, {
-      priceType: PriceType.DEX_HIGHEST_LIQUIDITY,
-      timestamp: Math.floor(Date.now() / 1000) - 86400 // 24 hours ago
-    });
-    console.log("SCRT price with options:", scrtPriceWithOptions);
-
-    // 5. Get price from specific pool
+    // 3. Get price from specific pool with proper typing
     console.log("\nFetching price from specific pool...");
-    const poolAddress = "secret1l34fyc9g23fnlk896693nw57phevnyha7pt6gj"; // SHD-SILK pool
-    const tokenAddress = "secret153wu605vvp934xhd4k9dtd640zsep5jkesstdm"; // SHD token
-    const priceFromPool = await cosmosPricing.getPriceFromPool("secret", poolAddress, tokenAddress);
+    const poolAddress = "secret1l34fyc9g23fnlk896693nw57phevnyha7pt6gj"; // Example pool
+    const tokenAddress = "secret153wu605vvp934xhd4k9dtd640zsep5jkesstdm"; // Example token
+    
+    const priceFromPool: COSMOSPricingPoolPricing = await cosmosPricing.getPriceFromPool(
+      "secret", 
+      poolAddress, 
+      tokenAddress
+    );
     console.log("Price from pool:", priceFromPool);
-    // Example response:
+    
+    // Example response structure:
     // {
     //   chain: "secret",
     //   exchange: {
-    //     name: "Shade Protocol"
+    //     name: null
     //   },
     //   poolAddress: "secret1l34fyc9g23fnlk896693nw57phevnyha7pt6gj",
     //   baseToken: {
@@ -59,16 +80,28 @@ async function cosmosPricingExample() {
     //     decimals: 6
     //   },
     //   price: {
-    //     amount: "0.742376"
+    //     amount: "0.613678"
     //   }
     // }
 
-  } catch (error) {
-    if (error instanceof ChainNotFoundError) {
-      console.error("Chain not found:", error.message);
+    // Access typed properties safely
+    console.log(`Base token: ${priceFromPool.baseToken.symbol}`);
+    console.log(`Quote token: ${priceFromPool.quoteToken.symbol}`);
+    console.log(`Price: ${priceFromPool.price.amount}`);
+    
+    // No need for null checks since these fields are guaranteed to be present
+    console.log(`Pool address: ${priceFromPool.poolAddress}`);
+    console.log(`Chain: ${priceFromPool.chain}`);
+    
+    // Only exchange name can be null
+    if (priceFromPool.exchange.name) {
+      console.log(`Exchange: ${priceFromPool.exchange.name}`);
     } else {
-      console.error("An error occurred:", error);
+      console.log("Exchange name not available");
     }
+
+  } catch (error) {
+    console.error("An error occurred:", error);
   }
 }
 

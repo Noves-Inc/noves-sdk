@@ -1,4 +1,12 @@
-import { Chain, PageOptions, Transaction, CosmosBalancesResponse, CosmosTransactionJob, CosmosTransactionJobResponse } from '../types/types';
+import { PageOptions } from '../types/common';
+import { 
+  COSMOSTranslateChainsResponse,
+  COSMOSTranslateTransaction,
+  COSMOSTranslateTransactionsResponse,
+  COSMOSTranslateBalancesResponse,
+  COSMOSTranslateTransactionJob,
+  COSMOSTranslateTransactionJobResponse
+} from '../types/cosmos';
 import { TransactionError } from '../errors/TransactionError';
 import { TransactionsPage } from './transactionsPage';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
@@ -24,9 +32,9 @@ export class TranslateCOSMOS extends BaseTranslate {
   /**
    * Returns a list with the names of the COSMOS blockchains currently supported by this API. 
    * Use the provided chain name when calling other methods.
-   * @returns {Promise<Chain[]>} A promise that resolves to an array of chains.
+   * @returns {Promise<COSMOSTranslateChainsResponse>} A promise that resolves to an array of chains.
    */
-  public async getChains(): Promise<Chain[]> {
+  public async getChains(): Promise<COSMOSTranslateChainsResponse> {
     const result = await this.makeRequest('chains');
     return Array.isArray(result) ? result : [];
   }
@@ -35,10 +43,10 @@ export class TranslateCOSMOS extends BaseTranslate {
    * Returns all of the available transaction information for the signature requested.
    * @param {string} chain - The chain name.
    * @param {string} hash - The transaction signature.
-   * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
+   * @returns {Promise<COSMOSTranslateTransaction>} A promise that resolves to the transaction details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTransaction(chain: string, hash: string): Promise<Transaction> {
+  public async getTransaction(chain: string, hash: string): Promise<COSMOSTranslateTransaction> {
     try {
       return await this.makeRequest(`${chain}/tx/${hash}`);
     } catch (error) {
@@ -50,13 +58,35 @@ export class TranslateCOSMOS extends BaseTranslate {
   }
 
   /**
+   * Get transactions for an account directly - returns the complete API response
+   * @param {string} chain - The chain name.
+   * @param {string} accountAddress - The account address.
+   * @param {PageOptions} pageOptions - The page options object.
+   * @returns {Promise<COSMOSTranslateTransactionsResponse>} A promise that resolves to the transactions response.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async getTransactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<COSMOSTranslateTransactionsResponse> {
+    try {
+      const endpoint = `${chain}/txs/${accountAddress}`;
+      const url = constructUrl(endpoint, pageOptions);
+      return await this.makeRequest(url);
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: [error instanceof Error ? error.message : 'Failed to get transactions'] });
+    }
+  }
+
+  /**
    * Get a pagination object to iterate over transactions pages.
    * @param {string} chain - The chain name.
    * @param {string} accountAddress - The account address.
    * @param {PageOptions} pageOptions - The page options object.
-   * @returns {Promise<TransactionsPage<Transaction>>} A promise that resolves to a TransactionsPage instance.
+   * @returns {Promise<TransactionsPage<COSMOSTranslateTransaction>>} A promise that resolves to a TransactionsPage instance.
+   * @deprecated Use getTransactions for direct API response access. This method is kept for backward compatibility.
    */
-  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<Transaction>> {
+  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<COSMOSTranslateTransaction>> {
     try {
       const endpoint = `${chain}/txs/${accountAddress}`;
       const url = constructUrl(endpoint, pageOptions);
@@ -82,13 +112,13 @@ export class TranslateCOSMOS extends BaseTranslate {
    * Get token balances for an account
    * @param {string} chain - The chain name
    * @param {string} accountAddress - The account address
-   * @returns {Promise<CosmosBalancesResponse>} A promise that resolves to the balances
+   * @returns {Promise<COSMOSTranslateBalancesResponse>} A promise that resolves to the balances
    * @throws {TransactionError} If there are validation errors in the request
    */
   public async getTokenBalances(
     chain: string,
     accountAddress: string
-  ): Promise<CosmosBalancesResponse> {
+  ): Promise<COSMOSTranslateBalancesResponse> {
     try {
       const result = await this.makeRequest(`${chain}/tokens/balancesOf/${accountAddress}`);
       
@@ -121,7 +151,8 @@ export class TranslateCOSMOS extends BaseTranslate {
    * @param {string} accountAddress - The account address
    * @param {number} startBlock - The start block
    * @param {number} endBlock - The end block
-   * @returns {Promise<CosmosTransactionJob>} A promise that resolves to the job details
+   * @param {number} pageSize - The page size (optional)
+   * @returns {Promise<COSMOSTranslateTransactionJob>} A promise that resolves to the job details
    * @throws {CosmosAddressError} If the account address is invalid
    * @throws {TransactionError} If there are validation errors in the request
    */
@@ -129,16 +160,29 @@ export class TranslateCOSMOS extends BaseTranslate {
     chain: string,
     accountAddress: string,
     startBlock: number = 0,
-    endBlock: number = 0
-  ): Promise<CosmosTransactionJob> {
+    endBlock: number = 0,
+    pageSize: number = 50
+  ): Promise<COSMOSTranslateTransactionJob> {
     if (!validateCosmosAddress(accountAddress)) {
       throw new CosmosAddressError(accountAddress);
     }
 
     try {
-      return await this.makeRequest(`${chain}/txs/job/start`, 'POST', {
-        body: JSON.stringify({ accountAddress, startBlock, endBlock })
+      const params = new URLSearchParams({
+        accountAddress,
+        ...(startBlock && { startBlock: startBlock.toString() }),
+        ...(endBlock && { endBlock: endBlock.toString() }),
+        ...(pageSize && { pageSize: pageSize.toString() })
       });
+      
+      const result = await this.makeRequest(`${chain}/txs/job/start?${params.toString()}`, 'POST');
+      
+      // Validate the response structure matches actual API response
+      if (!this.validateResponse(result, ['nextPageId', 'nextPageUrl'])) {
+        throw new TransactionError({ message: ['Invalid transaction job response format'] });
+      }
+      
+      return result;
     } catch (error) {
       if (error instanceof TransactionError) {
         throw error;
@@ -151,26 +195,24 @@ export class TranslateCOSMOS extends BaseTranslate {
    * Get transaction job results
    * @param {string} chain - The chain name
    * @param {string} pageId - The page ID from the job
-   * @returns {Promise<CosmosTransactionJobResponse>} A promise that resolves to the job results
-   * @throws {CosmosTransactionJobError} If the job has failed
+   * @returns {Promise<COSMOSTranslateTransactionJobResponse>} A promise that resolves to the job results
    * @throws {TransactionError} If there are validation errors in the request
    */
   public async getTransactionJobResults(
     chain: string,
     pageId: string
-  ): Promise<CosmosTransactionJobResponse> {
+  ): Promise<COSMOSTranslateTransactionJobResponse> {
     try {
       const response = await this.makeRequest(`${chain}/txs/job/${pageId}`);
-
-      if (response.status === 'failed') {
-        throw new CosmosTransactionJobError(pageId, response.status);
+      
+      // Validate the response structure when job is completed
+      // Note: When job is not ready, the API throws a 425 error which is handled by makeRequest
+      if (!this.validateResponse(response, ['items', 'hasNextPage'])) {
+        throw new TransactionError({ message: ['Invalid transaction job response format'] });
       }
-
+      
       return response;
     } catch (error) {
-      if (error instanceof CosmosTransactionJobError) {
-        throw error;
-      }
       if (error instanceof TransactionError) {
         throw error;
       }

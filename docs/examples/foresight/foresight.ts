@@ -1,6 +1,14 @@
 import { Foresight } from "../../../src/foresight/foresight";
 import { TransactionError } from "../../../src/errors/TransactionError";
-import { UnsignedTransaction, UserOperation } from "../../../src/types/types";
+import { 
+  EVMTranslateUserOperation, 
+  EVMForesightPreviewResponse, 
+  EVMForesightPreview4337Response,
+  EVMTranslateUnsignedTransaction,
+  EVMForesightScreenResponse,
+  EVMForesightScreen4337Response
+} from "../../../src/types/evm";
+import { ForesightUrlScreenResponse } from "../../../src/types/common";
 
 /**
  * Example demonstrating the usage of the Foresight API
@@ -17,7 +25,7 @@ async function foresightExample() {
 
     // 2. Preview a transaction
     console.log("\nPreviewing a transaction...");
-    const unsignedTx: UnsignedTransaction = {
+    const unsignedTx: EVMTranslateUnsignedTransaction = {
       to: "0x1234567890123456789012345678901234567890",
       value: "0x0",
       data: "0x",
@@ -29,12 +37,12 @@ async function foresightExample() {
       type: "0x0"
     };
 
-    const preview = await foresight.preview("eth", unsignedTx);
+    const preview: EVMForesightPreviewResponse = await foresight.preview("eth", unsignedTx);
     console.log("Transaction preview:", preview);
 
     // 3. Preview a user operation
     console.log("\nPreviewing a user operation...");
-    const userOp: UserOperation = {
+    const userOp: EVMTranslateUserOperation = {
       sender: "0x0576a174D229E3cFA37253523E645A78A0c91B37",
       nonce: 1,
       initCode: "0x",
@@ -48,7 +56,7 @@ async function foresightExample() {
       signature: "0x"
     };
 
-    const preview4337 = await foresight.preview4337("eth", userOp);
+    const preview4337: EVMForesightPreview4337Response = await foresight.preview4337("eth", userOp);
     console.log("User operation preview:", preview4337);
 
     // 4. Describe a transaction
@@ -58,7 +66,7 @@ async function foresightExample() {
 
     // 5. Screen a transaction
     console.log("\nScreening a transaction...");
-    const screening = await foresight.screen("eth", {
+    const screening: EVMForesightScreenResponse = await foresight.screen("eth", {
       from: "0x8071Ed00bf71D8A9a3ff34BEFbbDFf9DF6f72E65",
       to: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
       value: "0x16345785d8a0000",
@@ -73,7 +81,7 @@ async function foresightExample() {
 
     // 6. Screen a user operation
     console.log("\nScreening a user operation...");
-    const userOpScreening = await foresight.screen4337("eth", {
+    const userOpScreening: EVMForesightScreen4337Response = await foresight.screen4337("eth", {
       sender: "0x8071Ed00bf71D8A9a3ff34BEFbbDFf9DF6f72E65",
       nonce: 0,
       initCode: "0x",
@@ -90,7 +98,7 @@ async function foresightExample() {
 
     // 7. Screen a URL
     console.log("\nScreening a URL...");
-    const urlScreening = await foresight.screenUrl("https://uniswap-v3.com");
+    const urlScreening: ForesightUrlScreenResponse = await foresight.screenUrl("https://uniswap-v3.com");
     console.log("URL screening:", urlScreening);
 
   } catch (error) {

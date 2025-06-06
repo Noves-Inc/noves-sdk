@@ -1,6 +1,6 @@
 import { PricingCosmos } from '../../src/pricing/pricingCosmos';
 import { createPricingClient } from '../../src/utils/apiUtils';
-import { ChainNotFoundError } from '../../src/errors/ChainNotFoundError';
+import { COSMOSPricingChain, COSMOSPricingPoolPricing } from '../../src/types/cosmos';
 
 jest.mock('../../src/utils/apiUtils', () => ({
   createPricingClient: jest.fn(),
@@ -33,7 +33,7 @@ describe('PricingCosmos', () => {
 
   describe('getChains', () => {
     it('should return a list of chains', async () => {
-      const mockChains = [
+      const mockChains: COSMOSPricingChain[] = [
         {
           name: "secret",
           ecosystem: "cosmos",
@@ -54,61 +54,38 @@ describe('PricingCosmos', () => {
     });
   });
 
-  describe('getChain', () => {
-    it('should return a specific chain', async () => {
-      const mockChains = [
-        {
-          name: "secret",
-          ecosystem: "cosmos",
-          nativeCoin: {
-            name: "SCRT",
-            symbol: "SCRT",
-            address: "SCRT",
-            decimals: 6
-          }
-        }
-      ];
-      mockRequest.mockResolvedValue({ response: mockChains });
 
-      const result = await pricingCosmos.getChain('secret');
-
-      expect(result).toEqual(mockChains[0]);
-      expect(mockRequest).toHaveBeenCalledWith('chains');
-    });
-
-    it('should throw ChainNotFoundError if chain is not found', async () => {
-      mockRequest.mockResolvedValue({ response: [] });
-
-      await expect(pricingCosmos.getChain('invalid-chain')).rejects.toThrow(ChainNotFoundError);
-    });
-  });
 
   describe('getPriceFromPool', () => {
     it('should get price from pool', async () => {
-      const mockPrice = {
+      const mockPrice: COSMOSPricingPoolPricing = {
         chain: "secret",
-        exchange: { name: "Osmosis" },
-        poolAddress: "0x...",
+        exchange: { name: null },
+        poolAddress: "secret1l34fyc9g23fnlk896693nw57phevnyha7pt6gj",
         baseToken: {
-          address: "0x...",
-          symbol: "SCRT",
-          name: "Secret",
-          decimals: 6
+          address: "secret153wu605vvp934xhd4k9dtd640zsep5jkesstdm",
+          symbol: "SHD",
+          name: "Shade",
+          decimals: 8
         },
         quoteToken: {
-          address: "0x...",
-          symbol: "USDC",
-          name: "USD Coin",
+          address: "secret1fl449muk5yq8dlad7a22nje4p5d2pnsgymhjfd",
+          symbol: "SILK",
+          name: "Silk Stablecoin",
           decimals: 6
         },
-        price: { amount: "1.5" }
+        price: { amount: "0.613678" }
       };
       mockRequest.mockResolvedValue({ response: mockPrice });
 
-      const result = await pricingCosmos.getPriceFromPool('secret', '0x...', '0x...');
+      const result = await pricingCosmos.getPriceFromPool(
+        'secret', 
+        'secret1l34fyc9g23fnlk896693nw57phevnyha7pt6gj', 
+        'secret153wu605vvp934xhd4k9dtd640zsep5jkesstdm'
+      );
 
       expect(result).toEqual(mockPrice);
-      expect(mockRequest).toHaveBeenCalledWith('secret/priceFromPool/0x.../0x...');
+      expect(mockRequest).toHaveBeenCalledWith('secret/priceFromPool/secret1l34fyc9g23fnlk896693nw57phevnyha7pt6gj/secret153wu605vvp934xhd4k9dtd640zsep5jkesstdm');
     });
   });
 });

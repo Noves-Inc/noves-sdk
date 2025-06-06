@@ -2,7 +2,7 @@
 
 import { Pagination } from './pagination';
 import { TranslateEVM } from './translateEVM';
-import { PageOptions } from '../types/types';
+import { PageOptions } from '../types/common';
 
 /**
  * Pagination object for transactions.
@@ -10,7 +10,6 @@ import { PageOptions } from '../types/types';
  * @class
  */
 export class HistoryPage<T> extends Pagination<T>{
-  protected transactions: T[] = [];
 
   /**
    * Get the current page of transactions.
@@ -38,7 +37,7 @@ export class HistoryPage<T> extends Pagination<T>{
     }
 
     try {
-      const response = await (this.translate as TranslateEVM).History(this.chain, this.walletAddress, this.nextPageKeys);
+      const response = await (this.translate as TranslateEVM).getHistory(this.chain, this.walletAddress, this.nextPageKeys);
       if (!response || !response.getTransactions) {
         return false;
       }

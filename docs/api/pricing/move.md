@@ -26,11 +26,18 @@ const chains = await movePricing.getChains();
 // Returns: [{ name: "sui", ecosystem: "move", nativeCoin: {...} }, ...]
 ```
 
-### getChain(name: string)
-Get detailed information about a specific chain.
-
+#### Response Format
 ```typescript
-const chainInfo = await movePricing.getChain("sui");
+interface MOVEPricingChain {
+  name: string;
+  ecosystem: string;
+  nativeCoin: {
+    name: string;
+    symbol: string;
+    address: string;
+    decimals: number;
+  };
+}
 ```
 
 ### getPriceFromPool(chain: string, poolAddress: string, baseTokenAddress: string)
@@ -52,27 +59,53 @@ const priceFromPool = await movePricing.getPriceFromPool(
 
 #### Response Format
 ```typescript
-interface PoolPricing {
-  chain: string | null;
+interface MOVEPricingPoolResponse {
+  chain: string;
   exchange: {
-    name: string | null;
+    name: string;
   };
-  poolAddress: string | null;
+  poolAddress: string;
   baseToken: {
-    address: string | null;
-    symbol: string | null;
-    name: string | null;
-    decimals: number | null;
+    address: string;
+    symbol: string;
+    name: string;
+    decimals: number;
   };
   quoteToken: {
-    address: string | null;
-    symbol: string | null;
-    name: string | null;
-    decimals: number | null;
+    address: string;
+    symbol: string;
+    name: string;
+    decimals: number;
   };
   price: {
-    amount: string | null;
+    amount: string;
   };
+}
+```
+
+#### Example Response
+```json
+{
+  "chain": "sui",
+  "exchange": {
+    "name": "Aftermath Finance"
+  },
+  "poolAddress": "0xdeacf7ab460385d4bcb567f183f916367f7d43666a2c72323013822eb3c57026",
+  "baseToken": {
+    "address": "0x2::sui::SUI",
+    "symbol": "SUI",
+    "name": "Sui",
+    "decimals": 9
+  },
+  "quoteToken": {
+    "address": "0xce7ff77a83ea0cb6fd39bd8748e2ec89a3f41e8efdc3f4eb123e0ca37b184db2::buck::BUCK",
+    "symbol": "BUCK",
+    "name": "Bucket USD",
+    "decimals": 9
+  },
+  "price": {
+    "amount": "2.911229208"
+  }
 }
 ```
 
@@ -80,6 +113,16 @@ interface PoolPricing {
 
 The SDK throws specific errors for common scenarios:
 
-- `ChainNotFoundError`: Thrown when a requested chain is not supported
 - `InvalidApiKeyError`: Thrown when an invalid API key is provided
-- `RateLimitError`: Thrown when the API rate limit is exceeded 
+- `RateLimitError`: Thrown when the API rate limit is exceeded
+- `404 Error`: Thrown when an invalid pool address or token address is provided
+
+## Type Safety
+
+The Move Pricing API uses strict typing based on actual API responses:
+
+- All fields return actual values (no nullable fields)
+- Chain information uses `MOVEPricingChain` interface
+- Pool pricing responses use `MOVEPricingPoolResponse` interface
+- Native coin information follows the actual API response structure
+- API either returns valid data or throws an error (no partial/null responses) 

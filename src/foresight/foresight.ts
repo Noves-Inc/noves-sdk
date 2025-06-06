@@ -1,7 +1,19 @@
 // src/foresight/foresight.ts
 
 import { TransactionError } from '../errors/TransactionError';
-import { Chain, StateOverrides, Transaction, UnsignedTransaction, UserOperation } from '../types/types';
+import { EVMTranslateStateOverrides } from '../types/evm';
+import { 
+  EVMForesightChains, 
+  EVMForesightDescribeResponse, 
+  EVMForesightDescribe4337Response, 
+  EVMTranslateUserOperation, 
+  EVMForesightPreviewResponse, 
+  EVMForesightPreview4337Response,
+  EVMTranslateUnsignedTransaction,
+  EVMForesightScreenResponse,
+  EVMForesightScreen4337Response
+} from '../types/evm';
+import { ForesightUrlScreenResponse } from '../types/common';
 import { createForesightClient } from '../utils/apiUtils';
 
 /**
@@ -25,10 +37,10 @@ export class Foresight {
    /**
    * Returns a list with the names of the EVM blockchains currently supported by this API. 
    * Use the provided chain name when calling other methods.
-   * @returns {Promise<Chain[]>} A promise that resolves to an array of chains.
+   * @returns {Promise<EVMForesightChains>} A promise that resolves to an array of chains.
    */
-   public async getChains(): Promise<Chain[]> {
-    const result = await this.request('chains');
+   public async getChains(): Promise<EVMForesightChains> {
+    const result = await this.request('evm/chains');
     return result.response;
   }
 
@@ -39,16 +51,16 @@ export class Foresight {
    * Optionally, it takes a stateOverrides object, which allows you to customize the state of the chain before the transaction is previewed. 
    * Useful for more advanced applications. You can skip this object to preview the transaction in the "real" state of the chain.
    * @param {string} chain - The chain name.
-   * @param {UnsignedTransaction} unsignedTransaction - The unsigned transaction object, modeled after the standard format used by multiple EVM wallets.
-   * @param {StateOverrides} stateOverrides - OPTIONAL. The state overrides object allows you to customize the state of the chain before the transaction is previewed.
+   * @param {EVMTranslateUnsignedTransaction} unsignedTransaction - The unsigned transaction object, modeled after the standard format used by multiple EVM wallets.
+        * @param {EVMTranslateStateOverrides} stateOverrides - OPTIONAL. The state overrides object allows you to customize the state of the chain before the transaction is previewed.
    * @param {string} viewAsAccountAddress - OPTIONAL The account address from which perspective the transaction will be previewed. Leave blank to use the raw 'from' of the transaction object.
    * @param {number} block - OPTIONAL. The block number to preview the transaction at. Leave blank to use the latest block number.
-   * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
+   * @returns {Promise<EVMForesightPreviewResponse>} A promise that resolves to the transaction preview details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async preview(chain: string, unsignedTransaction: UnsignedTransaction, stateOverrides?: StateOverrides, viewAsAccountAddress?: string, block?: number): Promise<Transaction> {
+      public async preview(chain: string, unsignedTransaction: EVMTranslateUnsignedTransaction, stateOverrides?: EVMTranslateStateOverrides, viewAsAccountAddress?: string, block?: number): Promise<EVMForesightPreviewResponse> {
     try {
-      let endpoint = `${chain}/preview`;
+      let endpoint = `evm/${chain}/preview`;
       const queryParams = new URLSearchParams();
       
       if (block) {
@@ -85,14 +97,14 @@ export class Foresight {
    * 
    * It includes an English description plus all relevant asset transfers tagged from the perspective of the userOp's 'sender' (the user).
    * @param {string} chain - The chain name.
-   * @param {UserOperation} userOperation - The ERC-4337 userOp object, in exactly the same format that would be submitted to a bundler for transaction execution.
+   * @param {EVMTranslateUserOperation} userOperation - The ERC-4337 userOp object, in exactly the same format that would be submitted to a bundler for transaction execution.
    * @param {number} block - OPTIONAL. The block number to preview the userOp at. Leave blank to preview the userOp in the current state of the chain.
-   * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
+   * @returns {Promise<EVMForesightPreview4337Response>} A promise that resolves to the transaction preview details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async preview4337(chain: string, userOperation: UserOperation, block?: number): Promise<Transaction> {
+  public async preview4337(chain: string, userOperation: EVMTranslateUserOperation, block?: number): Promise<EVMForesightPreview4337Response> {
     try {
-      let endpoint = `${chain}/preview4337`;
+      let endpoint = `evm/${chain}/preview4337`;
       endpoint += block ? `?block=${block}` : '';
 
       const result = await this.request(endpoint, "POST", { body: JSON.stringify({ userOp: userOperation }) });
@@ -112,13 +124,13 @@ export class Foresight {
    * Returns a description of the action that will take place if the transaction executes.
    * 
    * @param {string} chain - The chain name.
-   * @param {UnsignedTransaction} unsignedTransaction - The unsigned transaction object, modeled after the standard format used by multiple EVM wallets.
-   * @returns {Promise<{description: string}>} A promise that resolves to the transaction description.
+   * @param {EVMTranslateUnsignedTransaction} unsignedTransaction - The unsigned transaction object, modeled after the standard format used by multiple EVM wallets.
+   * @returns {Promise<EVMForesightDescribeResponse>} A promise that resolves to the transaction description.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async describe(chain: string, unsignedTransaction: UnsignedTransaction): Promise<{description: string}> {
+  public async describe(chain: string, unsignedTransaction: EVMTranslateUnsignedTransaction): Promise<EVMForesightDescribeResponse> {
     try {
-      let endpoint = `${chain}/describe`;
+      let endpoint = `evm/${chain}/describe`;
 
       const result = await this.request(endpoint, "POST", { body: JSON.stringify({ transaction: unsignedTransaction }) });
       return result.response;
@@ -147,13 +159,13 @@ export class Foresight {
    * Returns a description of what will happen if the ERC-4337 userOp object executes.
    * 
    * @param {string} chain - The chain name.
-   * @param {UserOperation} userOperation - The ERC-4337 userOp object, in exactly the same format that would be submitted to a bundler for transaction execution.
-   * @returns {Promise<{description: string, type: string}>} A promise that resolves to the transaction description and type.
+   * @param {EVMTranslateUserOperation} userOperation - The ERC-4337 userOp object, in exactly the same format that would be submitted to a bundler for transaction execution.
+   * @returns {Promise<EVMForesightDescribe4337Response>} A promise that resolves to the transaction description and type.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async describe4337(chain: string, userOperation: UserOperation): Promise<{description: string, type: string}> {
+  public async describe4337(chain: string, userOperation: EVMTranslateUserOperation): Promise<EVMForesightDescribe4337Response> {
     try {
-      let endpoint = `${chain}/describe4337`;
+      let endpoint = `evm/${chain}/describe4337`;
 
       const result = await this.request(endpoint, "POST", { body: JSON.stringify({ userOp: userOperation }) });
       
@@ -179,13 +191,13 @@ export class Foresight {
   /**
    * Screens a transaction for potential risks and provides detailed analysis.
    * @param {string} chain - The chain name.
-   * @param {UnsignedTransaction} unsignedTransaction - The unsigned transaction object to screen.
-   * @returns {Promise<Transaction>} A promise that resolves to the transaction screening results.
+   * @param {EVMTranslateUnsignedTransaction} unsignedTransaction - The unsigned transaction object to screen.
+   * @returns {Promise<EVMForesightScreenResponse>} A promise that resolves to the transaction screening results.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async screen(chain: string, unsignedTransaction: UnsignedTransaction): Promise<Transaction> {
+  public async screen(chain: string, unsignedTransaction: EVMTranslateUnsignedTransaction): Promise<EVMForesightScreenResponse> {
     try {
-      const endpoint = `${chain}/screen`;
+      const endpoint = `evm/${chain}/screen`;
 
       const result = await this.request(endpoint, "POST", { 
         body: JSON.stringify({ transaction: unsignedTransaction }) 
@@ -205,13 +217,13 @@ export class Foresight {
   /**
    * Screens an ERC-4337 user operation for potential risks and provides detailed analysis.
    * @param {string} chain - The chain name.
-   * @param {UserOperation} userOperation - The ERC-4337 userOp object to screen.
-   * @returns {Promise<Transaction>} A promise that resolves to the user operation screening results.
+   * @param {EVMTranslateUserOperation} userOperation - The ERC-4337 userOp object to screen.
+   * @returns {Promise<EVMForesightScreen4337Response>} A promise that resolves to the user operation screening results.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async screen4337(chain: string, userOperation: UserOperation): Promise<Transaction> {
+  public async screen4337(chain: string, userOperation: EVMTranslateUserOperation): Promise<EVMForesightScreen4337Response> {
     try {
-      const endpoint = `${chain}/screen4337`;
+      const endpoint = `evm/${chain}/screen4337`;
 
       const result = await this.request(endpoint, "POST", { 
         body: JSON.stringify({ userOp: userOperation }) 
@@ -231,10 +243,10 @@ export class Foresight {
   /**
    * Screens a URL for potential risks and provides detailed analysis.
    * @param {string} url - The URL to screen.
-   * @returns {Promise<{domain: string, risksDetected: Array<{type: string}>}>} A promise that resolves to the URL screening results.
+   * @returns {Promise<ForesightUrlScreenResponse>} A promise that resolves to the URL screening results.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async screenUrl(url: string): Promise<{domain: string, risksDetected: Array<{type: string}>}> {
+  public async screenUrl(url: string): Promise<ForesightUrlScreenResponse> {
     try {
       const endpoint = `url/screen?url=${encodeURIComponent(url)}`;
 

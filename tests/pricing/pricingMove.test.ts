@@ -1,6 +1,6 @@
 import { PricingMove } from '../../src/pricing/pricingMove';
+import { MOVEPricingChain, MOVEPricingPoolResponse } from '../../src/types/move';
 import { createPricingClient } from '../../src/utils/apiUtils';
-import { ChainNotFoundError } from '../../src/errors/ChainNotFoundError';
 
 jest.mock('../../src/utils/apiUtils', () => ({
   createPricingClient: jest.fn(),
@@ -33,7 +33,7 @@ describe('PricingMove', () => {
 
   describe('getChains', () => {
     it('should return a list of chains', async () => {
-      const mockChains = [
+      const mockChains: MOVEPricingChain[] = [
         {
           name: "sui",
           ecosystem: "move",
@@ -52,11 +52,9 @@ describe('PricingMove', () => {
       expect(result).toEqual(mockChains);
       expect(mockRequest).toHaveBeenCalledWith('chains');
     });
-  });
 
-  describe('getChain', () => {
-    it('should return a specific chain', async () => {
-      const mockChains = [
+    it('should handle multiple chains correctly', async () => {
+      const mockChains: MOVEPricingChain[] = [
         {
           name: "sui",
           ecosystem: "move",
@@ -66,26 +64,40 @@ describe('PricingMove', () => {
             address: "SUI",
             decimals: 9
           }
+        },
+        {
+          name: "aptos",
+          ecosystem: "move",
+          nativeCoin: {
+            name: "Aptos Token",
+            symbol: "APT",
+            address: "0x1::aptos_coin::AptosCoin",
+            decimals: 8
+          }
         }
       ];
       mockRequest.mockResolvedValue({ response: mockChains });
 
-      const result = await pricingMove.getChain('sui');
+      const result = await pricingMove.getChains();
 
-      expect(result).toEqual(mockChains[0]);
-      expect(mockRequest).toHaveBeenCalledWith('chains');
+      expect(result).toEqual(mockChains);
+      expect(result).toHaveLength(2);
     });
 
-    it('should throw ChainNotFoundError if chain is not found', async () => {
-      mockRequest.mockResolvedValue({ response: [] });
+    it('should handle empty chains list', async () => {
+      const mockChains: MOVEPricingChain[] = [];
+      mockRequest.mockResolvedValue({ response: mockChains });
 
-      await expect(pricingMove.getChain('invalid-chain')).rejects.toThrow(ChainNotFoundError);
+      const result = await pricingMove.getChains();
+
+      expect(result).toEqual(mockChains);
+      expect(result).toHaveLength(0);
     });
   });
 
   describe('getPriceFromPool', () => {
     it('should get price from pool', async () => {
-      const mockPrice = {
+      const mockPrice: MOVEPricingPoolResponse = {
         chain: "sui",
         exchange: { name: "Aftermath Finance" },
         poolAddress: "0xdeacf7ab460385d4bcb567f183f916367f7d43666a2c72323013822eb3c57026",
@@ -115,6 +127,39 @@ describe('PricingMove', () => {
       expect(mockRequest).toHaveBeenCalledWith(
         'sui/priceFromPool/0xdeacf7ab460385d4bcb567f183f916367f7d43666a2c72323013822eb3c57026/0x2::sui::SUI'
       );
+    });
+
+    it('should handle different token pairs correctly', async () => {
+      const mockPrice: MOVEPricingPoolResponse = {
+        chain: "sui",
+        exchange: { name: "Cetus" },
+        poolAddress: "0x1234567890abcdef",
+        baseToken: {
+          address: "0x3::token_a::TOKEN_A",
+          symbol: "TKA",
+          name: "Token A",
+          decimals: 6
+        },
+        quoteToken: {
+          address: "0x4::token_b::TOKEN_B",
+          symbol: "TKB",
+          name: "Token B",
+          decimals: 8
+        },
+        price: { amount: "1.234567" }
+      };
+      mockRequest.mockResolvedValue({ response: mockPrice });
+
+      const result = await pricingMove.getPriceFromPool(
+        'sui',
+        '0x1234567890abcdef',
+        '0x3::token_a::TOKEN_A'
+      );
+
+      expect(result).toEqual(mockPrice);
+      expect(result.baseToken.decimals).toBe(6);
+      expect(result.quoteToken.decimals).toBe(8);
+      expect(result.exchange.name).toBe("Cetus");
     });
   });
 });

@@ -1,5 +1,4 @@
 import { Pricing, PriceType } from "../../../src";
-import { ChainNotFoundError } from "../../../src/errors/ChainNotFoundError";
 
 /**
  * Example demonstrating the usage of the EVM Pricing API
@@ -14,10 +13,14 @@ async function evmPricingExample() {
     const chains = await evmPricing.getChains();
     console.log("Supported chains:", chains);
 
-    // 2. Get specific chain information
-    console.log("\nFetching specific chain information...");
-    const ethChain = await evmPricing.getChain("eth");
-    console.log("Ethereum chain info:", ethChain);
+    // 2. Find specific chain information from the chains list
+    console.log("\nFinding specific chain information...");
+    const ethChain = chains.find(chain => chain.name === "eth");
+    if (ethChain) {
+      console.log("Ethereum chain info:", ethChain);
+    } else {
+      console.log("ETH chain not found in supported chains");
+    }
 
     // 3. Get token price
     console.log("\nFetching token price...");
@@ -35,13 +38,14 @@ async function evmPricingExample() {
 
     // 5. Get price from specific pool
     console.log("\nFetching price from specific pool...");
-    const poolAddress = "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640"; // ETH-USDC Uniswap V3 pool
+    const poolAddress = "0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640"; // ETH-USDC Uniswap V3 pool
     const ethAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // WETH
     const priceFromPool = await evmPricing.getPriceFromPool("eth", poolAddress, ethAddress);
     console.log("Price from pool:", priceFromPool);
 
     // 6. Pre-fetch prices for multiple tokens
     console.log("\nPre-fetching prices for multiple tokens...");
+    // Each token uses EVMPricingTokenPrefetchRequest type
     const tokens = [
       {
         tokenAddress: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", // USDC
@@ -56,15 +60,23 @@ async function evmPricingExample() {
         // timestamp: Math.floor(Date.now() / 1000) - 86400 // 24 hours ago
       }
     ];
+    // Returns Array<EVMPricingTokenPrefetchResult>
     const preFetchResult = await evmPricing.preFetchPrice(tokens);
     console.log("Pre-fetch results:", preFetchResult);
+    
+    // Each result in the array contains request, result, and error fields
+    preFetchResult.forEach((item, index) => {
+      console.log(`\nToken ${index + 1}:`);
+      console.log(`  Request: ${JSON.stringify(item.request, null, 2)}`);
+      console.log(`  Status: ${item.result?.priceStatus || 'error'}`);
+      console.log(`  Price: ${item.result?.price || 'N/A'}`);
+      if (item.error) {
+        console.log(`  Error: ${item.error}`);
+      }
+    });
 
   } catch (error) {
-    if (error instanceof ChainNotFoundError) {
-      console.error('Chain not found:', error.message);
-    } else {
-      console.error('Unexpected error:', error);
-    }
+    console.error('Unexpected error:', error);
   }
 }
 

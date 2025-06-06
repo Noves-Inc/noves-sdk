@@ -1,6 +1,6 @@
 // src/translate/paging.ts
 
-import { PageOptions } from '../types/types';
+import { PageOptions } from '../types/common';
 import { TranslateEVM } from './translateEVM';
 import { TranslateSVM } from './translateSVM';
 import { TranslateUTXO } from './translateUTXO';

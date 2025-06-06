@@ -1,6 +1,6 @@
 {
   "name": "@noves/noves-sdk",
-  "version": "1.0.24",
+  "version": "1.1.0",
   "description": "Noves Developer Kit",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -26,10 +26,8 @@
     "jest": "^29.7.0",
     "nock": "^13.5.4",
     "ts-jest": "^29.2.2",
+    "ts-node": "^10.9.2",
     "tsup": "^8.1.0",
     "typescript": "^5.5.3"
-  },
-  "dependencies": {
-    "dotenv": "^16.4.5"
   }
 }

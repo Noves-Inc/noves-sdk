@@ -1,6 +1,6 @@
 // src/utils/urlUtils.ts
 
-import { PageOptions } from '../types/types';
+import { PageOptions } from '../types/common';
 
 export function constructUrl(endpoint: string, params?: PageOptions): string {
     if (!params || Object.keys(params).length === 0) {
@@ -38,21 +38,26 @@ export function parseUrl(urlString: string): PageOptions {
         'sort',
         'viewAsAccountAddress',
         'liveData',
-        'ignoreTransactions',
-        'pageNumber'
+        'pageSize',
+        'viewAsTransactionSender',
+        'v5Format',
+        'numberOfEpochs',
+        'includePrices',
+        'excludeZeroPrices'
       ];
     
       keys.forEach(key => {
-        const value = url.searchParams.get(key === 'pageNumber' ? 'page' : key);
+        const value = url.searchParams.get(key);
         if (value !== null) {
           if (key === 'sort') {
             params[key] = value as 'desc' | 'asc';
-          } else if (key === 'liveData') {
-            params[key] = (value === 'true') as any;
-          } else if (key === 'viewAsAccountAddress' || key === 'ignoreTransactions') {
+          } else if (key === 'liveData' || key === 'v5Format' || key === 'includePrices' || key === 'excludeZeroPrices') {
+            (params as any)[key] = value === 'true';
+          } else if (key === 'viewAsAccountAddress') {
             params[key] = value;
           } else {
-            params[key] = isNaN(Number(value)) ? (value as any) : Number(value);
+            // For numeric fields
+            (params as any)[key] = isNaN(Number(value)) ? value : Number(value);
           }
         }
       });

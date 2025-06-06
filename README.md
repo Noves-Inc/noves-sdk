@@ -51,6 +51,8 @@ For detailed documentation, please visit our [Documentation Site](https://docs.n
 - [Pricing API](docs/api/pricing/README.md)
   - [EVM](docs/api/pricing/evm.md)
   - [Cosmos](docs/api/pricing/cosmos.md)
+  - [SVM](docs/api/pricing/svm.md)
+  - [UTXO](docs/api/pricing/utxo.md)
   - [Move](docs/api/pricing/move.md)
 - [Foresight API](docs/api/foresight/README.md)
 

@@ -1,6 +1,33 @@
 // src/translate/translateSVM.ts
 
-import { Chain, PageOptions, TransactionTypes, EVMTransactionJob, EVMTransactionJobResponse, DeleteTransactionJobResponse, SVMTokenBalance, TransactionCountResponse, SVMStakingTransactionsResponse, SVMStakingEpochResponse } from '../types/types';
+import { PageOptions } from '../types/common';
+import { 
+  SVMTranslateChain,
+  SVMTranslateChainsResponse,
+  SVMTranslateTransactionType,
+  SVMTranslateTransactionTypesResponse,
+  SVMTranslateTransactionJob,
+  SVMTranslateTransactionJobResponse,
+  SVMTranslateDeleteTransactionJobResponse,
+  SVMTranslateTokenBalance,
+  SVMTranslateTransactionCountResponse,
+  SVMTranslateTransactionCountJobStartResponse,
+  SVMTranslateStakingTransactionsResponse,
+  SVMTranslateStakingEpochResponse,
+  SVMTranslateDescribeTransaction,
+  SVMTranslateSPLAccounts,
+  SVMTranslateTransactionV4,
+  SVMTranslateTransactionV5,
+  SVMTranslateTransaction,
+  SVMTranslateTransactionsResponse,
+  SVMTranslateToken,
+  SVMTranslateAccount,
+  SVMTranslateTransfer,
+  SVMTranslateRawTransactionData,
+  SVMTranslateSourceV4,
+  SVMTranslateSourceV5,
+  SVMTranslateTokenBalancesResponse
+} from '../types/svm';
 import { createTranslateClient } from '../utils/apiUtils';
 import { TransactionError } from '../errors/TransactionError';
 import { TransactionsPage, PaginatedItem } from './transactionsPage';
@@ -9,123 +36,19 @@ import { BaseTranslate } from './baseTranslate';
 
 const ECOSYSTEM = 'svm';
 
-/**
- * Interface representing a token in a transfer
- */
-interface Token {
-  decimals: number;
-  address: string;
-  name: string;
-  symbol: string;
-  icon: string | null;
-}
-
-/**
- * Interface representing a transaction description
- */
-interface DescribeTransaction {
-  signature: string;
-  type: string;
-  description: string;
-  timestamp: number;
-  transfers: Transfer[];
-}
-
-/**
- * Interface representing an account in a transfer
- */
-interface Account {
-  name: string | null;
-  address: string | null;
-  owner: {
-    name: string | null;
-    address: string | null;
-  };
-}
-
-/**
- * Interface representing a transfer in a transaction
- */
-interface Transfer {
-  action: string;
-  amount: string;
-  token: Token;
-  from: Account;
-  to: Account;
-}
-
-/**
- * Interface representing the raw transaction data
- */
-interface RawTransactionData {
-  signature: string;
-  blockNumber: number;
-  signer: string;
-  interactedAccounts: string[];
-}
-
-/**
- * Interface representing the source of the transaction
- */
-interface Source {
-  type: string | null;
-  name: string | null;
-}
-
-/**
- * Interface representing a V4 SVM transaction response
- */
-export interface SVMTransactionV4 extends PaginatedItem {
-  txTypeVersion: 4;
-  source: {
-    type: string;
-    name: string;
-  };
-  timestamp: number;
-  classificationData: {
-    type: string;
-  };
-  transfers: Transfer[];
-  rawTransactionData: RawTransactionData;
-}
-
-/**
- * Interface representing a V5 SVM transaction response
- */
-export interface SVMTransactionV5 extends PaginatedItem {
-  txTypeVersion: 5;
-  source: {
-    type: string | null;
-    name: string | null;
-  };
-  timestamp: number;
-  classificationData: {
-    type: string;
-    description: string | null;
-  };
-  transfers: Transfer[];
-  values: any[];
-  rawTransactionData: RawTransactionData;
-}
-
-export type SVMTransaction = SVMTransactionV4 | SVMTransactionV5;
-
-/**
- * Interface representing SPL accounts response
- */
-interface SPLAccounts {
-  accountPubkey: string;
-  tokenAccounts: Array<{
-    pubKey: string;
-  }>;
-}
-
-/**
- * Interface representing the SVM token balances response
- */
-interface SVMBalancesResponse {
-  balances: SVMTokenBalance[];
-}
+// Local type aliases for backward compatibility within this file
+type Token = SVMTranslateToken;
+type DescribeTransaction = SVMTranslateDescribeTransaction;
+type Account = SVMTranslateAccount;
+type Transfer = SVMTranslateTransfer;
+type RawTransactionData = SVMTranslateRawTransactionData;
+type SourceV4 = SVMTranslateSourceV4;
+type SourceV5 = SVMTranslateSourceV5;
+type SPLAccounts = SVMTranslateSPLAccounts;
+type SVMBalancesResponse = SVMTranslateTokenBalancesResponse;
+type SVMTransactionV4 = SVMTranslateTransactionV4;
+type SVMTransactionV5 = SVMTranslateTransactionV5;
+type SVMTransaction = SVMTranslateTransaction;
 
 /**
  * Class representing the SVM translation module.
@@ -149,9 +72,9 @@ export class TranslateSVM extends BaseTranslate {
   /**
    * Returns a list with the names of the SVM blockchains currently supported by this API. 
    * Use the provided chain name when calling other methods.
-   * @returns {Promise<Chain[]>} A promise that resolves to an array of chains.
+   * @returns {Promise<SVMTranslateChainsResponse>} A promise that resolves to an array of chains.
    */
-  public async getChains(): Promise<Chain[]> {
+  public async getChains(): Promise<SVMTranslateChainsResponse> {
     const result = await this.makeRequest('chains');
     return result;
   }
@@ -230,13 +153,13 @@ export class TranslateSVM extends BaseTranslate {
    * @param {PageOptions} pageOptions - The page options object.
    * @returns {Promise<TransactionsPage<SVMTransaction>>} A promise that resolves to a TransactionsPage instance.
    */
-  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<SVMTransaction>> {
+  public async getTransactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<SVMTransaction>> {
     try {
       // Use v4 format if specified, otherwise default to v5
       const format = pageOptions.v5Format === false ? 'v4' : 'v5';
       const endpoint = `${chain}/txs/${format}/${accountAddress}`;
       const url = constructUrl(endpoint, pageOptions);
-      const result = await this.makeRequest(url);
+      const result: SVMTranslateTransactionsResponse = await this.makeRequest(url);
 
       const initialData = {
         chain: chain,
@@ -252,6 +175,18 @@ export class TranslateSVM extends BaseTranslate {
       }
       throw new TransactionError({ message: ['Failed to get transactions'] });
     }
+  }
+
+  /**
+   * @deprecated Use getTransactions instead. This method will be removed in a future version.
+   * Get a pagination object to iterate over transactions pages.
+   * @param {string} chain - The chain name.
+   * @param {string} accountAddress - The account address.
+   * @param {PageOptions} pageOptions - The page options object.
+   * @returns {Promise<TransactionsPage<SVMTransaction>>} A promise that resolves to a TransactionsPage instance.
+   */
+  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<SVMTransaction>> {
+    return this.getTransactions(chain, accountAddress, pageOptions);
   }
 
   /**
@@ -279,9 +214,9 @@ export class TranslateSVM extends BaseTranslate {
   /**
    * Returns a list of all available transaction types that can be returned by the API.
    * This is useful for understanding what types of transactions can be classified.
-   * @returns {Promise<{transactionTypes: TransactionTypes[], version: number}>} A promise that resolves to an object containing transaction types and version.
+   * @returns {Promise<SVMTranslateTransactionTypesResponse>} A promise that resolves to an object containing transaction types and version.
    */
-  public async getTxTypes(): Promise<{transactionTypes: TransactionTypes[], version: number}> {
+  public async getTxTypes(): Promise<SVMTranslateTransactionTypesResponse> {
     try {
       const result = await this.makeRequest('txTypes');
       if (!this.validateResponse(result, ['transactionTypes', 'version'])) {
@@ -302,10 +237,10 @@ export class TranslateSVM extends BaseTranslate {
    * @param {string} chain - The chain name.
    * @param {string[]} signatures - Array of transaction signatures.
    * @param {string} viewAsAccountAddress - OPTIONAL - Results are returned with the view/perspective of this wallet address.
-   * @returns {Promise<DescribeTransaction[]>} A promise that resolves to an array of transaction descriptions.
+   * @returns {Promise<SVMTranslateDescribeTransaction[]>} A promise that resolves to an array of transaction descriptions.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async describeTransactions(chain: string, signatures: string[], viewAsAccountAddress?: string): Promise<DescribeTransaction[]> {
+  public async describeTransactions(chain: string, signatures: string[], viewAsAccountAddress?: string): Promise<SVMTranslateDescribeTransaction[]> {
     try {
       const validatedChain = chain.toLowerCase();
       let endpoint = `${validatedChain}/describeTxs`;
@@ -330,23 +265,23 @@ export class TranslateSVM extends BaseTranslate {
    * @param {string} accountAddress - The account address.
    * @param {number} startTimestamp - The start timestamp.
    * @param {boolean} validateStartTimestamp - Whether to validate the start timestamp.
-   * @returns {Promise<EVMTransactionJob>} A promise that resolves to the transaction job.
+   * @returns {Promise<SVMTranslateTransactionJob>} A promise that resolves to the transaction job.
    */
   public async startTransactionJob(
     chain: string,
     accountAddress: string,
     startTimestamp: number = 0,
     validateStartTimestamp: boolean = true
-  ): Promise<EVMTransactionJob> {
+  ): Promise<SVMTranslateTransactionJob> {
     try {
-      const endpoint = `${chain}/txJob`;
-      const result = await this.makeRequest(endpoint, 'POST', {
-        body: JSON.stringify({
-          accountAddress,
-          startTimestamp,
-          validateStartTimestamp
-        })
-      });
+      const endpoint = `${chain}/txs/job/start?accountAddress=${encodeURIComponent(accountAddress)}&startTimestamp=${startTimestamp}&validateStartTimestamp=${validateStartTimestamp}`;
+      const result = await this.makeRequest(endpoint, 'POST');
+      
+      // Validate the response structure
+      if (!this.validateResponse(result, ['jobId', 'nextPageUrl', 'startTimestamp'])) {
+        throw new TransactionError({ message: ['Invalid transaction job response format'] });
+      }
+      
       return result;
     } catch (error) {
       if (error instanceof TransactionError) {
@@ -361,18 +296,24 @@ export class TranslateSVM extends BaseTranslate {
    * @param {string} chain - The chain name.
    * @param {string} jobId - The job ID from the transaction job.
    * @param {PageOptions} pageOptions - The page options object.
-   * @returns {Promise<EVMTransactionJobResponse>} A promise that resolves to the transaction job results.
+   * @returns {Promise<SVMTranslateTransactionJobResponse>} A promise that resolves to the transaction job results.
    * @throws {TransactionError} If there are validation errors in the request.
    */
   public async getTransactionJobResults(
     chain: string,
     jobId: string,
     pageOptions: PageOptions = {}
-  ): Promise<EVMTransactionJobResponse> {
+  ): Promise<SVMTranslateTransactionJobResponse> {
     try {
-      const endpoint = `${chain}/txJob/${jobId}`;
+      const endpoint = `${chain}/txs/job/${jobId}`;
       const url = constructUrl(endpoint, pageOptions);
       const result = await this.makeRequest(url);
+      
+      // Validate the response structure
+      if (!this.validateResponse(result, ['items', 'pageSize', 'hasNextPage'])) {
+        throw new TransactionError({ message: ['Invalid transaction job response format'] });
+      }
+      
       return result;
     } catch (error) {
       if (error instanceof TransactionError) {
@@ -386,16 +327,22 @@ export class TranslateSVM extends BaseTranslate {
    * Delete a transaction job.
    * @param {string} chain - The chain name.
    * @param {string} jobId - The job ID to delete.
-   * @returns {Promise<DeleteTransactionJobResponse>} A promise that resolves to the deletion confirmation message.
+   * @returns {Promise<SVMTranslateDeleteTransactionJobResponse>} A promise that resolves to the deletion confirmation message.
    * @throws {TransactionError} If there are validation errors in the request.
    */
   public async deleteTransactionJob(
     chain: string,
     jobId: string
-  ): Promise<DeleteTransactionJobResponse> {
+  ): Promise<SVMTranslateDeleteTransactionJobResponse> {
     try {
-      const endpoint = `${chain}/txJob/${jobId}`;
+      const endpoint = `${chain}/txs/job/${jobId}`;
       const result = await this.makeRequest(endpoint, 'DELETE');
+      
+      // Validate the response structure
+      if (!this.validateResponse(result, ['message'])) {
+        throw new TransactionError({ message: ['Invalid delete job response format'] });
+      }
+      
       return result;
     } catch (error) {
       if (error instanceof TransactionError) {
@@ -411,7 +358,7 @@ export class TranslateSVM extends BaseTranslate {
    * @param {string} accountAddress - The account address.
    * @param {boolean} [includePrices=true] - Optional. Whether to include token prices in the response.
    * @param {boolean} [excludeZeroPrices=false] - Optional. Whether to exclude tokens with zero price.
-   * @returns {Promise<SVMBalancesResponse>} A promise that resolves to the balances data.
+   * @returns {Promise<SVMTranslateTokenBalance[]>} A promise that resolves to the balances data.
    * @throws {TransactionError} If there are validation errors in the request.
    */
   public async getTokenBalances(
@@ -419,7 +366,7 @@ export class TranslateSVM extends BaseTranslate {
     accountAddress: string,
     includePrices: boolean = true,
     excludeZeroPrices: boolean = false
-  ): Promise<SVMTokenBalance[]> {
+  ): Promise<SVMTranslateTokenBalance[]> {
     try {
       const endpoint = `${chain}/tokens/balancesOf/${accountAddress}`;
       const url = constructUrl(endpoint, { includePrices, excludeZeroPrices });
@@ -452,13 +399,49 @@ export class TranslateSVM extends BaseTranslate {
    * Get the transaction count for an account address.
    * @param {string} chain - The chain name. Defaults to solana.
    * @param {string} accountAddress - The account address to get transaction count for.
-   * @returns {Promise<TransactionCountResponse>} A promise that resolves to the transaction count data.
+   * @param {string} [webhookUrl] - Optional webhook URL for job completion notification.
+   * @returns {Promise<SVMTranslateTransactionCountResponse>} A promise that resolves to the transaction count data.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTransactionCount(chain: string = 'solana', accountAddress: string): Promise<TransactionCountResponse> {
+  public async getTransactionCount(chain: string = 'solana', accountAddress: string, webhookUrl?: string): Promise<SVMTranslateTransactionCountResponse> {
     try {
-      const endpoint = `${chain}/txCount/${accountAddress}`;
-      const result = await this.makeRequest(endpoint);
+      // Start the transaction count job
+      const startEndpoint = `${chain}/txCount/job/start`;
+      const startParams = new URLSearchParams({ accountAddress });
+      if (webhookUrl) {
+        startParams.append('webhookUrl', webhookUrl);
+      }
+      const startUrl = `${startEndpoint}?${startParams.toString()}`;
+      
+      const jobStartResponse = await this.makeRequest(startUrl, 'POST', {
+        headers: {
+          'Accept': '*/*'
+        },
+        body: ''
+      });
+      
+      // Validate job start response
+      if (!this.validateResponse(jobStartResponse, ['jobId', 'resultsUrl'])) {
+        throw new TransactionError({ message: ['Invalid job start response format'] });
+      }
+      
+      // Get the job results
+      const jobEndpoint = `${chain}/txCount/job/${jobStartResponse.jobId}`;
+      const result = await this.makeRequest(jobEndpoint, 'GET', {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      // Validate the final response structure
+      if (!this.validateResponse(result, ['chain', 'timestamp', 'account'])) {
+        throw new TransactionError({ message: ['Invalid transaction count response format'] });
+      }
+      
+      if (!this.validateResponse(result.account, ['address', 'transactionCount'])) {
+        throw new TransactionError({ message: ['Invalid account data in transaction count response'] });
+      }
+      
       return result;
     } catch (error) {
       if (error instanceof TransactionError) {
@@ -473,16 +456,16 @@ export class TranslateSVM extends BaseTranslate {
    * @param {string} chain - The chain name. Defaults to solana.
    * @param {string} stakingAccount - The staking account address.
    * @param {PageOptions} pageOptions - Optional pagination options.
-   * @returns {Promise<SVMStakingTransactionsResponse>} A promise that resolves to the staking transactions data.
+   * @returns {Promise<SVMTranslateStakingTransactionsResponse>} A promise that resolves to the staking transactions data.
    * @throws {TransactionError} If there are validation errors in the request.
    */
   public async getStakingTransactions(
     chain: string = 'solana',
     stakingAccount: string,
     pageOptions: PageOptions = {}
-  ): Promise<SVMStakingTransactionsResponse> {
+  ): Promise<SVMTranslateStakingTransactionsResponse> {
     try {
-      const endpoint = `${chain}/stakingTxs/${stakingAccount}`;
+      const endpoint = `${chain}/staking/txs/${stakingAccount}`;
       const url = constructUrl(endpoint, pageOptions);
       const result = await this.makeRequest(url);
       return result;
@@ -499,17 +482,35 @@ export class TranslateSVM extends BaseTranslate {
    * @param {string} chain - The chain name. Defaults to solana.
    * @param {string} stakingAccount - The staking account address.
    * @param {number} epoch - The epoch number.
-   * @returns {Promise<SVMStakingEpochResponse>} A promise that resolves to the staking epoch data.
+   * @returns {Promise<SVMTranslateStakingEpochResponse>} A promise that resolves to the staking epoch data.
    * @throws {TransactionError} If there are validation errors in the request.
    */
   public async getStakingEpoch(
     chain: string = 'solana',
     stakingAccount: string,
     epoch: number
-  ): Promise<SVMStakingEpochResponse> {
+  ): Promise<SVMTranslateStakingEpochResponse> {
     try {
-      const endpoint = `${chain}/stakingEpoch/${stakingAccount}/${epoch}`;
+      const endpoint = `${chain}/staking/${stakingAccount}/epoch/${epoch}`;
       const result = await this.makeRequest(endpoint);
+      
+      // Validate the response structure
+      if (!this.validateResponse(result, [
+        'txTypeVersion',
+        'source',
+        'timestamp',
+        'classificationData',
+        'transfers',
+        'values',
+        'rawTransactionData'
+      ])) {
+        throw new TransactionError({ message: ['Invalid staking epoch response format'] });
+      }
+      
+      if (!this.validateResponse(result.classificationData, ['type', 'description'])) {
+        throw new TransactionError({ message: ['Invalid classification data format'] });
+      }
+      
       return result;
     } catch (error) {
       if (error instanceof TransactionError) {

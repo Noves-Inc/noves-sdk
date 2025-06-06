@@ -2,29 +2,22 @@ import { TranslateCOSMOS } from '../../src/translate/translateCOSMOS';
 import { TransactionError } from '../../src/errors/TransactionError';
 import { CosmosAddressError } from '../../src/errors/CosmosError';
 import { TransactionsPage } from '../../src/translate/transactionsPage';
-import { Transaction, CosmosTokenBalance, PageOptions, CosmosBalancesResponse } from '../../src/types/types';
+import { COSMOSTranslateTransaction, COSMOSTranslateTransactionsResponse } from '../../src/types/cosmos';
+import { PageOptions } from '../../src/types/common';
 
 jest.setTimeout(30000);
 
 describe('TranslateCOSMOS', () => {
   let translateCOSMOS: TranslateCOSMOS;
   let mockRequest: jest.Mock;
-  const apiKey = process.env.API_KEY;
   const validCosmosAddress = 'cosmos1hsk6jryyqjfhp5dhc55tc9jtckygx0eph6dd02';
   const validChain = 'celestia';
   const validTxHash = '1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF';
 
   beforeEach(() => {
     mockRequest = jest.fn();
-    translateCOSMOS = new TranslateCOSMOS(apiKey || 'test-api-key');
+    translateCOSMOS = new TranslateCOSMOS('test-api-key');
     (translateCOSMOS as any).makeRequest = mockRequest;
-  });
-
-  beforeAll(() => {
-    if (!apiKey) {
-      throw new Error('API_KEY environment variable is required');
-    }
-    translateCOSMOS = new TranslateCOSMOS(apiKey);
   });
 
   it('should create an instance with a valid API key', () => {
@@ -42,10 +35,12 @@ describe('TranslateCOSMOS', () => {
           name: 'celestia',
           ecosystem: 'cosmos',
           nativeCoin: {
+            name: 'TIA',
             symbol: 'TIA',
-            name: 'Celestia',
+            address: 'TIA',
             decimals: 6
-          }
+          },
+          tier: 2
         }
       ];
       mockRequest.mockResolvedValue(mockChains);
@@ -57,6 +52,11 @@ describe('TranslateCOSMOS', () => {
         expect(chain).toHaveProperty('name');
         expect(chain).toHaveProperty('ecosystem');
         expect(chain).toHaveProperty('nativeCoin');
+        expect(chain).toHaveProperty('tier');
+        expect(chain.nativeCoin).toHaveProperty('name');
+        expect(chain.nativeCoin).toHaveProperty('symbol');
+        expect(chain.nativeCoin).toHaveProperty('address');
+        expect(chain.nativeCoin).toHaveProperty('decimals');
       });
     });
 
@@ -69,17 +69,42 @@ describe('TranslateCOSMOS', () => {
   describe('getTransaction', () => {
     it('should get transaction details', async () => {
       const mockTransaction = {
-        txTypeVersion: 1,
+        txTypeVersion: 5,
         chain: validChain,
-        accountAddress: validCosmosAddress,
+        accountAddress: null,
         classificationData: {
-          type: 'transfer',
-          description: 'Token transfer'
+          type: 'bridgeOut',
+          description: 'Sent 47.6904 TIA to a bridge.'
         },
+        transfers: [
+          {
+            action: 'paidGas',
+            from: {
+              name: null,
+              address: validCosmosAddress
+            },
+            to: {
+              name: null,
+              address: null
+            },
+            amount: '0.001236',
+            asset: {
+              symbol: 'TIA',
+              name: 'TIA',
+              decimals: 6,
+              address: 'utia',
+              icon: null
+            }
+          }
+        ],
+        values: [],
         rawTransactionData: {
-          transactionHash: validTxHash,
-          blockNumber: 123456,
-          timestamp: 1234567890
+          height: 1239119,
+          txhash: validTxHash,
+          gas_used: 99407,
+          gas_wanted: 123568,
+          transactionFee: 1236,
+          timestamp: 1713260330
         }
       };
       mockRequest.mockResolvedValue(mockTransaction);
@@ -90,7 +115,13 @@ describe('TranslateCOSMOS', () => {
       expect(tx).toHaveProperty('chain');
       expect(tx).toHaveProperty('accountAddress');
       expect(tx).toHaveProperty('classificationData');
+      expect(tx).toHaveProperty('transfers');
+      expect(tx).toHaveProperty('values');
       expect(tx).toHaveProperty('rawTransactionData');
+      expect(tx.rawTransactionData).toHaveProperty('height');
+      expect(tx.rawTransactionData).toHaveProperty('txhash');
+      expect(tx.rawTransactionData).toHaveProperty('gas_used');
+      expect(tx.rawTransactionData).toHaveProperty('gas_wanted');
     });
 
     it('should handle rate limiting errors', async () => {
@@ -104,6 +135,144 @@ describe('TranslateCOSMOS', () => {
     });
   });
 
+  describe('getTransactions', () => {
+    const pageOptions: PageOptions = { pageSize: 10 };
+
+    it('should return transactions response directly', async () => {
+      const mockResponse: COSMOSTranslateTransactionsResponse = {
+        account: validCosmosAddress,
+        items: [
+          {
+            txTypeVersion: 5,
+            chain: validChain,
+            accountAddress: null,
+            classificationData: {
+              type: 'bridgeOut',
+              description: 'Sent 47.6904 TIA to a bridge.'
+            },
+            transfers: [
+              {
+                action: 'paidGas',
+                from: {
+                  name: null,
+                  address: validCosmosAddress
+                },
+                to: {
+                  name: null,
+                  address: null
+                },
+                amount: '0.001236',
+                asset: {
+                  symbol: 'TIA',
+                  name: 'TIA',
+                  decimals: 6,
+                  address: 'utia',
+                  icon: null
+                }
+              }
+            ],
+            values: [],
+            rawTransactionData: {
+              height: 1239119,
+              txhash: validTxHash,
+              gas_used: 99407,
+              gas_wanted: 123568,
+              transactionFee: 1236,
+              timestamp: 1713260330
+            }
+          }
+        ],
+        pageSize: 10,
+        hasNextPage: false,
+        startBlock: null,
+        endBlock: 0,
+        nextPageUrl: null
+      };
+      mockRequest.mockResolvedValue(mockResponse);
+
+      const result = await translateCOSMOS.getTransactions(validChain, validCosmosAddress, pageOptions);
+      expect(result).toHaveProperty('account');
+      expect(result).toHaveProperty('items');
+      expect(result).toHaveProperty('pageSize');
+      expect(result).toHaveProperty('hasNextPage');
+      expect(result).toHaveProperty('startBlock');
+      expect(result).toHaveProperty('endBlock');
+      expect(result).toHaveProperty('nextPageUrl');
+      expect(result.account).toBe(validCosmosAddress);
+      expect(Array.isArray(result.items)).toBe(true);
+      if (result.items.length > 0) {
+        result.items.forEach((tx: COSMOSTranslateTransaction) => {
+          expect(tx).toMatchObject({
+            rawTransactionData: expect.objectContaining({
+              txhash: expect.anything() // Can be string or null
+            })
+          });
+        });
+      }
+    });
+
+    it('should handle transactions with null txhash (genesis transactions)', async () => {
+      const mockResponse: COSMOSTranslateTransactionsResponse = {
+        account: validCosmosAddress,
+        items: [
+          {
+            txTypeVersion: 5,
+            chain: validChain,
+            accountAddress: null,
+            classificationData: {
+              type: 'genesisBalance',
+              description: 'Starting balance of 163.19 TIA at chain genesis.'
+            },
+            transfers: [
+              {
+                action: 'received',
+                from: {
+                  name: null,
+                  address: null
+                },
+                to: {
+                  name: null,
+                  address: validCosmosAddress
+                },
+                amount: '163.19',
+                asset: {
+                  symbol: 'TIA',
+                  name: 'TIA',
+                  decimals: 6,
+                  address: 'utia',
+                  icon: null
+                }
+              }
+            ],
+            values: [],
+            rawTransactionData: {
+              height: 0,
+              txhash: null, // Genesis transactions have null txhash
+              gas_used: 0,
+              gas_wanted: 0,
+              transactionFee: 0,
+              timestamp: 0
+            }
+          }
+        ],
+        pageSize: 10,
+        hasNextPage: false,
+        startBlock: null,
+        endBlock: 0,
+        nextPageUrl: null
+      };
+      mockRequest.mockResolvedValue(mockResponse);
+
+      const result = await translateCOSMOS.getTransactions(validChain, validCosmosAddress, pageOptions);
+      expect(result.items[0].rawTransactionData.txhash).toBeNull();
+    });
+
+    it('should handle API errors', async () => {
+      mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid address'] }));
+      await expect(translateCOSMOS.getTransactions(validChain, 'invalid-address', pageOptions)).rejects.toThrow(TransactionError);
+    });
+  });
+
   describe('Transactions', () => {
     const pageOptions: PageOptions = { pageSize: 10 };
 
@@ -111,17 +280,42 @@ describe('TranslateCOSMOS', () => {
       const mockResponse = {
         items: [
           {
-            txTypeVersion: 1,
+            txTypeVersion: 5,
             chain: validChain,
-            accountAddress: validCosmosAddress,
+            accountAddress: null,
             classificationData: {
-              type: 'transfer',
-              description: 'Token transfer'
+              type: 'bridgeOut',
+              description: 'Sent 47.6904 TIA to a bridge.'
             },
+            transfers: [
+              {
+                action: 'paidGas',
+                from: {
+                  name: null,
+                  address: validCosmosAddress
+                },
+                to: {
+                  name: null,
+                  address: null
+                },
+                amount: '0.001236',
+                asset: {
+                  symbol: 'TIA',
+                  name: 'TIA',
+                  decimals: 6,
+                  address: 'utia',
+                  icon: null
+                }
+              }
+            ],
+            values: [],
             rawTransactionData: {
-              transactionHash: validTxHash,
-              blockNumber: 123456,
-              timestamp: 1234567890
+              height: 1239119,
+              txhash: validTxHash,
+              gas_used: 99407,
+              gas_wanted: 123568,
+              transactionFee: 1236,
+              timestamp: 1713260330
             }
           }
         ],
@@ -136,10 +330,10 @@ describe('TranslateCOSMOS', () => {
       const transactions = result.getTransactions();
       expect(Array.isArray(transactions)).toBe(true);
       if (transactions.length > 0) {
-        transactions.forEach((tx: Transaction) => {
+        transactions.forEach((tx: COSMOSTranslateTransaction) => {
           expect(tx).toMatchObject({
             rawTransactionData: expect.objectContaining({
-              transactionHash: expect.any(String)
+              txhash: expect.anything() // Can be string or null
             })
           });
         });
@@ -150,17 +344,42 @@ describe('TranslateCOSMOS', () => {
       const mockFirstPage = {
         items: [
           {
-            txTypeVersion: 1,
+            txTypeVersion: 5,
             chain: validChain,
-            accountAddress: validCosmosAddress,
+            accountAddress: null,
             classificationData: {
-              type: 'transfer',
-              description: 'Token transfer'
+              type: 'bridgeOut',
+              description: 'Sent 47.6904 TIA to a bridge.'
             },
+            transfers: [
+              {
+                action: 'paidGas',
+                from: {
+                  name: null,
+                  address: validCosmosAddress
+                },
+                to: {
+                  name: null,
+                  address: null
+                },
+                amount: '0.001236',
+                asset: {
+                  symbol: 'TIA',
+                  name: 'TIA',
+                  decimals: 6,
+                  address: 'utia',
+                  icon: null
+                }
+              }
+            ],
+            values: [],
             rawTransactionData: {
-              transactionHash: validTxHash,
-              blockNumber: 123456,
-              timestamp: 1234567890
+              height: 1239119,
+              txhash: validTxHash,
+              gas_used: 99407,
+              gas_wanted: 123568,
+              transactionFee: 1236,
+              timestamp: 1713260330
             }
           }
         ],
@@ -170,17 +389,42 @@ describe('TranslateCOSMOS', () => {
       const mockSecondPage = {
         items: [
           {
-            txTypeVersion: 1,
+            txTypeVersion: 5,
             chain: validChain,
-            accountAddress: validCosmosAddress,
+            accountAddress: null,
             classificationData: {
-              type: 'transfer',
-              description: 'Token transfer'
+              type: 'bridgeOut',
+              description: 'Sent different amount TIA to a bridge.'
             },
+            transfers: [
+              {
+                action: 'paidGas',
+                from: {
+                  name: null,
+                  address: validCosmosAddress
+                },
+                to: {
+                  name: null,
+                  address: null
+                },
+                amount: '0.001500',
+                asset: {
+                  symbol: 'TIA',
+                  name: 'TIA',
+                  decimals: 6,
+                  address: 'utia',
+                  icon: null
+                }
+              }
+            ],
+            values: [],
             rawTransactionData: {
-              transactionHash: 'different-hash',
-              blockNumber: 123457,
-              timestamp: 1234567891
+              height: 1239120,
+              txhash: 'different-hash',
+              gas_used: 99500,
+              gas_wanted: 124000,
+              transactionFee: 1500,
+              timestamp: 1713260331
             }
           }
         ],
@@ -257,15 +501,15 @@ describe('TranslateCOSMOS', () => {
   describe('startTransactionJob', () => {
     it('should start a transaction job', async () => {
       const mockJob = {
-        jobId: 'test-job-id',
-        status: 'pending'
+        nextPageId: 'test-page-id',
+        nextPageUrl: 'https://translate.noves.fi/cosmos/celestia/txs/job/test-page-id'
       };
       mockRequest.mockResolvedValue(mockJob);
 
       const job = await translateCOSMOS.startTransactionJob(validChain, validCosmosAddress, 1, 100);
       expect(job).toBeDefined();
-      expect(job).toHaveProperty('jobId');
-      expect(job).toHaveProperty('status');
+      expect(job).toHaveProperty('nextPageId');
+      expect(job).toHaveProperty('nextPageUrl');
     });
 
     it('should handle invalid address', async () => {
@@ -278,28 +522,55 @@ describe('TranslateCOSMOS', () => {
       const mockResults = {
         items: [
           {
-            txTypeVersion: 1,
+            txTypeVersion: 5,
             chain: validChain,
-            accountAddress: validCosmosAddress,
+            accountAddress: null,
             classificationData: {
-              type: 'transfer',
-              description: 'Token transfer'
+              type: 'bridgeOut',
+              description: 'Sent 47.6904 TIA to a bridge.'
             },
+            transfers: [
+              {
+                action: 'paidGas',
+                from: {
+                  name: null,
+                  address: validCosmosAddress
+                },
+                to: {
+                  name: null,
+                  address: null
+                },
+                amount: '0.001236',
+                asset: {
+                  symbol: 'TIA',
+                  name: 'TIA',
+                  decimals: 6,
+                  address: 'utia',
+                  icon: null
+                }
+              }
+            ],
+            values: [],
             rawTransactionData: {
-              transactionHash: validTxHash,
-              blockNumber: 123456,
-              timestamp: 1234567890
+              height: 1239119,
+              txhash: validTxHash,
+              gas_used: 99407,
+              gas_wanted: 123568,
+              transactionFee: 1236,
+              timestamp: 1713260330
             }
           }
         ],
-        hasNextPage: false
+        hasNextPage: false,
+        nextPageUrl: null
       };
       mockRequest.mockResolvedValue(mockResults);
 
-      const results = await translateCOSMOS.getTransactionJobResults(validChain, 'test-job-id');
+      const results = await translateCOSMOS.getTransactionJobResults(validChain, 'test-page-id');
       expect(results).toBeDefined();
       expect(results).toHaveProperty('items');
       expect(results).toHaveProperty('hasNextPage');
+      expect(results).toHaveProperty('nextPageUrl');
     });
 
     it('should handle non-existent job ID', async () => {

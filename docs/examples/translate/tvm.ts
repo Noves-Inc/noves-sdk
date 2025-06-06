@@ -16,7 +16,7 @@ async function tvmTranslateExample() {
     // 2. Get transaction history with pagination
     const accountAddress = "TD7beBofzDoDZ7qcGUAeHK1zf2Fnsvz2SP";
     console.log("\nFetching transaction history...");
-    const transactionsPage = await tvmTranslate.Transactions(
+    const transactionsPage = await tvmTranslate.getTransactions(
       "tron",
       accountAddress,
       { pageSize: 5 }
@@ -36,21 +36,22 @@ async function tvmTranslateExample() {
       });
     }
 
-    // 3. Start a balances job
-    console.log("\nStarting balances job...");
-    const job = await tvmTranslate.startBalancesJob(
-      "tron",
-      "TD7beBofzDoDZ7qcGUAeHK1zf2Fnsvz2SP",
-      "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-      72049264
-    );
-    console.log("Job started:", job);
-
-    // 4. Get job results
-    if (job.jobId) {
-      console.log("\nFetching job results...");
-      const results = await tvmTranslate.getBalancesJobResults("tron", job.jobId);
-      console.log("Job results:", results);
+    // 3. Get next page if available
+    if (transactionsPage.getNextPageKeys()) {
+      console.log("\nFetching next page...");
+      const hasNextPage = await transactionsPage.next();
+      
+      if (hasNextPage) {
+        const nextTransactions = transactionsPage.getTransactions();
+        for (const tx of nextTransactions) {
+          console.log(`Transaction ${++count}:`, {
+            hash: tx.rawTransactionData.transactionHash,
+            timestamp: tx.rawTransactionData.timestamp,
+            type: tx.classificationData.type,
+            description: tx.classificationData.description
+          });
+        }
+      }
     }
   } catch (error) {
     console.error("Error:", error);

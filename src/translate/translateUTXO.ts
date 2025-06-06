@@ -1,8 +1,16 @@
 // src/translate/translateUTXO.ts
 
-import { Chain, PageOptions, Transaction } from '../types/types';
+import { PageOptions } from '../types/common';
+import { 
+  UTXOTranslateChain, 
+  UTXOTranslateTransaction, 
+  UTXOTranslateAddressesResponse, 
+  UTXOTranslateBalancesResponse,
+  UTXOTranslateTransactionJob,
+  UTXOTranslateTransactionJobResponse,
+  UTXOTranslateDeleteTransactionJobResponse
+} from '../types/utxo';
 import { createTranslateClient } from '../utils/apiUtils';
-import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
 import { TransactionsPage } from './transactionsPage';
@@ -14,6 +22,7 @@ const ECOSYSTEM = 'utxo';
  */
 export class TranslateUTXO {
   private request: ReturnType<typeof createTranslateClient>;
+  private apiKey: string;
 
   /**
    * Create a TranslateUTXO instance.
@@ -24,15 +33,16 @@ export class TranslateUTXO {
     if (!apiKey) {
       throw new Error('API key is required');
     }
+    this.apiKey = apiKey;
     this.request = createTranslateClient(ECOSYSTEM, apiKey);
   }
 
   /**
    * Returns a list with the names of the UTXO blockchains currently supported by this API. 
    * Use the provided chain name when calling other methods.
-   * @returns {Promise<Chain[]>} A promise that resolves to an array of chains.
+   * @returns {Promise<UTXOTranslateChain[]>} A promise that resolves to an array of chains.
    */
-  public async getChains(): Promise<Chain[]> {
+  public async getChains(): Promise<UTXOTranslateChain[]> {
     try {
       const result = await this.request('chains');
       if (!result || !result.response) {
@@ -51,43 +61,16 @@ export class TranslateUTXO {
     }
   }
 
-  /**
-   * Get a supported chain by its name.
-   * @param {string} name - The name of the chain to retrieve.
-   * @returns {Promise<Chain>} A promise that resolves to the chain object or undefined if not found.
-   * @throws {ChainNotFoundError} Will throw an error if the chain is not found.
-   */
-  public async getChain(name: string): Promise<Chain> {
-    try {
-      const result = await this.request('chains');
-      if (!result || !result.response) {
-        throw new TransactionError({ message: ['Invalid response format'] });
-      }
-      const chain = result.response.find((chain: Chain) => chain.name.toLowerCase() === name.toLowerCase());
-      if (!chain) {
-        throw new ChainNotFoundError(name);
-      }
-      return chain;
-    } catch (error) {
-      if (error instanceof ChainNotFoundError) {
-        throw error;
-      }
-      if (error instanceof Response) {
-        const errorResponse = await error.json();
-        throw new TransactionError({ message: [errorResponse.error || 'Failed to fetch chain'] });
-      }
-      throw error;
-    }
-  }
+
 
   /**
    * Get a pagination object to iterate over transactions pages.
    * @param {string} chain - The chain name.
    * @param {string} accountAddress - The account address.
    * @param {PageOptions} pageOptions - The page options object.
-   * @returns {Promise<TransactionsPage<Transaction>>} A promise that resolves to a TransactionsPage instance.
+   * @returns {Promise<TransactionsPage<UTXOTranslateTransaction>>} A promise that resolves to a TransactionsPage instance.
    */
-  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<Transaction>> {
+  public async getTransactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<UTXOTranslateTransaction>> {
     try {
       const endpoint = `${chain}/txs/${accountAddress}`;
       const url = constructUrl(endpoint, pageOptions);
@@ -118,19 +101,56 @@ export class TranslateUTXO {
   }
 
   /**
-   * Utility endpoint for Bitcoin. Returns a list of derived addresses for the given xpub address.
-   * @param {string} xpub - The xpub address to derive BTC addresses from.
-   * @returns {Promise<String[]>} A promise that resolves to an array of derived addresses.
+   * @deprecated Use getTransactions instead. This method will be removed in v2.0.0.
+   * Get a pagination object to iterate over transactions pages.
+   * @param {string} chain - The chain name.
+   * @param {string} accountAddress - The account address.
+   * @param {PageOptions} pageOptions - The page options object.
+   * @returns {Promise<TransactionsPage<UTXOTranslateTransaction>>} A promise that resolves to a TransactionsPage instance.
+   */
+  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<UTXOTranslateTransaction>> {
+    return this.getTransactions(chain, accountAddress, pageOptions);
+  }
+
+    /**
+   * Utility endpoint for Bitcoin. Returns a list of derived addresses for the given master key.
+   * @param {string} masterKey - The master key (xpub, ypub, or zpub) to derive BTC addresses from.
+   * @returns {Promise<UTXOTranslateAddressesResponse>} A promise that resolves to an array of derived addresses.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getAddressesByXpub(xpub: string): Promise<String[]> {
+  public async getAddressesByMasterKey(masterKey: string): Promise<UTXOTranslateAddressesResponse> {
     try {
-      const result = await this.request(`btc/addresses/${xpub}`);
-      if (!result || !result.response || !Array.isArray(result.response)) {
+      // Note: This specific endpoint uses 'uxto' instead of 'utxo' in the URL
+      // This is an API inconsistency that we need to handle
+      const url = `https://translate.noves.fi/uxto/btc/addresses/${masterKey}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'apiKey': this.apiKey,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorResponse = await response.json();
+        if (response.status === 400 && errorResponse.errors) {
+          throw new TransactionError(errorResponse.errors);
+        } else if (response.status === 500) {
+          throw new TransactionError({ general: ['Internal server error occurred'] });
+        }
+        throw new TransactionError({ general: [errorResponse.error || 'Failed to fetch addresses'] });
+      }
+
+      const addresses = await response.json();
+      if (!Array.isArray(addresses)) {
         throw new TransactionError({ general: ['Invalid response format'] });
       }
-      return result.response;
+      
+      return addresses;
     } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
       if (error instanceof Response) {
         const errorResponse = await error.json();
         if (errorResponse.status === 400 && errorResponse.errors) {
@@ -140,8 +160,19 @@ export class TranslateUTXO {
         }
         throw new TransactionError({ general: [errorResponse.error || 'Failed to fetch addresses'] });
       }
-      throw error;
+      throw new TransactionError({ general: ['Network error occurred'] });
     }
+  }
+
+  /**
+   * @deprecated Use getAddressesByMasterKey instead. This method will be removed in v2.0.0.
+   * Utility endpoint for Bitcoin. Returns a list of derived addresses for the given xpub address.
+   * @param {string} xpub - The xpub address to derive BTC addresses from.
+   * @returns {Promise<UTXOTranslateAddressesResponse>} A promise that resolves to an array of derived addresses.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async getAddressesByXpub(xpub: string): Promise<UTXOTranslateAddressesResponse> {
+    return this.getAddressesByMasterKey(xpub);
   }
 
   /**
@@ -149,10 +180,10 @@ export class TranslateUTXO {
    * @param {string} chain - The chain name.
    * @param {string} hash - The transaction hash.
    * @param {string} [viewAsAccountAddress] - Optional account address to view the transaction from its perspective.
-   * @returns {Promise<Transaction>} A promise that resolves to the transaction details.
+   * @returns {Promise<UTXOTranslateTransaction>} A promise that resolves to the transaction details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTransaction(chain: string, hash: string, viewAsAccountAddress?: string): Promise<Transaction> {
+  public async getTransaction(chain: string, hash: string, viewAsAccountAddress?: string): Promise<UTXOTranslateTransaction> {
     try {
       const endpoint = `${chain}/tx/${hash}${viewAsAccountAddress ? `?viewAsAccountAddress=${viewAsAccountAddress}` : ''}`;
       const result = await this.request(endpoint);
@@ -184,7 +215,7 @@ export class TranslateUTXO {
    * @param {number} [timestamp] - Optional timestamp to retrieve balances as of.
    * @param {boolean} [includePrices=true] - Optional. Whether to include token prices in the response.
    * @param {boolean} [excludeZeroPrices=false] - Optional. Whether to exclude tokens with zero price.
-   * @returns {Promise<Array<{balance: string, token: {symbol: string, name: string, decimals: number, address: string}}>>} A promise that resolves to the balances data.
+   * @returns {Promise<UTXOTranslateBalancesResponse>} A promise that resolves to the balances data.
    * @throws {TransactionError} If there are validation errors in the request.
    */
   public async getTokenBalances(
@@ -194,7 +225,7 @@ export class TranslateUTXO {
     timestamp?: number,
     includePrices: boolean = true,
     excludeZeroPrices: boolean = false
-  ): Promise<Array<{balance: string, token: {symbol: string, name: string, decimals: number, address: string}}>> {
+  ): Promise<UTXOTranslateBalancesResponse> {
     try {
       const endpoint = `${chain}/tokens/balancesOf/${accountAddress}`;
       const queryParams = new URLSearchParams();
@@ -231,6 +262,149 @@ export class TranslateUTXO {
           throw new TransactionError({ general: ['Internal server error occurred'] });
         }
         throw new TransactionError({ general: [errorResponse.error || 'Failed to fetch token balances'] });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Starts a transaction job for processing multiple transactions in a UTXO wallet.
+   * The job will be processed in the background, and results will become available once all transactions have been fetched.
+   * @param {string} chain - The chain name.
+   * @param {string} accountAddress - The account address.
+   * @param {number} [startBlock] - Optional starting block number.
+   * @param {number} [endBlock] - Optional ending block number.
+   * @param {number} [startTimestamp] - Optional starting timestamp.
+   * @param {number} [endTimestamp] - Optional ending timestamp.
+   * @returns {Promise<UTXOTranslateTransactionJob>} A promise that resolves to the transaction job.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async startTransactionJob(
+    chain: string,
+    accountAddress: string,
+    startBlock?: number,
+    endBlock?: number,
+    startTimestamp?: number,
+    endTimestamp?: number
+  ): Promise<UTXOTranslateTransactionJob> {
+    try {
+      const endpoint = `${chain}/txs/job/start`;
+      const queryParams = new URLSearchParams({
+        accountAddress: accountAddress
+      });
+      
+      if (startBlock !== undefined) queryParams.append('startBlock', startBlock.toString());
+      if (endBlock !== undefined) queryParams.append('endBlock', endBlock.toString());
+      if (startTimestamp !== undefined) queryParams.append('startTimestamp', startTimestamp.toString());
+      if (endTimestamp !== undefined) queryParams.append('endTimestamp', endTimestamp.toString());
+      
+      const url = `${endpoint}?${queryParams.toString()}`;
+      const result = await this.request(url, 'POST');
+      
+      if (!result || !result.response) {
+        throw new TransactionError({ general: ['Invalid response format'] });
+      }
+      
+      return result.response;
+    } catch (error) {
+      if (error instanceof Response) {
+        const errorResponse = await error.json();
+        if (errorResponse.status === 400 && errorResponse.errors) {
+          throw new TransactionError(errorResponse.errors);
+        } else if (errorResponse.status === 500) {
+          throw new TransactionError({ general: ['Internal server error occurred'] });
+        }
+        throw new TransactionError({ general: [errorResponse.error || 'Failed to start transaction job'] });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Gets the results of a transaction job.
+   * If the job is not finished yet, this will return a 425 status with progress information.
+   * @param {string} chain - The chain name.
+   * @param {string} jobId - The job ID from the transaction job.
+   * @param {PageOptions} pageOptions - The page options.
+   * @returns {Promise<UTXOTranslateTransactionJobResponse>} A promise that resolves to the transaction job response.
+   * @throws {TransactionError} If there are validation errors in the request or if the job is not finished (425 status).
+   */
+  public async getTransactionJobResults(
+    chain: string,
+    jobId: string,
+    pageOptions: PageOptions = {}
+  ): Promise<UTXOTranslateTransactionJobResponse> {
+    try {
+      const endpoint = `${chain}/txs/job/${jobId}`;
+      const url = constructUrl(endpoint, pageOptions);
+      const result = await this.request(url);
+      
+      if (!result || !result.response) {
+        throw new TransactionError({ general: ['Invalid response format'] });
+      }
+      
+      // Handle case where API returns 200 with "Job not ready yet" message
+      if (result.response.message && result.response.message.includes('Job not ready yet')) {
+        throw new TransactionError({ 
+          general: [result.response.detail?.message || 'Job is not finished yet'],
+          txsProcessed: result.response.detail?.txsProcessed 
+        });
+      }
+      
+      return result.response;
+    } catch (error) {
+      if (error instanceof Response) {
+        const errorResponse = await error.json();
+        if (errorResponse.status === 425) {
+          // Job is not finished yet, throw error with progress information
+          throw new TransactionError({ 
+            general: [errorResponse.detail?.message || 'Job is not finished yet'],
+            txsProcessed: errorResponse.detail?.txsProcessed 
+          });
+        } else if (errorResponse.status === 400 && errorResponse.errors) {
+          throw new TransactionError(errorResponse.errors);
+        } else if (errorResponse.status === 404) {
+          throw new TransactionError({ general: ['Job not found'] });
+        } else if (errorResponse.status === 500) {
+          throw new TransactionError({ general: ['Internal server error occurred'] });
+        }
+        throw new TransactionError({ general: [errorResponse.error || 'Failed to get transaction job results'] });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Deletes a transaction job.
+   * @param {string} chain - The chain name.
+   * @param {string} jobId - The job ID to delete.
+   * @returns {Promise<UTXOTranslateDeleteTransactionJobResponse>} A promise that resolves to the deletion confirmation message.
+   * @throws {TransactionError} If there are validation errors in the request.
+   */
+  public async deleteTransactionJob(
+    chain: string,
+    jobId: string
+  ): Promise<UTXOTranslateDeleteTransactionJobResponse> {
+    try {
+      const endpoint = `${chain}/txs/job/${jobId}`;
+      const result = await this.request(endpoint, 'DELETE');
+      
+      if (!result || !result.response) {
+        throw new TransactionError({ general: ['Invalid response format'] });
+      }
+      
+      return result.response;
+    } catch (error) {
+      if (error instanceof Response) {
+        const errorResponse = await error.json();
+        if (errorResponse.status === 400 && errorResponse.errors) {
+          throw new TransactionError(errorResponse.errors);
+        } else if (errorResponse.status === 404) {
+          throw new TransactionError({ general: ['Job not found'] });
+        } else if (errorResponse.status === 500) {
+          throw new TransactionError({ general: ['Internal server error occurred'] });
+        }
+        throw new TransactionError({ general: [errorResponse.error || 'Failed to delete transaction job'] });
       }
       throw error;
     }

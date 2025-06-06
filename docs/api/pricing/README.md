@@ -7,6 +7,8 @@ The Pricing API provides functionality to retrieve pricing information for token
 The Pricing API supports the following ecosystems:
 
 - [EVM-based blockchains](./evm.md) (Ethereum, Binance Smart Chain, Polygon, etc.)
+- [SVM-based blockchains](./svm.md) (Solana)
+- [UTXO-based blockchains](./utxo.md) (Bitcoin, Cardano)
 - [Cosmos-based blockchains](./cosmos.md) (Cosmos Hub, Osmosis, etc.)
 - [Move-based blockchains](./move.md) (Aptos, Sui, etc.)
 
@@ -25,6 +27,8 @@ import { Pricing } from "@noves/noves-sdk";
 
 // Initialize the pricing client for the ecosystem you want to use
 const evmPricing = Pricing.evm("YOUR_API_KEY");
+const svmPricing = Pricing.svm("YOUR_API_KEY");
+const utxoPricing = Pricing.utxo("YOUR_API_KEY");
 const cosmosPricing = Pricing.cosmos("YOUR_API_KEY");
 const movePricing = Pricing.move("YOUR_API_KEY");
 
@@ -32,6 +36,7 @@ const movePricing = Pricing.move("YOUR_API_KEY");
 async function examples() {
   // Get supported chains
   const evmChains = await evmPricing.getChains();
+  const utxoChains = await utxoPricing.getChains();
   
   // Get token price
   const tokenPrice = await evmPricing.getPrice("eth", "0x1234567890123456789012345678901234567890");
