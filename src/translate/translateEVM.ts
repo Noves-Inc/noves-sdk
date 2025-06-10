@@ -131,17 +131,24 @@ export class TranslateEVM extends BaseTranslate {
    * @param {string} chain - The chain name.
    * @param {string} hash - The transaction hash.
    * @param {number} [txTypeVersion=5] - Optional. The transaction type version to use (2 or 5). Defaults to 5.
+   * @param {string} [viewAsAccountAddress] - Optional. Results are returned with the view/perspective of this wallet address.
    * @returns {Promise<EVMTranslateTransactionV2 | EVMTranslateTransactionV5>} A promise that resolves to the transaction details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTransaction(chain: string, hash: string, txTypeVersion: number = 5): Promise<EVMTranslateTransactionV2 | EVMTranslateTransactionV5> {
+  public async getTransaction(chain: string, hash: string, txTypeVersion: number = 5, viewAsAccountAddress?: string): Promise<EVMTranslateTransactionV2 | EVMTranslateTransactionV5> {
     try {
       if (txTypeVersion !== 2 && txTypeVersion !== 5) {
         throw new TransactionError({ message: ['Invalid txTypeVersion. Must be either 2 or 5'] });
       }
 
       const validatedChain = chain.toLowerCase() === 'ethereum' ? 'eth' : chain.toLowerCase();
-      const endpoint = `${validatedChain}/tx/${hash}${txTypeVersion === 5 ? '?v5Format=true' : ''}`;
+      let endpoint = `${validatedChain}/tx/${hash}${txTypeVersion === 5 ? '?v5Format=true' : ''}`;
+      
+      if (viewAsAccountAddress) {
+        const separator = endpoint.includes('?') ? '&' : '?';
+        endpoint += `${separator}viewAsAccountAddress=${encodeURIComponent(viewAsAccountAddress)}`;
+      }
+      
       const result = await this.makeRequest(endpoint);
 
       if (txTypeVersion === 5) {

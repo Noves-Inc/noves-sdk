@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-06-10
+
+### Added
+- Enhanced EVM Translate API `getTransaction` method:
+  - New optional `viewAsAccountAddress` parameter for transaction perspective filtering
+  - Allows viewing transactions from a specific wallet address perspective
+  - Supports both v2 and v5 transaction format versions
+  - Maintains backward compatibility with existing method signature
+- Comprehensive test coverage for the new `viewAsAccountAddress` parameter:
+  - Tests for v2 format with viewAsAccountAddress
+  - Tests for v5 format with viewAsAccountAddress  
+  - Tests for exact API parameter matching
+- Updated documentation and examples:
+  - Enhanced API documentation with new parameter details
+  - Added practical usage examples with DSProxy contract perspective
+  - Updated method signature documentation
+
+### Changed
+- Updated EVM Translate API implementation:
+  - Enhanced URL construction logic to properly handle viewAsAccountAddress parameter
+  - Improved parameter encoding for safe URL transmission
+  - Added proper query parameter handling for both v2 and v5 formats
+
 ## [1.1.0] - 2025-06-06
 
 ### Added

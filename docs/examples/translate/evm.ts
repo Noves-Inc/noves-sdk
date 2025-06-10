@@ -307,6 +307,37 @@ async function evmTranslateExample() {
       });
     }
 
+    // 7a. Get transaction details with viewAsAccountAddress (v2 format)
+    console.log("\nFetching transaction details with viewAsAccountAddress (DSProxy perspective)...");
+    const contractAddress = "0xaD270aDA5Ce83C6B87976E33D829763f03fD59f1"; // DSProxy contract address
+    const txDetailsWithView = await evmTranslate.getTransaction("eth", txHash, 2, contractAddress);
+    if (txDetailsWithView.txTypeVersion === 2) {
+      console.log("Transaction details (from contract perspective):", {
+        txTypeVersion: txDetailsWithView.txTypeVersion,
+        chain: txDetailsWithView.chain,
+        accountAddress: txDetailsWithView.accountAddress, // This will be the viewAsAccountAddress
+        classificationData: {
+          type: txDetailsWithView.classificationData.type,
+          description: txDetailsWithView.classificationData.description,
+          protocol: txDetailsWithView.classificationData.protocol,
+          source: txDetailsWithView.classificationData.source,
+          sent: txDetailsWithView.classificationData.sent.slice(0, 2), // Show first 2 sent from contract's perspective
+          received: txDetailsWithView.classificationData.received.slice(0, 2) // Show first 2 received from contract's perspective
+        },
+        rawTransactionData: {
+          transactionHash: txDetailsWithView.rawTransactionData.transactionHash,
+          fromAddress: txDetailsWithView.rawTransactionData.fromAddress,
+          toAddress: txDetailsWithView.rawTransactionData.toAddress,
+          blockNumber: txDetailsWithView.rawTransactionData.blockNumber,
+          gas: txDetailsWithView.rawTransactionData.gas,
+          gasUsed: txDetailsWithView.rawTransactionData.gasUsed,
+          gasPrice: txDetailsWithView.rawTransactionData.gasPrice,
+          transactionFee: txDetailsWithView.rawTransactionData.transactionFee,
+          timestamp: txDetailsWithView.rawTransactionData.timestamp
+        }
+      });
+    }
+
     // 8. Get transaction description for a single transaction
     console.log("\nFetching description for a single transaction...");
     const singleTxDescription = await evmTranslate.describeTransaction("eth", txHash);

@@ -425,6 +425,160 @@ describe('TranslateEVM', () => {
       mockRequest.mockRejectedValue(new TransactionError({ message: ['Invalid transaction hash'] }));
       await expect(translateEVM.getTransaction(validChain, 'invalid-hash')).rejects.toThrow(TransactionError);
     });
+
+    it('should get transaction details with viewAsAccountAddress parameter', async () => {
+      const mockTransaction = {
+        txTypeVersion: 5,
+        chain: 'eth',
+        accountAddress: '0x123',
+        classificationData: {
+          type: 'transfer',
+          source: {
+            type: 'human'
+          },
+          description: 'Transfer of ETH',
+          protocol: {
+            name: null
+          }
+        },
+        transfers: [],
+        values: [],
+        rawTransactionData: {
+          transactionHash: '0xabc',
+          fromAddress: '0x123',
+          toAddress: '0x456',
+          blockNumber: 123,
+          gas: 21000,
+          gasUsed: 21000,
+          gasPrice: 20000000000,
+          transactionFee: {
+            amount: "0.00042",
+            token: {
+              symbol: "ETH",
+              name: "ETH",
+              decimals: 18,
+              address: "ETH"
+            }
+          },
+          timestamp: 1234567890
+        }
+      };
+
+      const viewAsAddress = '0x1234567890123456789012345678901234567890';
+      mockRequest.mockResolvedValue(mockTransaction);
+
+      const result = await translateEVM.getTransaction(validChain, '0xabc', 5, viewAsAddress);
+      expect(result).toEqual(mockTransaction);
+      expect(result.txTypeVersion).toBe(5);
+      expect(mockRequest).toHaveBeenCalledWith(
+        `eth/tx/0xabc?v5Format=true&viewAsAccountAddress=${encodeURIComponent(viewAsAddress)}`
+      );
+    });
+
+    it('should get transaction details with viewAsAccountAddress and v2 format', async () => {
+      const mockTransaction = {
+        txTypeVersion: 2,
+        chain: 'eth',
+        accountAddress: '0x123',
+        classificationData: {
+          type: 'transfer',
+          source: {
+            type: 'human'
+          },
+          description: 'Transfer of ETH',
+          protocol: {
+            name: null
+          },
+          sent: [],
+          received: []
+        },
+        rawTransactionData: {
+          transactionHash: '0xabc',
+          fromAddress: '0x123',
+          toAddress: '0x456',
+          blockNumber: 123,
+          gas: 21000,
+          gasUsed: 21000,
+          gasPrice: 20000000000,
+          transactionFee: {
+            amount: "0.00042",
+            token: {
+              symbol: "ETH",
+              name: "ETH",
+              decimals: 18,
+              address: "ETH"
+            }
+          },
+          timestamp: 1234567890
+        }
+      };
+
+      const viewAsAddress = '0x1234567890123456789012345678901234567890';
+      mockRequest.mockResolvedValue(mockTransaction);
+
+      const result = await translateEVM.getTransaction(validChain, '0xabc', 2, viewAsAddress);
+      expect(result).toEqual(mockTransaction);
+      expect(result.txTypeVersion).toBe(2);
+      expect(mockRequest).toHaveBeenCalledWith(
+        `eth/tx/0xabc?viewAsAccountAddress=${encodeURIComponent(viewAsAddress)}`
+      );
+    });
+
+    it('should generate correct URL for exact curl command parameters', async () => {
+      const mockTransaction = {
+        txTypeVersion: 2,
+        chain: 'eth',
+        accountAddress: '0xaD270aDA5Ce83C6B87976E33D829763f03fD59f1',
+        classificationData: {
+          type: 'addLiquidity',
+          source: {
+            type: 'human'
+          },
+          description: 'Added 22,223.44 YD-ETH-MAR21, 24,875.82 USDC and 2 more to a liquidity pool.',
+          protocol: {
+            name: null
+          },
+          sent: [],
+          received: []
+        },
+        rawTransactionData: {
+          transactionHash: '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22',
+          fromAddress: '0xA1EFa0adEcB7f5691605899d13285928AE025844',
+          toAddress: '0xaD270aDA5Ce83C6B87976E33D829763f03fD59f1',
+          blockNumber: 12345453,
+          gas: 378651,
+          gasUsed: 222083,
+          gasPrice: 47000000000,
+          transactionFee: {
+            amount: "0.010437901",
+            token: {
+              symbol: "ETH",
+              name: "ETH",
+              decimals: 18,
+              address: "ETH"
+            }
+          },
+          timestamp: 1619833950
+        }
+      };
+
+      mockRequest.mockResolvedValue(mockTransaction);
+
+      // Test the exact same parameters from the curl command
+      const result = await translateEVM.getTransaction(
+        'eth', 
+        '0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22', 
+        2, 
+        '0xaD270aDA5Ce83C6B87976E33D829763f03fD59f1'
+      );
+      
+      expect(result).toEqual(mockTransaction);
+      expect(result.txTypeVersion).toBe(2);
+      expect(result.accountAddress).toBe('0xaD270aDA5Ce83C6B87976E33D829763f03fD59f1');
+      expect(mockRequest).toHaveBeenCalledWith(
+        'eth/tx/0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22?viewAsAccountAddress=0xaD270aDA5Ce83C6B87976E33D829763f03fD59f1'
+      );
+    });
   });
 
   describe('getTokenBalances', () => {

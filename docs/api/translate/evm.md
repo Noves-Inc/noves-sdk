@@ -177,7 +177,7 @@ type EVMTranslateDescribeTransactionsResponse = EVMTranslateDescribeTransactions
 ]
 ```
 
-### getTransaction(chain: string, txHash: string, txTypeVersion?: number)
+### getTransaction(chain: string, txHash: string, txTypeVersion?: number, viewAsAccountAddress?: string)
 Get detailed information about a specific transaction. Returns different formats based on txTypeVersion.
 
 ```typescript
@@ -193,7 +193,21 @@ const txInfoV2 = await evmTranslate.getTransaction(
   "0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22",
   2
 );
+
+// Get transaction from a specific account's perspective (DSProxy contract)
+const txInfoWithView = await evmTranslate.getTransaction(
+  "eth",
+  "0x1cd4d61b9750632da36980329c240a5d2d2219a8cb3daaaebfaed4ae7b4efa22",
+  2,
+  "0xaD270aDA5Ce83C6B87976E33D829763f03fD59f1"
+);
 ```
+
+#### Parameters
+- `chain`: The blockchain name (e.g., "eth", "bsc", "polygon")
+- `txHash`: The transaction hash to retrieve
+- `txTypeVersion` (optional): The transaction format version (2 or 5). Defaults to 5.
+- `viewAsAccountAddress` (optional): View the transaction from this account's perspective
 
 #### Response Format (v2)
 ```typescript
