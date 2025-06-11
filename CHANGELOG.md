@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025-06-11
+
+### Added
+- Enhanced pagination navigation with new `previous()` method:
+  - New `previous()` method in `Pagination` base class for going back to previous pages
+  - New `hasPrevious()` method to check if there's a previous page available
+  - Enhanced navigation capabilities across all Translate APIs
+- Async iterator support for all TransactionsPage objects:
+  - Implemented `Symbol.asyncIterator` for seamless iteration through all transactions
+  - Allows `for await (const tx of transactionsPage)` syntax
+  - Automatically handles pagination while iterating
+- **Cursor-based pagination support for advanced use cases with comprehensive documentation**:
+  - New `getCursorInfo()` method returns cursor metadata with next/previous availability
+  - New `getNextCursor()` and `getPreviousCursor()` methods return Base64-encoded cursor strings
+  - New static `TransactionsPage.fromCursor()` method creates pages from cursor strings
+  - New static `TransactionsPage.decodeCursor()` method for cursor string parsing
+  - Enables external APIs to encode/decode pagination state without SDK dependency
+- Enhanced URL parameter handling:
+  - Added support for additional pagination parameters: `ignoreTransactions`, `pageKey`, `pageNumber`, `ascending`
+  - Improved parameter parsing in `urlUtils.ts` for better pagination control
+- Comprehensive example updates:
+  - Updated all ecosystem examples (EVM, SVM, Cosmos, Polkadot, TVM, UTXO) with advanced pagination demonstrations
+  - Added examples for `previous()` navigation and async iterator usage
+  - Enhanced documentation with practical pagination scenarios
+
+### Changed
+- **Major pagination API improvements**:
+  - **Cosmos Translate API**: Refactored `getTransactions` method to return `TransactionsPage` instead of raw API response
+    - Maintains backward compatibility with deprecated `Transactions` method
+    - Provides consistent pagination interface across all ecosystems
+  - **Polkadot Translate API**: Refactored `getTransactions` method to return `TransactionsPage` instead of raw API response  
+    - Maintains backward compatibility with deprecated `Transactions` method
+    - Improved URL parsing for pagination parameters
+- Enhanced `TransactionsPage` implementation:
+  - Updated internal pagination logic to use `getTransactions` method instead of deprecated `Transactions`
+  - Improved error handling and fallback mechanisms
+  - Better state management for navigation history
+
+- Updated documentation across all APIs:
+  - Enhanced method descriptions with new pagination capabilities
+  - Added comprehensive examples for advanced pagination use cases
+  - Improved clarity on deprecated vs recommended methods
+- Enhanced test coverage:
+  - Added tests for `previous()` navigation functionality
+  - Added tests for async iterator behavior
+  - Updated existing tests to work with new `TransactionsPage` return types
+
 ## [1.1.1] - 2025-06-10
 
 ### Added

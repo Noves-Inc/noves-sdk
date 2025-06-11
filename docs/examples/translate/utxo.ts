@@ -1,5 +1,6 @@
 import { Translate } from '../../../src';
 import { UTXOTranslateChain } from '../../../src/types/utxo';
+import { TransactionsPage } from '../../../src/index';
 
 async function main() {
   // Initialize the UTXO translator
@@ -27,17 +28,85 @@ async function main() {
       return;
     }
 
-    // Get transactions for a Bitcoin address
+    // Get transactions for a Bitcoin address with advanced pagination
     console.log('\nFetching transactions for a Bitcoin address...');
     const address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'; // Example Bitcoin address
-    const transactions = await translate.getTransactions('btc', address, {
+    const transactionsPage = await translate.getTransactions('btc', address, {
       pageSize: 5,
       sort: 'desc'
     });
 
-    console.log('First page of transactions:');
-    for await (const tx of transactions) {
-      console.log(JSON.stringify(tx, null, 2));
+    // Process current page of transactions
+    const currentTransactions = transactionsPage.getTransactions();
+    console.log('First page of transactions:', currentTransactions.length, 'transactions');
+    console.log('Has next page:', !!transactionsPage.getNextPageKeys());
+    console.log('Has previous page:', transactionsPage.hasPrevious());
+
+    // Show first transaction details
+    if (currentTransactions.length > 0) {
+      console.log('First transaction:', {
+        hash: currentTransactions[0].rawTransactionData.transactionHash,
+        type: currentTransactions[0].classificationData.type,
+        blockNumber: currentTransactions[0].rawTransactionData.blockNumber
+      });
+    }
+
+    // Demonstrate pagination navigation
+    if (transactionsPage.getNextPageKeys()) {
+      console.log('\nNavigating to next page...');
+      await transactionsPage.next();
+      const nextPageTransactions = transactionsPage.getTransactions();
+      console.log('Next page transactions:', nextPageTransactions.length);
+      console.log('Has previous page now:', transactionsPage.hasPrevious());
+      
+      // Go back to previous page
+      if (transactionsPage.hasPrevious()) {
+        console.log('Going back to previous page...');
+        await transactionsPage.previous();
+        const backToFirstPage = transactionsPage.getTransactions();
+        console.log('Back to first page transactions:', backToFirstPage.length);
+        console.log('Has previous page after going back:', transactionsPage.hasPrevious());
+      }
+    }
+
+    // Advanced cursor-based pagination examples
+    console.log('\n=== Cursor-Based Pagination Examples ===');
+    
+    // Get a fresh transactions page to demonstrate cursor features
+    const cursorTransactionsPage = await translate.getTransactions('btc', address, {
+      pageSize: 3
+    });
+
+    // Get cursor information
+    const cursorInfo = cursorTransactionsPage.getCursorInfo();
+    console.log('Cursor Info:', cursorInfo);
+
+    // Extract individual cursors
+    const nextCursor = cursorTransactionsPage.getNextCursor();
+    const previousCursor = cursorTransactionsPage.getPreviousCursor();
+    
+    console.log('Next cursor:', nextCursor);
+    console.log('Previous cursor:', previousCursor);
+
+    // Demonstrate creating a page from a cursor
+    if (nextCursor) {
+      console.log('\nCreating new page from next cursor...');
+      const pageFromCursor = await TransactionsPage.fromCursor(
+        translate,
+        'btc',
+        address,
+        nextCursor
+      );
+      
+      console.log('Page from cursor has:', pageFromCursor.getTransactions().length, 'transactions');
+      console.log('Page from cursor info:', pageFromCursor.getCursorInfo());
+    }
+
+    // Demonstrate cursor decoding
+    if (nextCursor) {
+      console.log('\nDecoding cursor to see page options...');
+      const decodedPageOptions = TransactionsPage.decodeCursor(nextCursor);
+      console.log('Decoded cursor:', decodedPageOptions);
     }
 
     // Example of getting derived addresses from different master key formats

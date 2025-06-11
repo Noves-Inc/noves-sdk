@@ -998,6 +998,135 @@ describe('TranslateEVM', () => {
         }
       }
     });
+
+    it('should support advanced pagination navigation', async () => {
+      // Mock first page response with proper transaction structure
+      const mockTransaction1 = {
+        txTypeVersion: 2,
+        chain: validChain,
+        accountAddress: validAddress,
+        classificationData: {
+          type: 'transfer',
+          description: 'Test transaction 1',
+          protocol: {},
+          source: { type: 'user' },
+          sent: [],
+          received: []
+        },
+        rawTransactionData: {
+          transactionHash: '0x123',
+          blockNumber: 12345,
+          timestamp: 1234567890
+        }
+      };
+      
+      const mockTransaction2 = {
+        txTypeVersion: 2,
+        chain: validChain,
+        accountAddress: validAddress,
+        classificationData: {
+          type: 'transfer',
+          description: 'Test transaction 2',
+          protocol: {},
+          source: { type: 'user' },
+          sent: [],
+          received: []
+        },
+        rawTransactionData: {
+          transactionHash: '0x456',
+          blockNumber: 12346,
+          timestamp: 1234567891
+        }
+      };
+
+      const page1Response = {
+        items: [mockTransaction1, mockTransaction2],
+        hasNextPage: true,
+        nextPageUrl: 'https://api.example.com/page2',
+        pageSize: 2
+      };
+      
+      // Mock second page response with proper transaction structure
+      const mockTransaction3 = {
+        txTypeVersion: 2,
+        chain: validChain,
+        accountAddress: validAddress,
+        classificationData: {
+          type: 'transfer',
+          description: 'Test transaction 3',
+          protocol: {},
+          source: { type: 'user' },
+          sent: [],
+          received: []
+        },
+        rawTransactionData: {
+          transactionHash: '0x789',
+          blockNumber: 12347,
+          timestamp: 1234567892
+        }
+      };
+      
+      const mockTransaction4 = {
+        txTypeVersion: 2,
+        chain: validChain,
+        accountAddress: validAddress,
+        classificationData: {
+          type: 'transfer',
+          description: 'Test transaction 4',
+          protocol: {},
+          source: { type: 'user' },
+          sent: [],
+          received: []
+        },
+        rawTransactionData: {
+          transactionHash: '0xabc',
+          blockNumber: 12348,
+          timestamp: 1234567893
+        }
+      };
+      
+      const page2Response = {
+        items: [mockTransaction3, mockTransaction4],
+        hasNextPage: false,
+        nextPageUrl: null,
+        pageSize: 2
+      };
+
+      // Start with first page
+      mockRequest.mockResolvedValueOnce(page1Response);
+      const transactionsPage = await translateEVM.getTransactions(validChain, validAddress, { pageSize: 2 });
+
+      // Test initial state
+      expect(transactionsPage).toBeInstanceOf(TransactionsPage);
+      expect(transactionsPage.getTransactions()).toHaveLength(2);
+      expect(transactionsPage.hasPrevious()).toBe(false);
+      expect(transactionsPage.getNextPageKeys()).toBeTruthy();
+
+      // Mock second page request
+      mockRequest.mockResolvedValueOnce(page2Response);
+      
+      // Navigate to next page
+      const hasNext = await transactionsPage.next();
+      expect(hasNext).toBe(true);
+      expect(transactionsPage.getTransactions()).toHaveLength(2);
+      expect(transactionsPage.hasPrevious()).toBe(true);
+      expect(transactionsPage.getNextPageKeys()).toBeFalsy();
+
+      // Mock going back to first page
+      mockRequest.mockResolvedValueOnce(page1Response);
+      
+      // Navigate back to previous page
+      const hasPrevious = await transactionsPage.previous();
+      expect(hasPrevious).toBe(true);
+      expect(transactionsPage.getTransactions()).toHaveLength(2);
+      expect(transactionsPage.hasPrevious()).toBe(false);
+      expect(transactionsPage.getNextPageKeys()).toBeTruthy();
+
+      // Try to go back from first page (should fail)
+      const cannotGoBack = await transactionsPage.previous();
+      expect(cannotGoBack).toBe(false);
+      expect(transactionsPage.hasPrevious()).toBe(false);
+    });
   });
 
   describe('getRawTransaction', () => {

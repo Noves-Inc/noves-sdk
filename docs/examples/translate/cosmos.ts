@@ -1,6 +1,7 @@
 import { TranslateCOSMOS } from "../../../src/translate/translateCOSMOS";
 import { CosmosTransactionJobError } from "../../../src/errors/CosmosError";
 import { TransactionError } from "../../../src/errors/TransactionError";
+import { TransactionsPage } from "../../../src/index";
 
 /**
  * Example demonstrating the usage of the Cosmos Translate API
@@ -21,21 +22,21 @@ async function cosmosTranslateExample() {
     const balances = await cosmosTranslate.getTokenBalances("cosmoshub", accountAddress);
     console.log("Token balances:", balances);
 
-    // 3. Get transactions directly (recommended approach)
-    console.log("\nFetching transactions directly...");
-    const response = await cosmosTranslate.getTransactions(
+    // 3. Get transactions with pagination
+    console.log("\nFetching transactions with pagination...");
+    const transactionsPage = await cosmosTranslate.getTransactions(
       "cosmoshub",
       accountAddress,
       { pageSize: 5 }
     );
 
-    console.log("Account:", response.account);
-    console.log("Page size:", response.pageSize);
-    console.log("Has next page:", response.hasNextPage);
-    console.log("Total transactions in this page:", response.items.length);
+    // Get current page transactions
+    let transactions = transactionsPage.getTransactions();
+    console.log("First page transactions:", transactions.length);
+    console.log("Has next page:", !!transactionsPage.getNextPageKeys());
 
-    // Process transactions
-    response.items.forEach((tx, index) => {
+    // Process current page transactions
+    transactions.forEach((tx, index) => {
       console.log(`Transaction ${index + 1}:`, {
         hash: tx.rawTransactionData.txhash || "Genesis transaction (no hash)",
         timestamp: tx.rawTransactionData.timestamp,
@@ -46,20 +47,26 @@ async function cosmosTranslateExample() {
       });
     });
 
-    // 4. Get transaction history with pagination (legacy method)
-    console.log("\nFetching transaction history with pagination...");
-    const transactionsPage = await cosmosTranslate.Transactions(
-      "cosmoshub",
-      accountAddress,
-      { pageSize: 5 }
-    );
+    // Navigate through pages
+    if (transactionsPage.getNextPageKeys()) {
+      console.log("\nFetching next page...");
+      await transactionsPage.next();
+      
+      const nextPageTransactions = transactionsPage.getTransactions();
+      console.log("Second page transactions:", nextPageTransactions.length);
+      
+      // Go back to first page
+      if (transactionsPage.hasPrevious()) {
+        console.log("\nGoing back to first page...");
+        await transactionsPage.previous();
+        console.log("Back to first page transactions:", transactionsPage.getTransactions().length);
+      }
+    }
 
-    // Process transactions
+    // 4. Process all transactions using iterator
+    console.log("\nProcessing all transactions using iterator...");
     let count = 0;
-    let currentTransactions = transactionsPage.getTransactions();
-    
-    // Process current page
-    for (const tx of currentTransactions) {
+    for await (const tx of transactionsPage) {
       console.log(`Transaction ${++count}:`, {
         hash: tx.rawTransactionData.txhash || "Genesis transaction (no hash)",
         timestamp: tx.rawTransactionData.timestamp,
@@ -70,30 +77,115 @@ async function cosmosTranslateExample() {
       });
     }
 
-    // Process next pages if available
-    while (await transactionsPage.next()) {
-      currentTransactions = transactionsPage.getTransactions();
-      for (const tx of currentTransactions) {
-        console.log(`Transaction ${++count}:`, {
-          hash: tx.rawTransactionData.txhash || "Genesis transaction (no hash)",
-          timestamp: tx.rawTransactionData.timestamp,
-          type: tx.classificationData.type,
-          description: tx.classificationData.description,
-          height: tx.rawTransactionData.height,
-          gasUsed: tx.rawTransactionData.gas_used
-        });
-      }
+    // 5. Advanced cursor-based pagination examples
+    console.log("\n=== Cursor-Based Pagination Examples ===");
+    
+    // Get a fresh transactions page to demonstrate cursor features
+    const cursorTransactionsPage = await cosmosTranslate.getTransactions("cosmoshub", accountAddress, {
+      pageSize: 3
+    });
+
+    // Get cursor information
+    const cursorInfo = cursorTransactionsPage.getCursorInfo();
+    console.log("Cursor Info:", cursorInfo);
+
+    // Extract individual cursors
+    const nextCursor = cursorTransactionsPage.getNextCursor();
+    const previousCursor = cursorTransactionsPage.getPreviousCursor();
+    
+    console.log("Next cursor:", nextCursor);
+    console.log("Previous cursor:", previousCursor);
+
+    // Demonstrate creating a page from a cursor
+    if (nextCursor) {
+      console.log("\nCreating new page from next cursor...");
+      const pageFromCursor = await TransactionsPage.fromCursor(
+        cosmosTranslate,
+        "cosmoshub",
+        accountAddress,
+        nextCursor
+      );
+      
+      console.log("Page from cursor has:", pageFromCursor.getTransactions().length, "transactions");
+      console.log("Page from cursor info:", pageFromCursor.getCursorInfo());
     }
 
-    // 5. Start a transaction job
+    // Demonstrate cursor decoding
+    if (nextCursor) {
+      console.log("\nDecoding cursor to see page options...");
+      const decodedPageOptions = TransactionsPage.decodeCursor(nextCursor);
+      console.log("Decoded cursor:", decodedPageOptions);
+    }
+
+    // Example: Building a GraphQL-style pagination interface
+    console.log("\n=== Custom Pagination Interface Example ===");
+    
+    async function getTransactionsWithCustomPagination(
+      chain: string, 
+      address: string, 
+      cursor?: string, 
+      pageSize: number = 3
+    ) {
+      let transactionsPage;
+      
+      if (cursor) {
+        // Resume from cursor
+        transactionsPage = await TransactionsPage.fromCursor(
+          cosmosTranslate, 
+          chain, 
+          address, 
+          cursor
+        );
+      } else {
+        // Start from beginning
+        transactionsPage = await cosmosTranslate.getTransactions(chain, address, {
+          pageSize
+        });
+      }
+      
+      const cursorInfo = transactionsPage.getCursorInfo();
+      
+      return {
+        transactions: transactionsPage.getTransactions(),
+        pageInfo: {
+          hasNextPage: cursorInfo.hasNextPage,
+          hasPreviousPage: cursorInfo.hasPreviousPage,
+          startCursor: cursor || null,
+          endCursor: cursorInfo.nextCursor
+        }
+      };
+    }
+
+    // Use the custom pagination interface
+    console.log("Getting first page with custom interface...");
+    const customPage1 = await getTransactionsWithCustomPagination("cosmoshub", accountAddress);
+    console.log("Custom page 1:", {
+      transactionCount: customPage1.transactions.length,
+      pageInfo: customPage1.pageInfo
+    });
+
+    if (customPage1.pageInfo.endCursor) {
+      console.log("Getting second page with custom interface...");
+      const customPage2 = await getTransactionsWithCustomPagination(
+        "cosmoshub", 
+        accountAddress, 
+        customPage1.pageInfo.endCursor
+      );
+      console.log("Custom page 2:", {
+        transactionCount: customPage2.transactions.length,
+        pageInfo: customPage2.pageInfo
+      });
+    }
+
+    // 6. Start a transaction job
     console.log("\nStarting transaction job...");
     const job = await cosmosTranslate.startTransactionJob("cosmoshub", accountAddress);
     console.log("Job started:", job);
 
     // 6. Get job results
-    if (job.pageId) {
+    if (job.nextPageId) {
       console.log("\nFetching job results...");
-      const results = await cosmosTranslate.getTransactionJobResults("cosmoshub", job.pageId);
+      const results = await cosmosTranslate.getTransactionJobResults("cosmoshub", job.nextPageId);
       console.log("Job results:", results);
     }
 
@@ -120,9 +212,7 @@ async function cosmosErrorHandlingExample() {
   // Example 2: Transaction job error
   try {
     const job = await cosmosTranslate.startTransactionJob("cosmoshub", "valid-address");
-    if (job.status === 'failed') {
-      throw new CosmosTransactionJobError(job.jobId, job.status);
-    }
+    console.log("Job started successfully:", job.nextPageId);
   } catch (error) {
     if (error instanceof CosmosTransactionJobError) {
       console.error("Transaction job error:", error.message);
@@ -151,15 +241,16 @@ async function cosmosAdvancedExample() {
 
     // 3. Process transactions with proper null handling
     console.log("\nProcessing transactions with null handling...");
-    const response = await cosmosTranslate.getTransactions(
+    const transactionsPage = await cosmosTranslate.getTransactions(
       "cosmoshub",
       accountAddress,
       { pageSize: 10 }
     );
 
     // Process transactions with proper null handling
-    for (let index = 0; index < response.items.length; index++) {
-      const tx = response.items[index];
+    const transactions = transactionsPage.getTransactions();
+    for (let index = 0; index < transactions.length; index++) {
+      const tx = transactions[index];
       try {
         // Handle nullable txhash properly
         const txHash = tx.rawTransactionData.txhash;
@@ -189,16 +280,16 @@ async function cosmosAdvancedExample() {
       }
     }
 
-    // 4. Process paginated transactions with error handling (legacy method)
+    // 4. Process paginated transactions with error handling
     console.log("\nProcessing paginated transactions...");
-    const transactionsPage = await cosmosTranslate.Transactions(
+    const paginatedTransactions = await cosmosTranslate.getTransactions(
       "cosmoshub",
       accountAddress,
       { pageSize: 10 }
     );
 
     // Process current page
-    let currentTransactions = transactionsPage.getTransactions();
+    let currentTransactions = paginatedTransactions.getTransactions();
     for (const tx of currentTransactions) {
       try {
         // Process each transaction with null handling

@@ -138,7 +138,7 @@ describe('TranslateCOSMOS', () => {
   describe('getTransactions', () => {
     const pageOptions: PageOptions = { pageSize: 10 };
 
-    it('should return transactions response directly', async () => {
+    it('should return valid TransactionsPage instance', async () => {
       const mockResponse: COSMOSTranslateTransactionsResponse = {
         account: validCosmosAddress,
         items: [
@@ -191,17 +191,12 @@ describe('TranslateCOSMOS', () => {
       mockRequest.mockResolvedValue(mockResponse);
 
       const result = await translateCOSMOS.getTransactions(validChain, validCosmosAddress, pageOptions);
-      expect(result).toHaveProperty('account');
-      expect(result).toHaveProperty('items');
-      expect(result).toHaveProperty('pageSize');
-      expect(result).toHaveProperty('hasNextPage');
-      expect(result).toHaveProperty('startBlock');
-      expect(result).toHaveProperty('endBlock');
-      expect(result).toHaveProperty('nextPageUrl');
-      expect(result.account).toBe(validCosmosAddress);
-      expect(Array.isArray(result.items)).toBe(true);
-      if (result.items.length > 0) {
-        result.items.forEach((tx: COSMOSTranslateTransaction) => {
+      expect(result).toBeInstanceOf(TransactionsPage);
+      
+      const transactions = result.getTransactions();
+      expect(Array.isArray(transactions)).toBe(true);
+      if (transactions.length > 0) {
+        transactions.forEach((tx: COSMOSTranslateTransaction) => {
           expect(tx).toMatchObject({
             rawTransactionData: expect.objectContaining({
               txhash: expect.anything() // Can be string or null
@@ -264,7 +259,8 @@ describe('TranslateCOSMOS', () => {
       mockRequest.mockResolvedValue(mockResponse);
 
       const result = await translateCOSMOS.getTransactions(validChain, validCosmosAddress, pageOptions);
-      expect(result.items[0].rawTransactionData.txhash).toBeNull();
+      const transactions = result.getTransactions();
+      expect(transactions[0].rawTransactionData.txhash).toBeNull();
     });
 
     it('should handle API errors', async () => {

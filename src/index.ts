@@ -133,5 +133,8 @@ export { PricingCosmos } from './pricing/pricingCosmos';
 export { PriceType, SVMPriceType, UTXOPriceType }
 export { shortenAddress } from './utils/addressUtils';
 
+// Export pagination classes
+export { TransactionsPage } from './translate/transactionsPage';
+
 // Export error classes
 export { TransactionError } from './errors/TransactionError';

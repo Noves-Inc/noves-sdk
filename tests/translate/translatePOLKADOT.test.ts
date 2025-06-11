@@ -251,7 +251,7 @@ describe('TranslatePOLKADOT', () => {
             }
         };
 
-        it('should return transactions response directly', async () => {
+        it('should return valid TransactionsPage instance', async () => {
             global.fetch = jest.fn().mockResolvedValue({
                 ok: true,
                 json: () => Promise.resolve(mockTransactionsResponse)
@@ -262,9 +262,10 @@ describe('TranslatePOLKADOT', () => {
                 endBlock: 4000001
             });
 
-            expect(result).toEqual(mockTransactionsResponse);
-            expect(result.items).toHaveLength(1);
-            expect(result.nextPageSettings.hasNextPage).toBe(false);
+            expect(result).toBeInstanceOf(TransactionsPage);
+            const transactions = result.getTransactions();
+            expect(transactions).toHaveLength(1);
+            expect(result.getNextPageKeys()).toBeNull();
         });
 
         it('should handle pagination correctly', async () => {
@@ -283,8 +284,8 @@ describe('TranslatePOLKADOT', () => {
             });
 
             const result = await translate.getTransactions('bittensor', '5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7');
-            expect(result.nextPageSettings.hasNextPage).toBe(true);
-            expect(result.nextPageSettings.nextPageUrl).toBeTruthy();
+            expect(result).toBeInstanceOf(TransactionsPage);
+            expect(result.getNextPageKeys()).toBeTruthy();
         });
 
         it('should throw TransactionError on invalid response', async () => {

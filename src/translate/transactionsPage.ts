@@ -54,7 +54,7 @@ export class TransactionsPage<T extends PaginatedItem> extends Pagination<T> {
         try {
             let response;
             if (this.walletAddress) {
-                response = await this.translate.Transactions(this.chain, this.walletAddress, this.nextPageKeys);
+                response = await this.translate.getTransactions(this.chain, this.walletAddress, this.nextPageKeys);
             } else if (this.blockNumber !== undefined) {
                 response = await (this.translate as any).getBlockTransactions(this.chain, this.blockNumber, this.nextPageKeys);
             } else if (this.tokenAddress) {
@@ -108,6 +108,38 @@ export class TransactionsPage<T extends PaginatedItem> extends Pagination<T> {
 
             // No more transactions
             break;
+        }
+    }
+
+    /**
+     * Create a TransactionsPage from a cursor string.
+     * This is useful for cursor-based pagination where the cursor is passed between API calls.
+     * @param {any} translate - The translate instance (EVM, SVM, COSMOS, etc.)
+     * @param {string} chain - The chain name
+     * @param {string} address - The wallet address
+     * @param {string} cursor - The Base64 encoded cursor string
+     * @returns {Promise<TransactionsPage<T>>} A new TransactionsPage instance for the cursor position
+     */
+    public static async fromCursor<T extends PaginatedItem>(
+        translate: any,
+        chain: string,
+        address: string,
+        cursor: string
+    ): Promise<TransactionsPage<T>> {
+        const pageOptions = TransactionsPage.decodeCursor(cursor);
+        return await translate.getTransactions(chain, address, pageOptions);
+    }
+
+    /**
+     * Decode a cursor string back to PageOptions.
+     * @param {string} cursor - The Base64 encoded cursor string.
+     * @returns {PageOptions} The decoded page options.
+     */
+    public static decodeCursor(cursor: string): PageOptions {
+        try {
+            return JSON.parse(Buffer.from(cursor, 'base64').toString());
+        } catch (error) {
+            throw new Error('Invalid cursor format');
         }
     }
 }

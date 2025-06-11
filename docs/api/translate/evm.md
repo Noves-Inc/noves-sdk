@@ -644,10 +644,10 @@ const holders = await evmTranslate.getTokenHolders(
 ```
 
 ### getTransactions(chain: string, walletAddress: string, pageOptions?: PageOptions)
-Get paginated transactions for an account.
+Get a pagination object to iterate over transactions pages.
 
 ```typescript
-const transactions = await evmTranslate.getTransactions(
+const transactionsPage = await evmTranslate.getTransactions(
   "eth",
   "0x123...",
   { 
@@ -661,9 +661,138 @@ const transactions = await evmTranslate.getTransactions(
   }
 );
 
-// Iterate through transactions
-for await (const tx of transactions) {
+// Get current page of transactions
+const transactions = transactionsPage.getTransactions();
+console.log("Transactions:", transactions);
+console.log("Has next page:", !!transactionsPage.getNextPageKeys());
+
+// Navigate through pages
+if (transactionsPage.getNextPageKeys()) {
+  await transactionsPage.next();
+  console.log("Next page:", transactionsPage.getTransactions());
+}
+
+// Go back to previous page
+if (transactionsPage.hasPrevious()) {
+  await transactionsPage.previous();
+  console.log("Previous page:", transactionsPage.getTransactions());
+}
+
+// Iterate through all transactions using async iterator
+for await (const tx of transactionsPage) {
   console.log(tx);
+}
+```
+
+The method returns a `TransactionsPage` object with the following methods:
+
+#### Simple Pagination Methods
+- `getTransactions()`: Get current page of transactions
+- `getNextPageKeys()`: Get next page keys if available
+- `next()`: Fetch next page of transactions
+- `previous()`: Go back to previous page of transactions
+- `hasPrevious()`: Check if there's a previous page available
+- `[Symbol.asyncIterator]()`: Async iterator for all transactions
+
+#### Cursor-Based Pagination Methods
+- `getCursorInfo()`: Get cursor information for external pagination systems
+- `getNextCursor()`: Get next page cursor as Base64 encoded string
+- `getPreviousCursor()`: Get previous page cursor as Base64 encoded string
+- `TransactionsPage.fromCursor()`: Static method to create a page from cursor string
+- `TransactionsPage.decodeCursor()`: Static method to decode cursor to page options
+
+### Advanced Cursor-Based Pagination
+
+For applications that need external cursor control (similar to GraphQL-style pagination), you can use the cursor-based pagination methods:
+
+```typescript
+// Get initial page
+const transactionsPage = await evmTranslate.getTransactions("eth", "0x123...", {
+  pageSize: 10
+});
+
+// Get cursor information for external systems
+const cursorInfo = transactionsPage.getCursorInfo();
+console.log("Cursor Info:", cursorInfo);
+// Output: {
+//   hasNextPage: true,
+//   hasPreviousPage: false,
+//   nextCursor: "eyJwYWdlU2l6ZSI6MTAsInBhZ2luYXRpb25LZXkiOiJzb21lLWtleSJ9",
+//   previousCursor: null
+// }
+
+// Store cursors for external use
+const nextCursor = transactionsPage.getNextCursor();
+const previousCursor = transactionsPage.getPreviousCursor();
+
+// Later, create a new page from a cursor
+if (nextCursor) {
+  const nextPage = await TransactionsPage.fromCursor(
+    evmTranslate,
+    "eth",
+    "0x123...",
+    nextCursor
+  );
+  console.log("Next page transactions:", nextPage.getTransactions());
+}
+
+// Decode cursor to see page options (useful for debugging)
+if (nextCursor) {
+  const pageOptions = TransactionsPage.decodeCursor(nextCursor);
+  console.log("Decoded cursor:", pageOptions);
+}
+```
+
+#### Cursor Information Interface
+```typescript
+interface CursorInfo {
+  hasNextPage: boolean;      // True if there's a next page available
+  hasPreviousPage: boolean;  // True if there's a previous page available
+  nextCursor: string | null; // Base64 encoded cursor for next page
+  previousCursor: string | null; // Base64 encoded cursor for previous page
+}
+```
+
+#### Building Custom Pagination Interfaces
+
+You can use the cursor methods to build GraphQL-style pagination interfaces:
+
+```typescript
+// Example: Building a custom pagination response
+async function getTransactionsWithCustomPagination(
+  chain: string, 
+  address: string, 
+  cursor?: string, 
+  pageSize: number = 10
+) {
+  let transactionsPage;
+  
+  if (cursor) {
+    // Resume from cursor
+    transactionsPage = await TransactionsPage.fromCursor(
+      evmTranslate, 
+      chain, 
+      address, 
+      cursor
+    );
+  } else {
+    // Start from beginning
+    transactionsPage = await evmTranslate.getTransactions(chain, address, {
+      pageSize
+    });
+  }
+  
+  const cursorInfo = transactionsPage.getCursorInfo();
+  
+  return {
+    transactions: transactionsPage.getTransactions(),
+    pageInfo: {
+      hasNextPage: cursorInfo.hasNextPage,
+      hasPreviousPage: cursorInfo.hasPreviousPage,
+      startCursor: cursor || null,
+      endCursor: cursorInfo.nextCursor
+    }
+  };
 }
 ```
 

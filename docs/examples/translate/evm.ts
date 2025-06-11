@@ -1,4 +1,4 @@
-import { Translate } from "../../../src/index";
+import { Translate, TransactionsPage } from "../../../src/index";
 import { ChainNotFoundError } from "../../../src/errors/ChainNotFoundError";
 import { TransactionError } from "../../../src/errors/TransactionError";
 import { EVMTranslateHistoryData } from "../../../src/types/evm";
@@ -182,6 +182,26 @@ async function evmTranslateExample() {
       console.log('---');
     });
 
+    // 3b. Demonstrate advanced pagination navigation
+    console.log("\nDemonstrating advanced pagination navigation...");
+    console.log("Current page has:", fullTransactionsPage.getTransactions().length, "transactions");
+    console.log("Has next page:", !!fullTransactionsPage.getNextPageKeys());
+    console.log("Has previous page:", fullTransactionsPage.hasPrevious());
+
+    // Go to next page if available
+    if (fullTransactionsPage.getNextPageKeys()) {
+      await fullTransactionsPage.next();
+      console.log("Moved to next page. Now has:", fullTransactionsPage.getTransactions().length, "transactions");
+      console.log("Has previous page now:", fullTransactionsPage.hasPrevious());
+      
+      // Go back to previous page
+      if (fullTransactionsPage.hasPrevious()) {
+        await fullTransactionsPage.previous();
+        console.log("Went back to previous page. Now has:", fullTransactionsPage.getTransactions().length, "transactions");
+        console.log("Has previous page after going back:", fullTransactionsPage.hasPrevious());
+      }
+    }
+
     // Process transactions
     let count = 0;
     let currentTransactions = transactionsPage.getTransactions() as EVMTranslateHistoryData[];
@@ -210,6 +230,106 @@ async function evmTranslateExample() {
     }
 
     console.log(`\nTotal transactions processed: ${count}`);
+
+    // 3c. Advanced cursor-based pagination examples
+    console.log("\n=== Cursor-Based Pagination Examples ===");
+    
+    // Get a fresh transactions page to demonstrate cursor features
+    const cursorTransactionsPage = await evmTranslate.getTransactions("eth", accountAddress, {
+      pageSize: 5
+    });
+
+    // Get cursor information
+    const cursorInfo = cursorTransactionsPage.getCursorInfo();
+    console.log("Cursor Info:", cursorInfo);
+
+    // Extract individual cursors
+    const nextCursor = cursorTransactionsPage.getNextCursor();
+    const previousCursor = cursorTransactionsPage.getPreviousCursor();
+    
+    console.log("Next cursor:", nextCursor);
+    console.log("Previous cursor:", previousCursor);
+
+    // Demonstrate creating a page from a cursor
+    if (nextCursor) {
+      console.log("\nCreating new page from next cursor...");
+      const pageFromCursor = await TransactionsPage.fromCursor(
+        evmTranslate,
+        "eth",
+        accountAddress,
+        nextCursor
+      );
+      
+      console.log("Page from cursor has:", pageFromCursor.getTransactions().length, "transactions");
+      console.log("Page from cursor info:", pageFromCursor.getCursorInfo());
+    }
+
+    // Demonstrate cursor decoding
+    if (nextCursor) {
+      console.log("\nDecoding cursor to see page options...");
+      const decodedPageOptions = TransactionsPage.decodeCursor(nextCursor);
+      console.log("Decoded cursor:", decodedPageOptions);
+    }
+
+    // Example: Building a GraphQL-style pagination interface
+    console.log("\n=== Custom Pagination Interface Example ===");
+    
+    async function getTransactionsWithCustomPagination(
+      chain: string, 
+      address: string, 
+      cursor?: string, 
+      pageSize: number = 3
+    ) {
+      let transactionsPage;
+      
+      if (cursor) {
+        // Resume from cursor
+        transactionsPage = await TransactionsPage.fromCursor(
+          evmTranslate, 
+          chain, 
+          address, 
+          cursor
+        );
+      } else {
+        // Start from beginning
+        transactionsPage = await evmTranslate.getTransactions(chain, address, {
+          pageSize
+        });
+      }
+      
+      const cursorInfo = transactionsPage.getCursorInfo();
+      
+      return {
+        transactions: transactionsPage.getTransactions(),
+        pageInfo: {
+          hasNextPage: cursorInfo.hasNextPage,
+          hasPreviousPage: cursorInfo.hasPreviousPage,
+          startCursor: cursor || null,
+          endCursor: cursorInfo.nextCursor
+        }
+      };
+    }
+
+    // Use the custom pagination interface
+    console.log("Getting first page with custom interface...");
+    const customPage1 = await getTransactionsWithCustomPagination("eth", accountAddress);
+    console.log("Custom page 1:", {
+      transactionCount: customPage1.transactions.length,
+      pageInfo: customPage1.pageInfo
+    });
+
+    if (customPage1.pageInfo.endCursor) {
+      console.log("Getting second page with custom interface...");
+      const customPage2 = await getTransactionsWithCustomPagination(
+        "eth", 
+        accountAddress, 
+        customPage1.pageInfo.endCursor
+      );
+      console.log("Custom page 2:", {
+        transactionCount: customPage2.transactions.length,
+        pageInfo: customPage2.pageInfo
+      });
+    }
 
     // 4. Get available transaction types
     console.log("\nFetching available transaction types...");

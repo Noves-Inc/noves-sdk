@@ -116,14 +116,31 @@ Throws:
 
 ### getTransactions(chain: string, accountAddress: string, pageOptions?: PageOptions)
 
-Returns all transactions for the requested chain and account, given a timerange. This method provides direct access to the API response.
+Get a pagination object to iterate over transactions pages.
 
 ```typescript
-const response = await translate.getTransactions('bittensor', 'account-address', {
+const transactionsPage = await translate.getTransactions('bittensor', 'account-address', {
   pageSize: 10,
   startBlock: 123456,
   endBlock: 123466
 });
+
+// Get current page of transactions
+const transactions = transactionsPage.getTransactions();
+console.log("Transactions:", transactions);
+console.log("Has next page:", !!transactionsPage.getNextPageKeys());
+
+// Navigate through pages
+if (transactionsPage.getNextPageKeys()) {
+  await transactionsPage.next();
+  console.log("Next page:", transactionsPage.getTransactions());
+}
+
+// Go back to previous page
+if (transactionsPage.hasPrevious()) {
+  await transactionsPage.previous();
+  console.log("Previous page:", transactionsPage.getTransactions());
+}
 ```
 
 The `pageOptions` parameter supports the following options:
@@ -135,19 +152,117 @@ The `pageOptions` parameter supports the following options:
 - `sort`: Sort order ('desc' or 'asc')
 - `viewAsAccountAddress`: View transactions from this address's perspective
 
-Response:
+The method returns a `TransactionsPage` object with the following methods:
+
+#### Simple Pagination Methods
+- `getTransactions()`: Get current page of transactions
+- `getNextPageKeys()`: Get next page keys if available
+- `next()`: Fetch next page of transactions
+- `previous()`: Go back to previous page of transactions
+- `hasPrevious()`: Check if there's a previous page available
+- `[Symbol.asyncIterator]()`: Async iterator for all transactions
+
+#### Cursor-Based Pagination Methods
+- `getCursorInfo()`: Get cursor information for external pagination systems
+- `getNextCursor()`: Get next page cursor as Base64 encoded string
+- `getPreviousCursor()`: Get previous page cursor as Base64 encoded string
+- `TransactionsPage.fromCursor()`: Static method to create a page from cursor string
+- `TransactionsPage.decodeCursor()`: Static method to decode cursor to page options
+
+### Advanced Cursor-Based Pagination
+
+For applications that need external cursor control (similar to GraphQL-style pagination), you can use the cursor-based pagination methods:
+
 ```typescript
-{
-  items: POLKADOTTranslateTransaction[];  // Array of transactions
-  nextPageSettings: {
-    hasNextPage: boolean;                 // Whether there's a next page
-    endBlock: number | null;              // End block for next page
-    nextPageUrl: string | null;           // URL for next page
-  };
+// Get initial page
+const transactionsPage = await translate.getTransactions('bittensor', 'account-address', {
+  pageSize: 10
+});
+
+// Get cursor information for external systems
+const cursorInfo = transactionsPage.getCursorInfo();
+console.log("Cursor Info:", cursorInfo);
+// Output: {
+//   hasNextPage: true,
+//   hasPreviousPage: false,
+//   nextCursor: "eyJwYWdlU2l6ZSI6MTAsInBhZ2luYXRpb25LZXkiOiJzb21lLWtleSJ9",
+//   previousCursor: null
+// }
+
+// Store cursors for external use
+const nextCursor = transactionsPage.getNextCursor();
+const previousCursor = transactionsPage.getPreviousCursor();
+
+// Later, create a new page from a cursor
+if (nextCursor) {
+  const nextPage = await TransactionsPage.fromCursor(
+    translate,
+    'bittensor',
+    'account-address',
+    nextCursor
+  );
+  console.log("Next page transactions:", nextPage.getTransactions());
+}
+
+// Decode cursor to see page options (useful for debugging)
+if (nextCursor) {
+  const pageOptions = TransactionsPage.decodeCursor(nextCursor);
+  console.log("Decoded cursor:", pageOptions);
 }
 ```
 
-Each transaction in the `items` array follows the same structure as the `getTransaction` response.
+#### Cursor Information Interface
+```typescript
+interface CursorInfo {
+  hasNextPage: boolean;      // True if there's a next page available
+  hasPreviousPage: boolean;  // True if there's a previous page available
+  nextCursor: string | null; // Base64 encoded cursor for next page
+  previousCursor: string | null; // Base64 encoded cursor for previous page
+}
+```
+
+#### Building Custom Pagination Interfaces
+
+You can use the cursor methods to build GraphQL-style pagination interfaces:
+
+```typescript
+// Example: Building a custom pagination response
+async function getTransactionsWithCustomPagination(
+  chain: string, 
+  address: string, 
+  cursor?: string, 
+  pageSize: number = 10
+) {
+  let transactionsPage;
+  
+  if (cursor) {
+    // Resume from cursor
+    transactionsPage = await TransactionsPage.fromCursor(
+      translate, 
+      chain, 
+      address, 
+      cursor
+    );
+  } else {
+    // Start from beginning
+    transactionsPage = await translate.getTransactions(chain, address, {
+      pageSize
+    });
+  }
+  
+  const cursorInfo = transactionsPage.getCursorInfo();
+  
+  return {
+    transactions: transactionsPage.getTransactions(),
+    pageInfo: {
+      hasNextPage: cursorInfo.hasNextPage,
+      hasPreviousPage: cursorInfo.hasPreviousPage,
+      startCursor: cursor || null,
+      endCursor: cursorInfo.nextCursor
+    }
+  };
+}
+```
 
 Throws:
 - `TransactionError` if there are validation errors or the request fails
@@ -198,48 +313,36 @@ try {
 
 ## Examples
 
-### Getting Transaction History with Direct API Response
+### Getting Transaction History with Pagination
 
 ```typescript
 const translate = new TranslatePOLKADOT('your-api-key');
 
-// Get transactions directly from API
-const response = await translate.getTransactions('bittensor', 'account-address', {
+// Get transactions with pagination
+const transactionsPage = await translate.getTransactions('bittensor', 'account-address', {
   pageSize: 10,
   endBlock: 4000001
 });
 
-console.log('Transactions:', response.items);
-console.log('Has next page:', response.nextPageSettings.hasNextPage);
-
-// Handle pagination manually
-if (response.nextPageSettings.hasNextPage && response.nextPageSettings.nextPageUrl) {
-  // You can parse the nextPageUrl to get pagination parameters
-  // or use the deprecated Transactions method for automatic pagination
-}
-```
-
-### Getting Transaction History with Pagination Helper (Deprecated)
-
-```typescript
-const translate = new TranslatePOLKADOT('your-api-key');
-
-// Get transactions for an account
-const transactionsPage = await translate.Transactions('bittensor', 'account-address');
-
-// Get first page of transactions
-const transactions = transactionsPage.getTransactions();
+// Get current page transactions
+let transactions = transactionsPage.getTransactions();
 console.log('First page:', transactions);
+console.log('Has next page:', !!transactionsPage.getNextPageKeys());
 
-// Get next page if available
+// Navigate through pages
 if (transactionsPage.getNextPageKeys()) {
-  const hasNext = await transactionsPage.next();
-  if (hasNext) {
-    console.log('Next page:', transactionsPage.getTransactions());
+  await transactionsPage.next();
+  console.log('Second page:', transactionsPage.getTransactions());
+  
+  // Go back to first page
+  if (transactionsPage.hasPrevious()) {
+    await transactionsPage.previous();
+    console.log('Back to first page');
   }
 }
 
 // Iterate through all transactions
+console.log('Processing all transactions:');
 for await (const transaction of transactionsPage) {
   console.log('Transaction:', transaction);
 }

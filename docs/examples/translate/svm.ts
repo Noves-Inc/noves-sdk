@@ -1,6 +1,7 @@
 import { TranslateSVM } from "../../../src/translate/translateSVM";
 import { ChainNotFoundError } from "../../../src/errors/ChainNotFoundError";
 import { TransactionError } from "../../../src/errors/TransactionError";
+import { TransactionsPage } from "../../../src/index";
 
 /**
  * Example demonstrating the usage of the Solana (SVM) Translate API
@@ -52,7 +53,156 @@ async function solanaTranslateExample() {
       });
     }
 
-    // 4. Get SPL token accounts
+    // 3b. Get transactions using the new getTransactions method with advanced pagination
+    console.log("\nFetching transactions using getTransactions with pagination...");
+    const transactionsPage = await solanaTranslate.getTransactions(
+      "solana",
+      accountAddress,
+      { 
+        pageSize: 5,
+        v5Format: true,
+        sort: 'desc'
+      }
+    );
+
+    // Process current page
+    const currentTransactions = transactionsPage.getTransactions();
+    console.log("Current page transactions:", currentTransactions.length);
+    console.log("Has next page:", !!transactionsPage.getNextPageKeys());
+    console.log("Has previous page:", transactionsPage.hasPrevious());
+
+    // Show first transaction details
+    if (currentTransactions.length > 0) {
+      const firstTx = currentTransactions[0];
+      console.log("First transaction details:", {
+        type: firstTx.classificationData.type,
+        description: firstTx.txTypeVersion === 5 ? firstTx.classificationData.description : 'N/A (v4 format)',
+        signature: firstTx.rawTransactionData.signature,
+        transfers: firstTx.transfers.length
+      });
+    }
+
+    // Demonstrate pagination navigation
+    if (transactionsPage.getNextPageKeys()) {
+      console.log("\nNavigating to next page...");
+      await transactionsPage.next();
+      const nextPageTransactions = transactionsPage.getTransactions();
+      console.log("Next page transactions:", nextPageTransactions.length);
+      console.log("Has previous page now:", transactionsPage.hasPrevious());
+      
+      // Go back to previous page
+      if (transactionsPage.hasPrevious()) {
+        console.log("Going back to previous page...");
+        await transactionsPage.previous();
+        const backToFirstPage = transactionsPage.getTransactions();
+        console.log("Back to first page transactions:", backToFirstPage.length);
+        console.log("Has previous page after going back:", transactionsPage.hasPrevious());
+      }
+    }
+
+    // 4. Advanced cursor-based pagination examples
+    console.log("\n=== Cursor-Based Pagination Examples ===");
+    
+    // Get a fresh transactions page to demonstrate cursor features
+    const cursorTransactionsPage = await solanaTranslate.getTransactions("solana", accountAddress, {
+      pageSize: 3,
+      v5Format: true
+    });
+
+    // Get cursor information
+    const cursorInfo = cursorTransactionsPage.getCursorInfo();
+    console.log("Cursor Info:", cursorInfo);
+
+    // Extract individual cursors
+    const nextCursor = cursorTransactionsPage.getNextCursor();
+    const previousCursor = cursorTransactionsPage.getPreviousCursor();
+    
+    console.log("Next cursor:", nextCursor);
+    console.log("Previous cursor:", previousCursor);
+
+    // Demonstrate creating a page from a cursor
+    if (nextCursor) {
+      console.log("\nCreating new page from next cursor...");
+      const pageFromCursor = await TransactionsPage.fromCursor(
+        solanaTranslate,
+        "solana",
+        accountAddress,
+        nextCursor
+      );
+      
+      console.log("Page from cursor has:", pageFromCursor.getTransactions().length, "transactions");
+      console.log("Page from cursor info:", pageFromCursor.getCursorInfo());
+    }
+
+    // Demonstrate cursor decoding
+    if (nextCursor) {
+      console.log("\nDecoding cursor to see page options...");
+      const decodedPageOptions = TransactionsPage.decodeCursor(nextCursor);
+      console.log("Decoded cursor:", decodedPageOptions);
+    }
+
+    // Example: Building a GraphQL-style pagination interface
+    console.log("\n=== Custom Pagination Interface Example ===");
+    
+    async function getTransactionsWithCustomPagination(
+      chain: string, 
+      address: string, 
+      cursor?: string, 
+      pageSize: number = 3
+    ) {
+      let transactionsPage;
+      
+      if (cursor) {
+        // Resume from cursor
+        transactionsPage = await TransactionsPage.fromCursor(
+          solanaTranslate, 
+          chain, 
+          address, 
+          cursor
+        );
+      } else {
+        // Start from beginning
+        transactionsPage = await solanaTranslate.getTransactions(chain, address, {
+          pageSize,
+          v5Format: true
+        });
+      }
+      
+      const cursorInfo = transactionsPage.getCursorInfo();
+      
+      return {
+        transactions: transactionsPage.getTransactions(),
+        pageInfo: {
+          hasNextPage: cursorInfo.hasNextPage,
+          hasPreviousPage: cursorInfo.hasPreviousPage,
+          startCursor: cursor || null,
+          endCursor: cursorInfo.nextCursor
+        }
+      };
+    }
+
+    // Use the custom pagination interface
+    console.log("Getting first page with custom interface...");
+    const customPage1 = await getTransactionsWithCustomPagination("solana", accountAddress);
+    console.log("Custom page 1:", {
+      transactionCount: customPage1.transactions.length,
+      pageInfo: customPage1.pageInfo
+    });
+
+    if (customPage1.pageInfo.endCursor) {
+      console.log("Getting second page with custom interface...");
+      const customPage2 = await getTransactionsWithCustomPagination(
+        "solana", 
+        accountAddress, 
+        customPage1.pageInfo.endCursor
+      );
+      console.log("Custom page 2:", {
+        transactionCount: customPage2.transactions.length,
+        pageInfo: customPage2.pageInfo
+      });
+    }
+
+    // 5. Get SPL token accounts
     console.log("\nFetching SPL token accounts...");
     const splTokens = await solanaTranslate.getSplTokens(accountAddress);
     console.log("Account public key:", splTokens.accountPubkey);

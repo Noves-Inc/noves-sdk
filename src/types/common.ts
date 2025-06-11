@@ -89,6 +89,30 @@ export interface PageOptions {
      * Whether to exclude tokens with zero prices. (Optional)
      */
     excludeZeroPrices?: boolean;
+
+    /**
+     * Transaction cursor token for pagination. (Internal use - set by API responses)
+     * This parameter is used by the API to exclude already-seen transactions.
+     */
+    ignoreTransactions?: string;
+
+    /**
+     * Page key for TVM pagination cursor. (Internal use - set by API responses)
+     * This parameter is used by TVM chains for pagination.
+     */
+    pageKey?: string;
+
+    /**
+     * Page number for offset-based pagination. (Internal use - set by API responses)
+     * This parameter is used for job-based pagination in UTXO.
+     */
+    pageNumber?: number;
+
+    /**
+     * Sort order for job-based pagination. (Internal use - set by API responses)
+     * This parameter is used for job-based pagination in UTXO.
+     */
+    ascending?: boolean;
 }
 
 /**

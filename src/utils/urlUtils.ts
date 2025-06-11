@@ -43,7 +43,11 @@ export function parseUrl(urlString: string): PageOptions {
         'v5Format',
         'numberOfEpochs',
         'includePrices',
-        'excludeZeroPrices'
+        'excludeZeroPrices',
+        'ignoreTransactions',
+        'pageKey',
+        'pageNumber',
+        'ascending'
       ];
     
       keys.forEach(key => {
@@ -51,9 +55,9 @@ export function parseUrl(urlString: string): PageOptions {
         if (value !== null) {
           if (key === 'sort') {
             params[key] = value as 'desc' | 'asc';
-          } else if (key === 'liveData' || key === 'v5Format' || key === 'includePrices' || key === 'excludeZeroPrices') {
+          } else if (key === 'liveData' || key === 'v5Format' || key === 'includePrices' || key === 'excludeZeroPrices' || key === 'ascending') {
             (params as any)[key] = value === 'true';
-          } else if (key === 'viewAsAccountAddress') {
+          } else if (key === 'viewAsAccountAddress' || key === 'ignoreTransactions' || key === 'pageKey') {
             params[key] = value;
           } else {
             // For numeric fields

@@ -58,35 +58,14 @@ export class TranslateCOSMOS extends BaseTranslate {
   }
 
   /**
-   * Get transactions for an account directly - returns the complete API response
-   * @param {string} chain - The chain name.
-   * @param {string} accountAddress - The account address.
-   * @param {PageOptions} pageOptions - The page options object.
-   * @returns {Promise<COSMOSTranslateTransactionsResponse>} A promise that resolves to the transactions response.
-   * @throws {TransactionError} If there are validation errors in the request.
-   */
-  public async getTransactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<COSMOSTranslateTransactionsResponse> {
-    try {
-      const endpoint = `${chain}/txs/${accountAddress}`;
-      const url = constructUrl(endpoint, pageOptions);
-      return await this.makeRequest(url);
-    } catch (error) {
-      if (error instanceof TransactionError) {
-        throw error;
-      }
-      throw new TransactionError({ message: [error instanceof Error ? error.message : 'Failed to get transactions'] });
-    }
-  }
-
-  /**
    * Get a pagination object to iterate over transactions pages.
    * @param {string} chain - The chain name.
    * @param {string} accountAddress - The account address.
    * @param {PageOptions} pageOptions - The page options object.
    * @returns {Promise<TransactionsPage<COSMOSTranslateTransaction>>} A promise that resolves to a TransactionsPage instance.
-   * @deprecated Use getTransactions for direct API response access. This method is kept for backward compatibility.
+   * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<COSMOSTranslateTransaction>> {
+  public async getTransactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<COSMOSTranslateTransaction>> {
     try {
       const endpoint = `${chain}/txs/${accountAddress}`;
       const url = constructUrl(endpoint, pageOptions);
@@ -106,6 +85,20 @@ export class TranslateCOSMOS extends BaseTranslate {
       }
       throw new TransactionError({ message: [error instanceof Error ? error.message : 'Failed to get transactions'] });
     }
+  }
+
+
+
+  /**
+   * @deprecated Use getTransactions() instead. This method will be removed in a future version.
+   * Get a pagination object to iterate over transactions pages.
+   * @param {string} chain - The chain name.
+   * @param {string} accountAddress - The account address.
+   * @param {PageOptions} pageOptions - The page options object.
+   * @returns {Promise<TransactionsPage<COSMOSTranslateTransaction>>} A promise that resolves to a TransactionsPage instance.
+   */
+  public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<COSMOSTranslateTransaction>> {
+    return this.getTransactions(chain, accountAddress, pageOptions);
   }
 
   /**

@@ -83,16 +83,15 @@ export class TranslatePOLKADOT extends BaseTranslate {
     }
 
     /**
-     * Returns all transactions for the requested chain and account, given a timerange. 
-     * This method provides direct access to the API response.
+     * Get a pagination object to iterate over transactions pages.
      * @param {string} chain - The chain name.
      * @param {string} accountAddress - The account address.
      * @param {PageOptions} pageOptions - The page options object. 
      * Use startBlock, endBlock, startTimestamp, endTimestamp, and pageSize to filter the transactions.
-     * @returns {Promise<POLKADOTTranslateTransactionsResponse>} A promise that resolves to the transactions response.
+     * @returns {Promise<TransactionsPage<POLKADOTTranslateTransaction>>} A promise that resolves to a TransactionsPage instance.
      * @throws {TransactionError} If there are validation errors in the request.
      */
-    public async getTransactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<POLKADOTTranslateTransactionsResponse> {
+    public async getTransactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<POLKADOTTranslateTransaction>> {
         try {
             const endpoint = `${chain}/txs/${accountAddress}`;
             const url = constructUrl(endpoint, pageOptions);
@@ -102,35 +101,12 @@ export class TranslatePOLKADOT extends BaseTranslate {
                 throw new TransactionError({ message: ['Invalid response format'] });
             }
 
-            return result as POLKADOTTranslateTransactionsResponse;
-        } catch (error) {
-            if (error instanceof TransactionError) {
-                throw error;
-            }
-            throw new TransactionError({ message: ['Failed to get transactions'] });
-        }
-    }
-
-    /**
-     * Get a pagination object to iterate over transactions pages.
-     * @param {string} chain - The chain name.
-     * @param {string} accountAddress - The account address.
-     * @param {PageOptions} pageOptions - The page options object. 
-     * Use startBlock, endBlock, startTimestamp, endTimestamp,and pageSize to filter the transactions.
-     * @returns {Promise<TransactionsPage<POLKADOTTranslateTransaction>>} A promise that resolves to a TransactionsPage instance.
-     * @throws {TransactionError} If there are validation errors in the request.
-     * @deprecated Use getTransactions for direct API response access. This method is kept for backward compatibility.
-     */
-    public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<POLKADOTTranslateTransaction>> {
-        try {
-            const response = await this.getTransactions(chain, accountAddress, pageOptions);
-
             const initialData = {
                 chain: chain,
-                accountAddress: accountAddress,
-                transactions: response.items,
+                walletAddress: accountAddress,
+                transactions: result.items,
                 currentPageKeys: pageOptions,
-                nextPageKeys: response.nextPageSettings.hasNextPage && response.nextPageSettings.nextPageUrl ? parseUrl(response.nextPageSettings.nextPageUrl) : null,
+                nextPageKeys: result.nextPageSettings.hasNextPage && result.nextPageSettings.nextPageUrl ? parseUrl(result.nextPageSettings.nextPageUrl) : null,
             };
             return new TransactionsPage(this, initialData);
         } catch (error) {
@@ -139,5 +115,21 @@ export class TranslatePOLKADOT extends BaseTranslate {
             }
             throw new TransactionError({ message: ['Failed to get transactions'] });
         }
+    }
+
+
+
+        /**
+     * @deprecated Use getTransactions() instead. This method will be removed in a future version.
+     * Get a pagination object to iterate over transactions pages.
+     * @param {string} chain - The chain name.
+     * @param {string} accountAddress - The account address.
+     * @param {PageOptions} pageOptions - The page options object.
+     * Use startBlock, endBlock, startTimestamp, endTimestamp,and pageSize to filter the transactions.
+     * @returns {Promise<TransactionsPage<POLKADOTTranslateTransaction>>} A promise that resolves to a TransactionsPage instance.
+     * @throws {TransactionError} If there are validation errors in the request.
+     */
+    public async Transactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<POLKADOTTranslateTransaction>> {
+        return this.getTransactions(chain, accountAddress, pageOptions);
     }
 }

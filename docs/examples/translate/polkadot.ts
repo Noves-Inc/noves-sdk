@@ -1,4 +1,5 @@
 import { TranslatePOLKADOT } from '../../../src/translate/translatePOLKADOT';
+import { TransactionsPage } from '../../../src/index';
 
 async function main() {
     // Initialize the Polkadot Translate client
@@ -24,45 +25,88 @@ async function main() {
         const transaction = await translate.getTransaction(chainName, blockNumber, txIndex);
         console.log('Transaction details:', JSON.stringify(transaction, null, 2));
 
-        // Get transactions using the new getTransactions method (recommended)
+        // Get transactions with pagination
         const accountAddress = '5EmBLSaFfDgpDsmYLxVchwqrAJRY8sUJoHmrxQ9zSMBE5eq7';
-        console.log(`\nGetting transactions using getTransactions method for account: ${accountAddress}...`);
-        const response = await translate.getTransactions(chainName, accountAddress, {
+        console.log(`\nGetting transactions with pagination for account: ${accountAddress}...`);
+        const transactionsPage = await translate.getTransactions(chainName, accountAddress, {
             pageSize: 10,
             endBlock: 4000001
         });
         
-        console.log('Direct API response:');
-        console.log('Number of transactions:', response.items.length);
-        console.log('Has next page:', response.nextPageSettings.hasNextPage);
-        console.log('Transactions:', JSON.stringify(response.items, null, 2));
+        // Get current page transactions
+        let transactions = transactionsPage.getTransactions();
+        console.log('First page transactions:', transactions.length);
+        console.log('Has next page:', !!transactionsPage.getNextPageKeys());
+        console.log('Transactions:', JSON.stringify(transactions, null, 2));
 
-        // Handle pagination manually with getTransactions
-        if (response.nextPageSettings.hasNextPage && response.nextPageSettings.nextPageUrl) {
-            console.log('\nNext page URL available:', response.nextPageSettings.nextPageUrl);
-            // You would need to parse the URL parameters and make another call
+        // Navigate through pages
+        if (transactionsPage.getNextPageKeys()) {
+            console.log('\nFetching next page...');
+            await transactionsPage.next();
+            
+            const nextPageTransactions = transactionsPage.getTransactions();
+            console.log('Second page transactions:', nextPageTransactions.length);
+            console.log('Next page transactions:', JSON.stringify(nextPageTransactions, null, 2));
+            
+            // Go back to first page
+            if (transactionsPage.hasPrevious()) {
+                console.log('\nGoing back to first page...');
+                await transactionsPage.previous();
+                console.log('Back to first page transactions:', transactionsPage.getTransactions().length);
+            }
         }
 
-        // Example using the deprecated Transactions method (for comparison)
-        console.log(`\n--- Using deprecated Transactions method (for backward compatibility) ---`);
-        const transactionsPage = await translate.Transactions(chainName, accountAddress, {
-            pageSize: 10,
+        // Process all transactions using iterator
+        console.log('\nProcessing all transactions using iterator...');
+        let count = 0;
+        for await (const transaction of transactionsPage) {
+            console.log(`Transaction ${++count}:`, {
+                block: transaction.block,
+                index: transaction.index,
+                type: transaction.classificationData.type,
+                description: transaction.classificationData.description
+            });
+        }
+
+        // Advanced cursor-based pagination examples
+        console.log('\n=== Cursor-Based Pagination Examples ===');
+        
+        // Get a fresh transactions page to demonstrate cursor features
+        const cursorTransactionsPage = await translate.getTransactions(chainName, accountAddress, {
+            pageSize: 3,
             endBlock: 4000001
         });
 
-        // Iterate through transactions
-        console.log('First page of transactions:');
-        const transactions = transactionsPage.getTransactions();
-        console.log(`Found ${transactions.length} transactions`);
-        console.log(JSON.stringify(transactions, null, 2));
+        // Get cursor information
+        const cursorInfo = cursorTransactionsPage.getCursorInfo();
+        console.log('Cursor Info:', cursorInfo);
 
-        // Get next page if available
-        if (transactionsPage.getNextPageKeys()) {
-            console.log('\nGetting next page of transactions...');
-            const hasNext = await transactionsPage.next();
-            if (hasNext) {
-                console.log('Next page transactions:', JSON.stringify(transactionsPage.getTransactions(), null, 2));
-            }
+        // Extract individual cursors
+        const nextCursor = cursorTransactionsPage.getNextCursor();
+        const previousCursor = cursorTransactionsPage.getPreviousCursor();
+        
+        console.log('Next cursor:', nextCursor);
+        console.log('Previous cursor:', previousCursor);
+
+        // Demonstrate creating a page from a cursor
+        if (nextCursor) {
+            console.log('\nCreating new page from next cursor...');
+            const pageFromCursor = await TransactionsPage.fromCursor(
+                translate,
+                chainName,
+                accountAddress,
+                nextCursor
+            );
+            
+            console.log('Page from cursor has:', pageFromCursor.getTransactions().length, 'transactions');
+            console.log('Page from cursor info:', pageFromCursor.getCursorInfo());
+        }
+
+        // Demonstrate cursor decoding
+        if (nextCursor) {
+            console.log('\nDecoding cursor to see page options...');
+            const decodedPageOptions = TransactionsPage.decodeCursor(nextCursor);
+            console.log('Decoded cursor:', decodedPageOptions);
         }
 
     } catch (error) {
