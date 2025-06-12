@@ -1,6 +1,6 @@
 // src/translate/paging.ts
 
-import { PageOptions } from '../types/common';
+import { PageOptions, EnhancedCursorData, CursorNavigationMeta } from '../types/common';
 import { TranslateEVM } from './translateEVM';
 import { TranslateSVM } from './translateSVM';
 import { TranslateUTXO } from './translateUTXO';
@@ -149,29 +149,92 @@ export abstract class Pagination<T> {
     }
 
     /**
-     * Get the next page cursor as an encoded string.
-     * @returns {string | null} Base64 encoded cursor for the next page, or null if no next page.
+     * Get the next page cursor as an enhanced encoded string with navigation metadata.
+     * @returns {string | null} Base64 encoded enhanced cursor for the next page, or null if no next page.
      */
     public getNextCursor(): string | null {
         if (!this.nextPageKeys) return null;
-        return this.encodeCursor(this.nextPageKeys);
+        
+        const currentIndex = this.getCurrentPageIndex();
+        const enhancedCursorData = this.createEnhancedCursor(
+            this.nextPageKeys,
+            currentIndex + 1
+        );
+        
+        return this.encodeEnhancedCursor(enhancedCursorData);
     }
 
     /**
-     * Get the previous page cursor as an encoded string.
-     * @returns {string | null} Base64 encoded cursor for the previous page, or null if no previous page.
+     * Get the previous page cursor as an enhanced encoded string with navigation metadata.
+     * @returns {string | null} Base64 encoded enhanced cursor for the previous page, or null if no previous page.
      */
     public getPreviousCursor(): string | null {
         if (!this.hasPrevious()) return null;
-        const currentIndex = this.pageKeys.findIndex(keys => 
-            JSON.stringify(keys) === JSON.stringify(this.currentPageKeys)
-        );
+        
+        const currentIndex = this.getCurrentPageIndex();
         if (currentIndex <= 0) return null;
-        return this.encodeCursor(this.pageKeys[currentIndex - 1]);
+        
+        const previousPageOptions = this.pageKeys[currentIndex - 1];
+        const enhancedCursorData = this.createEnhancedCursor(
+            previousPageOptions,
+            currentIndex - 1
+        );
+        
+        return this.encodeEnhancedCursor(enhancedCursorData);
     }
 
     /**
-     * Encode PageOptions as a cursor string.
+     * Create an enhanced cursor with navigation metadata.
+     * @param {PageOptions} targetPageOptions - The page options for the target page
+     * @param {number} targetPageIndex - The index of the target page in navigation history
+     * @returns {EnhancedCursorData} Enhanced cursor data with navigation metadata
+     */
+    protected createEnhancedCursor(targetPageOptions: PageOptions, targetPageIndex: number): EnhancedCursorData {
+        // Build navigation history up to the target page
+        const navigationHistory = this.pageKeys.slice(0, targetPageIndex + 1);
+        
+        // Ensure we have the target page in our history
+        if (navigationHistory.length <= targetPageIndex) {
+            navigationHistory[targetPageIndex] = targetPageOptions;
+        }
+
+        const cursorMeta: CursorNavigationMeta = {
+            currentPageIndex: targetPageIndex,
+            navigationHistory: [...navigationHistory],
+            canGoBack: targetPageIndex > 0,
+            canGoForward: targetPageIndex < this.pageKeys.length - 1 || !!this.nextPageKeys,
+            previousPageOptions: targetPageIndex > 0 ? navigationHistory[targetPageIndex - 1] : null,
+            nextPageOptions: targetPageIndex === this.getCurrentPageIndex() ? this.nextPageKeys : 
+                             targetPageIndex < this.pageKeys.length - 1 ? this.pageKeys[targetPageIndex + 1] : null
+        };
+
+        return {
+            ...targetPageOptions,
+            _cursorMeta: cursorMeta
+        };
+    }
+
+    /**
+     * Get the current page index in the navigation history.
+     * @returns {number} Current page index (0-based)
+     */
+    protected getCurrentPageIndex(): number {
+        return this.pageKeys.findIndex(keys => 
+            JSON.stringify(keys) === JSON.stringify(this.currentPageKeys)
+        );
+    }
+
+    /**
+     * Encode enhanced cursor data as a Base64 string.
+     * @param {EnhancedCursorData} enhancedCursorData - The enhanced cursor data to encode
+     * @returns {string} Base64 encoded cursor string
+     */
+    protected encodeEnhancedCursor(enhancedCursorData: EnhancedCursorData): string {
+        return Buffer.from(JSON.stringify(enhancedCursorData)).toString('base64');
+    }
+
+    /**
+     * Encode PageOptions as a cursor string (legacy method for backward compatibility).
      * @param {PageOptions} pageKeys - The page options to encode.
      * @returns {string} Base64 encoded cursor string.
      */
@@ -180,15 +243,25 @@ export abstract class Pagination<T> {
     }
 
     /**
-     * Decode a cursor string back to PageOptions.
+     * Decode a cursor string back to PageOptions or EnhancedCursorData.
      * @param {string} cursor - The Base64 encoded cursor string.
-     * @returns {PageOptions} The decoded page options.
+     * @returns {PageOptions | EnhancedCursorData} The decoded cursor data.
      */
-    public static decodeCursor(cursor: string): PageOptions {
+    public static decodeCursor(cursor: string): PageOptions | EnhancedCursorData {
         try {
-            return JSON.parse(Buffer.from(cursor, 'base64').toString());
+            const decoded = JSON.parse(Buffer.from(cursor, 'base64').toString());
+            return decoded;
         } catch (error) {
             throw new Error('Invalid cursor format');
         }
+    }
+
+    /**
+     * Check if a decoded cursor is an enhanced cursor with navigation metadata.
+     * @param {any} decodedCursor - The decoded cursor data
+     * @returns {boolean} True if the cursor is enhanced, false otherwise
+     */
+    public static isEnhancedCursor(decodedCursor: any): decodedCursor is EnhancedCursorData {
+        return decodedCursor && typeof decodedCursor === 'object' && '_cursorMeta' in decodedCursor;
     }
 }

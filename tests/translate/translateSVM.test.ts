@@ -866,4 +866,88 @@ describe('TranslateSVM', () => {
       expect(response.rawTransactionData.interactedAccounts).toBeNull();
     });
   });
+
+  describe('Enhanced Cursor Functionality', () => {
+    it('should support cursor-based pagination navigation', async () => {
+      // Mock transaction data for SVM
+      const mockTransaction = {
+        txTypeVersion: 5,
+        chain: 'solana',
+        accountAddress: validAddress,
+        classificationData: {
+          type: 'transfer',
+          description: 'Test Solana transaction'
+        },
+        rawTransactionData: {
+          signature: 'test-signature-123',
+          blockTime: 1640995200
+        },
+        transfers: [],
+        values: []
+      };
+
+      const page1Response = {
+        account: validAddress,
+        items: [mockTransaction],
+        pageSize: 1,
+        hasNextPage: true,
+        nextPageUrl: 'https://api.example.com/page2'
+      };
+
+      const page2Response = {
+        account: validAddress,
+        items: [{ ...mockTransaction, rawTransactionData: { ...mockTransaction.rawTransactionData, signature: 'test-signature-456' } }],
+        pageSize: 1,
+        hasNextPage: false,
+        nextPageUrl: null
+      };
+
+      // Start with first page
+      mockRequest.mockResolvedValueOnce(page1Response);
+      const transactionsPage = await translate.getTransactions(validChain, validAddress, { pageSize: 1 });
+
+      // Test cursor info
+      const cursorInfo = transactionsPage.getCursorInfo();
+      expect(cursorInfo).toHaveProperty('hasNextPage', true);
+      expect(cursorInfo).toHaveProperty('hasPreviousPage', false);
+      expect(cursorInfo).toHaveProperty('nextCursor');
+      expect(cursorInfo).toHaveProperty('previousCursor', null);
+      expect(typeof cursorInfo.nextCursor).toBe('string');
+
+      // Test cursor methods
+      const nextCursor = transactionsPage.getNextCursor();
+      const previousCursor = transactionsPage.getPreviousCursor();
+      expect(typeof nextCursor).toBe('string');
+      expect(previousCursor).toBeNull();
+
+      // Test cursor decoding
+      if (nextCursor) {
+        const decodedCursor = TransactionsPage.decodeCursor(nextCursor);
+        expect(decodedCursor).toHaveProperty('_cursorMeta');
+        expect((decodedCursor as any)._cursorMeta).toHaveProperty('currentPageIndex');
+        expect((decodedCursor as any)._cursorMeta).toHaveProperty('canGoBack');
+        expect((decodedCursor as any)._cursorMeta).toHaveProperty('canGoForward');
+      }
+
+      // Test fromCursor static method
+      if (nextCursor) {
+        mockRequest.mockResolvedValueOnce(page2Response);
+        const page2FromCursor = await TransactionsPage.fromCursor(translate, 'solana', validAddress, nextCursor);
+        expect(page2FromCursor).toBeInstanceOf(TransactionsPage);
+        expect(page2FromCursor.getTransactions()).toHaveLength(1);
+        expect(page2FromCursor.hasPrevious()).toBe(true);
+
+        // Test navigation back
+        const page2PreviousCursor = page2FromCursor.getPreviousCursor();
+        expect(typeof page2PreviousCursor).toBe('string');
+        
+        // Verify cursor navigation integrity
+        if (page2PreviousCursor) {
+          mockRequest.mockResolvedValueOnce(page1Response);
+          const backToPage1 = await TransactionsPage.fromCursor(translate, 'solana', validAddress, page2PreviousCursor);
+          expect((backToPage1.getTransactions()[0] as any).rawTransactionData.signature).toBe('test-signature-123');
+        }
+      }
+    });
+  });
 });

@@ -1127,6 +1127,83 @@ describe('TranslateEVM', () => {
       expect(cannotGoBack).toBe(false);
       expect(transactionsPage.hasPrevious()).toBe(false);
     });
+
+    it('should support enhanced cursor navigation', async () => {
+      // Mock transaction data
+      const mockTransaction = {
+        txTypeVersion: 2,
+        chain: validChain,
+        accountAddress: validAddress,
+        classificationData: {
+          type: 'transfer',
+          description: 'Test transaction',
+          protocol: {},
+          source: { type: 'user' },
+          sent: [],
+          received: []
+        },
+        rawTransactionData: {
+          transactionHash: '0x123',
+          blockNumber: 12345,
+          timestamp: 1234567890
+        }
+      };
+
+      const page1Response = {
+        items: [mockTransaction],
+        hasNextPage: true,
+        nextPageUrl: 'https://api.example.com/page2',
+        pageSize: 1
+      };
+
+      const page2Response = {
+        items: [{ ...mockTransaction, rawTransactionData: { ...mockTransaction.rawTransactionData, transactionHash: '0x456' } }],
+        hasNextPage: false,
+        nextPageUrl: null,
+        pageSize: 1
+      };
+
+      // Start with first page
+      mockRequest.mockResolvedValueOnce(page1Response);
+      const transactionsPage = await translateEVM.getTransactions(validChain, validAddress, { pageSize: 1 });
+
+      // Test cursor info
+      const cursorInfo = transactionsPage.getCursorInfo();
+      expect(cursorInfo).toHaveProperty('hasNextPage', true);
+      expect(cursorInfo).toHaveProperty('hasPreviousPage', false);
+      expect(cursorInfo).toHaveProperty('nextCursor');
+      expect(cursorInfo).toHaveProperty('previousCursor', null);
+      expect(typeof cursorInfo.nextCursor).toBe('string');
+
+      // Test cursor methods
+      const nextCursor = transactionsPage.getNextCursor();
+      const previousCursor = transactionsPage.getPreviousCursor();
+      expect(typeof nextCursor).toBe('string');
+      expect(previousCursor).toBeNull();
+
+      // Test cursor decoding
+      const decodedCursor = TransactionsPage.decodeCursor(nextCursor!);
+      expect(decodedCursor).toHaveProperty('_cursorMeta');
+      expect((decodedCursor as any)._cursorMeta).toHaveProperty('currentPageIndex');
+      expect((decodedCursor as any)._cursorMeta).toHaveProperty('canGoBack');
+      expect((decodedCursor as any)._cursorMeta).toHaveProperty('canGoForward');
+
+      // Test fromCursor static method
+      mockRequest.mockResolvedValueOnce(page2Response);
+      const page2FromCursor = await TransactionsPage.fromCursor(translateEVM, validChain, validAddress, nextCursor!);
+      expect(page2FromCursor).toBeInstanceOf(TransactionsPage);
+      expect(page2FromCursor.getTransactions()).toHaveLength(1);
+      expect(page2FromCursor.hasPrevious()).toBe(true);
+
+      // Test previous cursor from second page
+      const page2PreviousCursor = page2FromCursor.getPreviousCursor();
+      expect(typeof page2PreviousCursor).toBe('string');
+
+      // Verify cursor navigation integrity
+      mockRequest.mockResolvedValueOnce(page1Response);
+      const backToPage1 = await TransactionsPage.fromCursor(translateEVM, validChain, validAddress, page2PreviousCursor!);
+      expect((backToPage1.getTransactions()[0] as any).rawTransactionData.transactionHash).toBe('0x123');
+    });
   });
 
   describe('getRawTransaction', () => {

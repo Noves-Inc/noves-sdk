@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2025-06-12
+
+### Added
+- **Enhanced cursor-based pagination with stateless navigation metadata**:
+  - New `CursorNavigationMeta` interface for embedding navigation context within cursors
+  - New `EnhancedCursorData` interface for self-contained cursor data structures
+  - Enhanced cursors now include complete navigation history and bidirectional navigation capabilities
+  - Cursors are now fully stateless and contain all necessary context for external pagination systems
+- **Advanced cursor methods for external pagination control**:
+  - Enhanced `getCursorInfo()` method returns comprehensive cursor metadata including navigation availability
+  - Enhanced `getNextCursor()` and `getPreviousCursor()` methods return Base64-encoded enhanced cursors
+  - Enhanced `TransactionsPage.fromCursor()` static method supports both legacy and enhanced cursor formats
+  - Enhanced `TransactionsPage.decodeCursor()` static method with support for enhanced cursor structures
+- **Comprehensive test coverage for enhanced cursor functionality**:
+  - Added extensive test suite for enhanced cursor navigation in EVM Translate API
+  - Added comprehensive test suite for enhanced cursor functionality in SVM Translate API
+  - Tests validate cursor encoding/decoding, navigation integrity, and bidirectional page consistency
+  - Tests ensure backward compatibility with existing cursor implementations
+
+### Changed
+- **Enhanced cursor implementation with backward compatibility**:
+  - Updated `Pagination` base class with enhanced cursor generation and navigation metadata
+  - Enhanced cursor encoding now includes navigation history, page indices, and bidirectional navigation flags
+  - Improved cursor decoding to handle both legacy PageOptions and enhanced cursor data structures
+  - Enhanced navigation logic with improved state management and history tracking
+- **Improved pagination reliability and consistency**:
+  - Enhanced page navigation with better error handling and state validation
+  - Improved cursor-based navigation with comprehensive metadata for external systems
+  - Enhanced bidirectional navigation with guaranteed page consistency across forward/backward traversal
+- **Updated type definitions for enhanced cursor support**:
+  - Extended common types with new cursor navigation interfaces
+  - Enhanced type safety for cursor operations and navigation metadata
+  - Improved type definitions for enhanced cursor data structures and navigation context
+
+### Fixed
+- Enhanced cursor navigation consistency ensuring identical page content when revisiting pages
+- Improved cursor encoding/decoding reliability with comprehensive error handling
+- Enhanced pagination state management with better navigation history tracking
+
 ## [1.1.2] - 2025-06-11
 
 ### Added
