@@ -1,5 +1,11 @@
 import { PageOptions } from '../types/common';
-import { TVMTranslateChain, TVMTranslateTransaction } from '../types/tvm';
+import { 
+    TVMTranslateChain, 
+    TVMTranslateTransaction,
+    TVMTranslateStartBalanceJobResponse,
+    TVMTranslateBalanceJobResult,
+    TVMTranslateStartBalanceJobParams
+} from '../types/tvm';
 import { TransactionsPage } from './transactionsPage';
 import { TransactionError } from '../errors/TransactionError';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
@@ -88,7 +94,59 @@ export class TranslateTVM extends BaseTranslate {
         }
     }
 
+    /**
+     * Starts a job to fetch the token balance for a given account and token address as of a specific block.
+     * @param {string} chain - The chain name (e.g., "tron").
+     * @param {string} tokenAddress - The token contract address.
+     * @param {string} accountAddress - The account address to check balance for.
+     * @param {number} blockNumber - The block number to check balance at.
+     * @returns {Promise<TVMTranslateStartBalanceJobResponse>} A promise that resolves to job details with jobId and resultUrl.
+     * @throws {TransactionError} If there are validation errors in the request.
+     */
+    public async startBalancesJob(
+        chain: string, 
+        tokenAddress: string, 
+        accountAddress: string, 
+        blockNumber: number
+    ): Promise<TVMTranslateStartBalanceJobResponse> {
+        try {
+            const endpoint = `${chain}/balances/job/start`;
+            const queryParams = new URLSearchParams({
+                tokenAddress,
+                accountAddress,
+                blockNumber: blockNumber.toString()
+            });
+            const url = `${endpoint}?${queryParams.toString()}`;
+            
+            const result = await this.makeRequest(url, 'POST');
+            return result;
+        } catch (error) {
+            if (error instanceof TransactionError) {
+                throw error;
+            }
+            throw new TransactionError({ message: ['Failed to start balance job'] });
+        }
+    }
 
+    /**
+     * Gets the result of a balance job by job ID.
+     * @param {string} chain - The chain name (e.g., "tron").
+     * @param {string} jobId - The job ID returned from startBalancesJob.
+     * @returns {Promise<TVMTranslateBalanceJobResult>} A promise that resolves to the balance result.
+     * @throws {TransactionError} If there are validation errors in the request or job is not ready (425 status).
+     */
+    public async getBalancesJobResults(chain: string, jobId: string): Promise<TVMTranslateBalanceJobResult> {
+        try {
+            const endpoint = `${chain}/balances/job/${jobId}`;
+            const result = await this.makeRequest(endpoint);
+            return result;
+        } catch (error) {
+            if (error instanceof TransactionError) {
+                throw error;
+            }
+            throw new TransactionError({ message: ['Failed to get balance job results'] });
+        }
+    }
 
     /**
      * @deprecated Use getTransactions() instead

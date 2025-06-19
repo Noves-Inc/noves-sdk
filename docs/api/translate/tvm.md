@@ -111,107 +111,74 @@ The method returns a `TransactionsPage` object with the following methods:
 - `TransactionsPage.fromCursor()`: Static method to create a page from cursor string
 - `TransactionsPage.decodeCursor()`: Static method to decode cursor to page options
 
-### Advanced Cursor-Based Pagination
-
-For applications that need external cursor control (similar to GraphQL-style pagination), you can use the cursor-based pagination methods:
+### startBalancesJob(chain: string, tokenAddress: string, accountAddress: string, blockNumber: number)
+Starts a job to fetch the token balance for a given account and token address as of a specific block.
 
 ```typescript
-// Get initial page
-const transactionsPage = await tvmTranslate.getTransactions('tron', address, {
-  pageSize: 10
-});
+const jobResponse = await tvmTranslate.startBalancesJob(
+  'tron',
+  'TXL6rJbvmjD46zeN1JssfgxvSo99qC8MRT', // Token address
+  'TH2uNFtnwr5NsiAW2Py6Fmv8zDhfYXyDd9', // Account address
+  73196764 // Block number
+);
 
-// Get cursor information for external systems
-const cursorInfo = transactionsPage.getCursorInfo();
-console.log("Cursor Info:", cursorInfo);
-// Output: {
-//   hasNextPage: true,
-//   hasPreviousPage: false,
-//   nextCursor: "eyJwYWdlU2l6ZSI6MTAsInBhZ2luYXRpb25LZXkiOiJzb21lLWtleSJ9",
-//   previousCursor: null
-// }
+console.log('Job ID:', jobResponse.jobId);
+console.log('Result URL:', jobResponse.resultUrl);
+```
 
-// Store cursors for external use
-const nextCursor = transactionsPage.getNextCursor();
-const previousCursor = transactionsPage.getPreviousCursor();
+Response format:
+```typescript
+interface TVMTranslateStartBalanceJobResponse {
+  jobId: string;     // Unique identifier for the balance job
+  resultUrl: string; // URL to poll for job results
+}
+```
 
-// Later, create a new page from a cursor
-if (nextCursor) {
-  const nextPage = await TransactionsPage.fromCursor(
-    tvmTranslate,
+### getBalancesJobResults(chain: string, jobId: string)
+Gets the result of a balance job by job ID. This method may return a 425 status if the job is still processing.
+
+```typescript
+try {
+  const balanceResult = await tvmTranslate.getBalancesJobResults(
     'tron',
-    address,
-    nextCursor
+    '0xc8259410336d786984a8194db6f9a732381a4c68'
   );
-  console.log("Next page transactions:", nextPage.getTransactions());
-}
-
-// Decode cursor to see page options (useful for debugging)
-if (nextCursor) {
-  const pageOptions = TransactionsPage.decodeCursor(nextCursor);
-  console.log("Decoded cursor:", pageOptions);
-}
-```
-
-#### Cursor Information Interface
-```typescript
-interface CursorInfo {
-  hasNextPage: boolean;      // True if there's a next page available
-  hasPreviousPage: boolean;  // True if there's a previous page available
-  nextCursor: string | null; // Base64 encoded cursor for next page
-  previousCursor: string | null; // Base64 encoded cursor for previous page
-}
-```
-
-#### Building Custom Pagination Interfaces
-
-You can use the cursor methods to build GraphQL-style pagination interfaces:
-
-```typescript
-// Example: Building a custom pagination response
-async function getTransactionsWithCustomPagination(
-  chain: string, 
-  address: string, 
-  cursor?: string, 
-  pageSize: number = 10
-) {
-  let transactionsPage;
   
-  if (cursor) {
-    // Resume from cursor
-    transactionsPage = await TransactionsPage.fromCursor(
-      tvmTranslate, 
-      chain, 
-      address, 
-      cursor
-    );
-  } else {
-    // Start from beginning
-    transactionsPage = await tvmTranslate.getTransactions(chain, address, {
-      pageSize
-    });
+  console.log('Balance:', balanceResult.amount);
+  console.log('Token:', balanceResult.token);
+} catch (error) {
+  if (error.status === 425) {
+    console.log('Job still processing, try again later');
   }
-  
-  const cursorInfo = transactionsPage.getCursorInfo();
-  
-  return {
-    transactions: transactionsPage.getTransactions(),
-    pageInfo: {
-      hasNextPage: cursorInfo.hasNextPage,
-      hasPreviousPage: cursorInfo.hasPreviousPage,
-      startCursor: cursor || null,
-      endCursor: cursorInfo.nextCursor
-    }
-  };
 }
 ```
+
+Response format:
+```typescript
+interface TVMTranslateBalanceJobResult {
+  chain: string;           // Chain name (e.g., "tron")
+  accountAddress: string;  // Account address that was queried
+  token: {
+    symbol: string;        // Token symbol (e.g., "SUNDOG")
+    name: string;          // Token name (e.g., "Sundog")
+    decimals: number;      // Token decimals (e.g., 18)
+    address: string;       // Token contract address
+  };
+  amount: string;          // Token balance as a string (e.g., "19.52212")
+  blockNumber: number;     // Block number at which balance was calculated
+}
+```
+
+**Important Notes:**
+- Processing time depends on how far the requested block is from chain genesis
+- Processing time also depends on the transaction volume of the requested account
+- If you receive a 425 status code, retry the request after some time
+- Continue polling until you get the final balance result
 
 ### Transactions(chain: string, accountAddress: string, pageOptions?: PageOptions) [DEPRECATED]
 **⚠️ Deprecated:** Use `getTransactions()` instead. This method will be removed in a future version.
 
 Get paginated transactions for an account. This method is maintained for backward compatibility.
-
-
 
 ## Examples
 
@@ -256,6 +223,42 @@ if (transactionsPage.hasPrevious()) {
   await transactionsPage.previous();
   console.log("Previous page:", transactionsPage.getTransactions());
 }
+```
+
+### Getting Token Balance at Specific Block
+```typescript
+// Start a balance job
+const jobResponse = await tvmTranslate.startBalancesJob(
+  'tron',
+  'TXL6rJbvmjD46zeN1JssfgxvSo99qC8MRT', // SUNDOG token
+  'TH2uNFtnwr5NsiAW2Py6Fmv8zDhfYXyDd9', // Account address
+  73196764 // Block number
+);
+
+console.log('Job started:', jobResponse.jobId);
+
+// Poll for results (with retry logic for 425 status)
+async function pollForBalance(chain: string, jobId: string, maxRetries = 10, delayMs = 2000) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const result = await tvmTranslate.getBalancesJobResults(chain, jobId);
+      console.log('Balance result:', result);
+      return result;
+    } catch (error) {
+      if (error.status === 425 && i < maxRetries - 1) {
+        console.log(`Job still processing, retrying in ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
+// Get the balance result
+const balanceResult = await pollForBalance('tron', jobResponse.jobId);
+console.log(`Balance: ${balanceResult.amount} ${balanceResult.token.symbol}`);
 ```
 
 ## Error Handling

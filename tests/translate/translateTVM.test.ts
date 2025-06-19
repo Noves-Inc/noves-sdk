@@ -1,7 +1,11 @@
 import nock from 'nock';
 import { TransactionError } from '../../src/errors/TransactionError';
 import { TransactionsPage } from '../../src/translate/transactionsPage';
-import { TVMTranslateTransaction } from '../../src/types/tvm';
+import { 
+    TVMTranslateTransaction,
+    TVMTranslateStartBalanceJobResponse,
+    TVMTranslateBalanceJobResult
+} from '../../src/types/tvm';
 import { TranslateTVM } from '../../src/translate/translateTVM';
 
 jest.setTimeout(10000);
@@ -215,6 +219,77 @@ describe('TranslateTVM', () => {
         expect(transactions).toBeInstanceOf(TransactionsPage);
         expect(transactions.getTransactions()).toEqual(mockTransactions.items as TVMTranslateTransaction[]);
         expect(transactions.getNextPageKeys()).not.toBeNull();
+    });
+
+    it('should start a balance job successfully', async () => {
+        const mockStartJobResponse: TVMTranslateStartBalanceJobResponse = {
+            jobId: '0xc8259410336d786984a8194db6f9a732381a4c68',
+            resultUrl: 'https://translate.noves.fi/tvm/tron/balances/job/0xc8259410336d786984a8194db6f9a732381a4c68'
+        };
+
+        mockRequest.mockResolvedValue(mockStartJobResponse);
+
+        const response = await translate.startBalancesJob(
+            'tron', 
+            'TXL6rJbvmjD46zeN1JssfgxvSo99qC8MRT', 
+            'TH2uNFtnwr5NsiAW2Py6Fmv8zDhfYXyDd9', 
+            73196764
+        );
+        
+        expect(response).toEqual(mockStartJobResponse);
+        expect(mockRequest).toHaveBeenCalledWith(
+            'tron/balances/job/start?tokenAddress=TXL6rJbvmjD46zeN1JssfgxvSo99qC8MRT&accountAddress=TH2uNFtnwr5NsiAW2Py6Fmv8zDhfYXyDd9&blockNumber=73196764',
+            'POST'
+        );
+    });
+
+    it('should get balance job results successfully', async () => {
+        const mockBalanceResult: TVMTranslateBalanceJobResult = {
+            chain: 'tron',
+            accountAddress: 'TH2uNFtnwr5NsiAW2Py6Fmv8zDhfYXyDd9',
+            token: {
+                symbol: 'SUNDOG',
+                name: 'Sundog',
+                decimals: 18,
+                address: 'TXL6rJbvmjD46zeN1JssfgxvSo99qC8MRT'
+            },
+            amount: '19.52212',
+            blockNumber: 73196764
+        };
+
+        mockRequest.mockResolvedValue(mockBalanceResult);
+
+        const response = await translate.getBalancesJobResults(
+            'tron', 
+            '0xc8259410336d786984a8194db6f9a732381a4c68'
+        );
+        
+        expect(response).toEqual(mockBalanceResult);
+        expect(mockRequest).toHaveBeenCalledWith('tron/balances/job/0xc8259410336d786984a8194db6f9a732381a4c68');
+    });
+
+    it('should handle balance job start errors', async () => {
+        const mockErrorResponse = {
+            tokenAddress: ['The field tokenAddress must be a valid token address.'],
+            accountAddress: ['The field accountAddress must be a valid account address.'],
+            blockNumber: ['The field blockNumber must be a valid block number.']
+        };
+
+        mockRequest.mockRejectedValue(new TransactionError(mockErrorResponse));
+
+        await expect(translate.startBalancesJob('tron', 'invalidToken', 'invalidAccount', -1))
+            .rejects.toThrow(TransactionError);
+    });
+
+    it('should handle balance job results not ready (425 status)', async () => {
+        const mockErrorResponse = {
+            message: ['Job is still processing. Please try again later.']
+        };
+
+        mockRequest.mockRejectedValue(new TransactionError(mockErrorResponse));
+
+        await expect(translate.getBalancesJobResults('tron', '0xc8259410336d786984a8194db6f9a732381a4c68'))
+            .rejects.toThrow(TransactionError);
     });
 
 });

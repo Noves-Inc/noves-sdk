@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2025-06-19
+
+### Added
+- **TVM Translate API Balance Job functionality**:
+  - New `startBalancesJob(chain, tokenAddress, accountAddress, blockNumber)` method for initiating async balance calculations
+  - New `getBalancesJobResults(chain, jobId)` method for retrieving balance job results with polling support
+  - Comprehensive error handling for 425 status codes when jobs are still processing
+  - Support for historic token balance queries at specific block numbers
+- **New TVM Balance Job type definitions**:
+  - New `TVMTranslateStartBalanceJobResponse` interface for job initiation responses
+  - New `TVMTranslateBalanceJobResult` interface for balance job results
+  - New `TVMTranslateBalanceToken` interface for token information in balance results
+  - New `TVMTranslateStartBalanceJobParams` interface for method parameters
+  - All types precisely match actual API responses for 100% type safety
+- **Enhanced TVM API documentation**:
+  - Comprehensive API documentation for both new balance job methods
+  - Detailed examples with polling patterns and error handling
+  - Response format specifications with exact type definitions
+  - Usage examples for 425 status code handling and retry logic
+- **Updated TVM examples and test coverage**:
+  - Added balance job examples to `docs/examples/translate/tvm.ts`
+  - Comprehensive test coverage with mock responses matching actual API structure
+  - Tests for success scenarios, error handling, and 425 status processing
+  - End-to-end validation with real API endpoints
+
 ## [1.1.3] - 2025-06-12
 
 ### Added

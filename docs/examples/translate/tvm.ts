@@ -111,6 +111,54 @@ async function tvmTranslateExample() {
       console.log("Decoded cursor:", decodedPageOptions);
     }
 
+    // 5. Balance Job Examples
+    console.log("\n=== Balance Job Examples ===");
+    
+    // Start a balance job
+    const tokenAddress = "TXL6rJbvmjD46zeN1JssfgxvSo99qC8MRT"; // SUNDOG token
+    const balanceAccountAddress = "TH2uNFtnwr5NsiAW2Py6Fmv8zDhfYXyDd9";
+    const blockNumber = 73196764;
+    
+    console.log("Starting balance job...");
+    const jobResponse = await tvmTranslate.startBalancesJob(
+      "tron",
+      tokenAddress,
+      balanceAccountAddress,
+      blockNumber
+    );
+    
+    console.log("Job started:", {
+      jobId: jobResponse.jobId,
+      resultUrl: jobResponse.resultUrl
+    });
+
+    // Poll for results with retry logic
+    console.log("Polling for balance results...");
+    async function pollForBalance(chain: string, jobId: string, maxRetries = 10, delayMs = 2000) {
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          const result = await tvmTranslate.getBalancesJobResults(chain, jobId);
+          console.log("Balance result obtained:", result);
+          return result;
+        } catch (error: any) {
+          if (error.status === 425 && i < maxRetries - 1) {
+            console.log(`Job still processing, retrying in ${delayMs}ms... (attempt ${i + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          } else {
+            console.error("Error getting balance results:", error);
+            throw error;
+          }
+        }
+      }
+      throw new Error("Max retries exceeded");
+    }
+
+    // Get the balance result
+    const balanceResult = await pollForBalance("tron", jobResponse.jobId);
+    console.log(`\nFinal Balance: ${balanceResult.amount} ${balanceResult.token.symbol}`);
+    console.log("Token details:", balanceResult.token);
+    console.log(`Balance calculated at block: ${balanceResult.blockNumber}`);
+
   } catch (error) {
     console.error("Error:", error);
   }

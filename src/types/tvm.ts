@@ -121,7 +121,46 @@ export interface TVMTranslateTransactionsResponse {
     nextPageUrl?: string;
 }
 
+/**
+ * Response from starting a TVM balance job
+ * Returned by POST /tvm/{chain}/balances/job/start
+ */
+export interface TVMTranslateStartBalanceJobResponse {
+    jobId: string;
+    resultUrl: string;
+}
 
+/**
+ * Token information in balance job results
+ */
+export interface TVMTranslateBalanceToken {
+    symbol: string;
+    name: string;
+    decimals: number;
+    address: string;
+}
+
+/**
+ * TVM balance job result
+ * Returned by GET /tvm/{chain}/balances/job/{jobId}
+ */
+export interface TVMTranslateBalanceJobResult {
+    chain: string;
+    accountAddress: string;
+    token: TVMTranslateBalanceToken;
+    amount: string;
+    blockNumber: number;
+}
+
+/**
+ * Parameters for starting a TVM balance job
+ */
+export interface TVMTranslateStartBalanceJobParams {
+    chain: string;
+    tokenAddress: string;
+    accountAddress: string;
+    blockNumber: number;
+}
 
 // Legacy aliases for backward compatibility
 export type TVMNativeCoin = TVMTranslateNativeCoin;
