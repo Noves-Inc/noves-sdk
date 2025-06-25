@@ -1,6 +1,6 @@
 {
   "name": "@noves/noves-sdk",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Noves Developer Kit",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

@@ -3,7 +3,9 @@
 import { PageOptions } from '../types/common';
 import { 
   UTXOTranslateChain, 
-  UTXOTranslateTransaction, 
+  UTXOTranslateTransaction,
+  UTXOTranslateTransactionV2,
+  UTXOTranslateTransactionV5,
   UTXOTranslateAddressesResponse, 
   UTXOTranslateBalancesResponse,
   UTXOTranslateTransactionJob,
@@ -61,8 +63,6 @@ export class TranslateUTXO {
     }
   }
 
-
-
   /**
    * Get a pagination object to iterate over transactions pages.
    * @param {string} chain - The chain name.
@@ -73,11 +73,54 @@ export class TranslateUTXO {
   public async getTransactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<UTXOTranslateTransaction>> {
     try {
       const endpoint = `${chain}/txs/${accountAddress}`;
+      // constructUrl automatically handles all PageOptions parameters, including v5Format
       const url = constructUrl(endpoint, pageOptions);
       const result = await this.request(url);
 
       if (!result || !result.response || !Array.isArray(result.response.items)) {
         throw new TransactionError({ general: ['Invalid response format'] });
+      }
+
+      // Validate response format matches the requested format
+      if (result.response.items.length > 0) {
+        const firstTx = result.response.items[0];
+        const requestedV5Format = pageOptions.v5Format === true;
+        const expectedVersion = requestedV5Format ? 5 : 2;
+        
+        // Check if we got the expected txTypeVersion
+        if (firstTx.txTypeVersion !== expectedVersion) {
+          throw new TransactionError({ 
+            general: [`API returned txTypeVersion ${firstTx.txTypeVersion} but expected ${expectedVersion}. Check v5Format parameter.`] 
+          });
+        }
+        
+        // Validate transaction structure based on format
+        if (requestedV5Format) {
+          // v5 format should have transfers, values, timestamp, and NO sent/received in classificationData
+          if (!firstTx.transfers || !Array.isArray(firstTx.transfers)) {
+            throw new TransactionError({ general: ['Invalid v5 transaction format - missing transfers array'] });
+          }
+          if (!firstTx.values || !Array.isArray(firstTx.values)) {
+            throw new TransactionError({ general: ['Invalid v5 transaction format - missing values array'] });
+          }
+          if (!firstTx.timestamp) {
+            throw new TransactionError({ general: ['Invalid v5 transaction format - missing timestamp'] });
+          }
+          if (firstTx.classificationData?.sent || firstTx.classificationData?.received) {
+            throw new TransactionError({ general: ['v5 format should not have sent/received arrays in classificationData'] });
+          }
+        } else {
+          // v2 format should have sent/received in classificationData and NO transfers/values at root level
+          if (!firstTx.classificationData?.sent || !Array.isArray(firstTx.classificationData.sent)) {
+            throw new TransactionError({ general: ['Invalid v2 transaction format - missing sent array in classificationData'] });
+          }
+          if (!firstTx.classificationData?.received || !Array.isArray(firstTx.classificationData.received)) {
+            throw new TransactionError({ general: ['Invalid v2 transaction format - missing received array in classificationData'] });
+          }
+          if (firstTx.transfers || firstTx.values) {
+            throw new TransactionError({ general: ['v2 format should not have transfers/values arrays at root level'] });
+          }
+        }
       }
 
       const initialData = {
@@ -179,18 +222,60 @@ export class TranslateUTXO {
    * Returns all of the available transaction information for the chain and transaction hash requested.
    * @param {string} chain - The chain name.
    * @param {string} hash - The transaction hash.
+   * @param {number} [txTypeVersion=5] - The transaction format version (2 or 5). Defaults to 5.
    * @param {string} [viewAsAccountAddress] - Optional account address to view the transaction from its perspective.
    * @returns {Promise<UTXOTranslateTransaction>} A promise that resolves to the transaction details.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getTransaction(chain: string, hash: string, viewAsAccountAddress?: string): Promise<UTXOTranslateTransaction> {
+  public async getTransaction(chain: string, hash: string, txTypeVersion: number = 5, viewAsAccountAddress?: string): Promise<UTXOTranslateTransaction> {
     try {
-      const endpoint = `${chain}/tx/${hash}${viewAsAccountAddress ? `?viewAsAccountAddress=${viewAsAccountAddress}` : ''}`;
+      if (txTypeVersion !== 2 && txTypeVersion !== 5) {
+        throw new TransactionError({ general: ['Invalid txTypeVersion. Must be either 2 or 5'] });
+      }
+
+      let endpoint = `${chain}/tx/${txTypeVersion === 5 ? 'v5' : 'v2'}/${hash}`;
+      
+      if (viewAsAccountAddress) {
+        endpoint += `?viewAsAccountAddress=${encodeURIComponent(viewAsAccountAddress)}`;
+      }
+      
       const result = await this.request(endpoint);
       if (!result || !result.response || typeof result.response !== 'object') {
         throw new TransactionError({ general: ['Invalid response format'] });
       }
-      return result.response;
+
+      const transaction = result.response;
+
+      // Validate response based on format
+      if (txTypeVersion === 5) {
+        if (!transaction.txTypeVersion || transaction.txTypeVersion !== 5) {
+          throw new TransactionError({ general: ['Invalid v5 transaction response format'] });
+        }
+        if (!transaction.transfers || !Array.isArray(transaction.transfers)) {
+          throw new TransactionError({ general: ['Invalid v5 transaction format - missing transfers array'] });
+        }
+        if (!transaction.values || !Array.isArray(transaction.values)) {
+          throw new TransactionError({ general: ['Invalid v5 transaction format - missing values array'] });
+        }
+        if (!transaction.timestamp) {
+          throw new TransactionError({ general: ['Invalid v5 transaction format - missing timestamp'] });
+        }
+        return transaction;
+      } else {
+        if (!transaction.txTypeVersion || transaction.txTypeVersion !== 2) {
+          throw new TransactionError({ general: ['Invalid v2 transaction response format'] });
+        }
+        if (!transaction.classificationData?.sent || !Array.isArray(transaction.classificationData.sent)) {
+          throw new TransactionError({ general: ['Invalid v2 transaction format - missing sent array'] });
+        }
+        if (!transaction.classificationData?.received || !Array.isArray(transaction.classificationData.received)) {
+          throw new TransactionError({ general: ['Invalid v2 transaction format - missing received array'] });
+        }
+        if (!transaction.rawTransactionData?.timestamp) {
+          throw new TransactionError({ general: ['Invalid v2 transaction format - missing timestamp in rawTransactionData'] });
+        }
+        return transaction;
+      }
     } catch (error) {
       if (error instanceof Response) {
         const errorResponse = await error.json();

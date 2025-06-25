@@ -128,8 +128,59 @@ async function main() {
     // Example of getting transaction details
     console.log('\nFetching transaction details...');
     const txHash = '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e';
-    const txDetails = await translate.getTransaction('btc', txHash);
-    console.log('Transaction details:', JSON.stringify(txDetails, null, 2));
+    
+    // Default v5 format
+    console.log('Getting transaction in v5 format (default)...');
+    const txDetailsV5 = await translate.getTransaction('btc', txHash);
+    const v5Details = txDetailsV5 as any; // Cast to access v5 format fields
+    console.log('Transaction v5 format keys:', Object.keys(txDetailsV5));
+    console.log('Has transfers array:', Array.isArray(v5Details.transfers));
+    console.log('Has values array:', Array.isArray(v5Details.values));
+    console.log('Timestamp location:', v5Details.timestamp ? 'root level' : 'rawTransactionData');
+
+    // v2 format
+    console.log('\nGetting transaction in v2 format...');
+    const txDetailsV2 = await translate.getTransaction('btc', txHash, 2);
+    console.log('Transaction v2 format keys:', Object.keys(txDetailsV2));
+    // Cast to access v2 format fields for demonstration
+    const v2Details = txDetailsV2 as any;
+    console.log('Has sent array:', Array.isArray(v2Details.classificationData?.sent));
+    console.log('Has received array:', Array.isArray(v2Details.classificationData?.received));
+    console.log('Timestamp location:', v2Details.rawTransactionData?.timestamp ? 'rawTransactionData' : 'root level');
+
+    // Example of v5 format with viewAsAccountAddress
+    console.log('\nGetting transaction in v5 format with viewAsAccountAddress...');
+    const viewAddress = '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL';
+    const txDetailsWithView = await translate.getTransaction('btc', txHash, 5, viewAddress);
+    console.log('Transaction with viewAsAccountAddress - account:', txDetailsWithView.accountAddress);
+
+    // Example of getting transactions with different formats
+    console.log('\n=== Format Examples for getTransactions ===');
+    
+    // Default v2 format for getTransactions
+    console.log('Getting transactions in v2 format (default)...');
+    const transactionsV2Page = await translate.getTransactions('btc', address, { pageSize: 2 });
+    const transactionsV2 = transactionsV2Page.getTransactions();
+    if (transactionsV2.length > 0) {
+      const firstTxV2 = transactionsV2[0] as any;
+      console.log('First transaction v2 - has sent/received in classificationData:', 
+        !!(firstTxV2.classificationData?.sent || firstTxV2.classificationData?.received));
+      console.log('First transaction v2 - txTypeVersion:', firstTxV2.txTypeVersion);
+    }
+
+    // v5 format for getTransactions
+    console.log('\nGetting transactions in v5 format...');
+    const transactionsV5Page = await translate.getTransactions('btc', address, { 
+      pageSize: 2, 
+      v5Format: true 
+    });
+    const transactionsV5 = transactionsV5Page.getTransactions();
+    if (transactionsV5.length > 0) {
+      const firstTxV5 = transactionsV5[0] as any;
+      console.log('First transaction v5 - has transfers array:', Array.isArray(firstTxV5.transfers));
+      console.log('First transaction v5 - has values array:', Array.isArray(firstTxV5.values));
+      console.log('First transaction v5 - txTypeVersion:', firstTxV5.txTypeVersion);
+    }
 
     // Example of getting token balances
     console.log('\nFetching token balances...');

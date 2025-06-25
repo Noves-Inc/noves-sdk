@@ -482,7 +482,8 @@ describe('TranslateUTXO', () => {
       
       // Test that null addresses are properly handled
       const txs = transactions.getTransactions();
-      const sentTransfer = txs[0].classificationData.sent[0];
+      const firstTx = txs[0] as any; // Cast to any to access v2 format fields
+      const sentTransfer = firstTx.classificationData.sent[0];
       expect(sentTransfer.to.address).toBeNull();
       expect(sentTransfer.to.name).toBe('Miners');
     });
@@ -532,6 +533,221 @@ describe('TranslateUTXO', () => {
       }), { status: 400 }));
 
       await expect(translate.getTransactions('btc', 'invalid-address'))
+        .rejects.toThrow(TransactionError);
+    });
+
+    it('should support v5Format parameter', async () => {
+      const mockTransactionV5 = {
+        txTypeVersion: 5,
+        chain: 'btc',
+        accountAddress: mockAddress,
+        timestamp: 1727202127,
+        classificationData: {
+          type: 'sendToken',
+          description: '',
+          source: {
+            type: 'human'
+          },
+          protocol: {}
+        },
+        transfers: [
+          {
+            action: 'sendToken',
+            amount: '0.0000792',
+            token: {
+              address: 'BTC',
+              name: 'Bitcoin',
+              decimals: 8,
+              symbol: 'BTC'
+            },
+            from: {
+              name: '',
+              address: mockAddress,
+              owner: {}
+            },
+            to: {
+              name: '',
+              address: 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297',
+              owner: {}
+            }
+          }
+        ],
+        values: [
+          {
+            name: 'utxo',
+            value: {
+              summary: {
+                inputs: [
+                  {
+                    senders: [mockAddress],
+                    totalSent: {
+                      amount: '0.00377184',
+                      token: {
+                        symbol: 'BTC',
+                        name: 'Bitcoin',
+                        decimals: 8,
+                        address: 'BTC'
+                      }
+                    }
+                  }
+                ],
+                outputs: [
+                  {
+                    receivers: ['bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297', mockAddress],
+                    totalReceived: {
+                      amount: '0.00375896',
+                      token: {
+                        symbol: 'BTC',
+                        name: 'Bitcoin',
+                        decimals: 8,
+                        address: 'BTC'
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        rawTransactionData: {
+          transactionHash: '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e',
+          blockNumber: 862699,
+          transactionFee: {
+            amount: '0.00001288',
+            token: {
+              symbol: 'BTC',
+              name: 'Bitcoin',
+              decimals: 8,
+              address: 'BTC'
+            }
+          }
+        }
+      };
+
+      const mockResponse = {
+        items: [mockTransactionV5],
+        pageNumber: 1,
+        pageSize: 10,
+        hasNextPage: false,
+        nextPageUrl: null
+      };
+
+      mockRequest.mockResolvedValue({ response: mockResponse });
+
+      const pageOptions = { v5Format: true };
+      const transactions = await translate.getTransactions('btc', mockAddress, pageOptions);
+      expect(transactions.getTransactions()).toEqual(mockResponse.items);
+      
+             // Test that v5 format structure is properly validated
+       const txs = transactions.getTransactions();
+       const firstTxV5 = txs[0] as any; // Cast to any to access v5 format fields
+       expect(firstTxV5.txTypeVersion).toBe(5);
+       expect(firstTxV5.transfers).toBeDefined();
+       expect(firstTxV5.values).toBeDefined();
+       expect(firstTxV5.timestamp).toBeDefined();
+    });
+
+    it('should handle format version mismatch in getTransactions', async () => {
+      const mockTransactionsV2WithWrongFormat = {
+        items: [
+          {
+            txTypeVersion: 2, // API returns v2 but we requested v5
+            chain: 'btc',
+            accountAddress: mockAddress,
+            classificationData: {
+              type: 'sendToken',
+              description: '',
+              source: { type: 'human' },
+              protocol: {},
+              sent: [],
+              received: [],
+              utxo: { summary: { inputs: [], outputs: [] } }
+            },
+            rawTransactionData: {
+              transactionHash: 'test-hash',
+              blockNumber: 123456,
+              transactionFee: { amount: '0.00001', token: { symbol: 'BTC', name: 'Bitcoin', decimals: 8, address: 'BTC' } },
+              timestamp: 1234567890
+            }
+          }
+        ],
+        pageNumber: 1,
+        pageSize: 10,
+        hasNextPage: false,
+        nextPageUrl: null
+      };
+
+      mockRequest.mockResolvedValue({ response: mockTransactionsV2WithWrongFormat });
+
+      await expect(translate.getTransactions('btc', mockAddress, { v5Format: true }))
+        .rejects.toThrow(TransactionError);
+    });
+
+    it('should validate v5 format structure in getTransactions', async () => {
+      const mockTransactionsV5Invalid = {
+        items: [
+          {
+            txTypeVersion: 5,
+            chain: 'btc',
+            accountAddress: mockAddress,
+            // Missing required v5 fields: transfers, values, timestamp
+            classificationData: {
+              type: 'sendToken',
+              description: '',
+              source: { type: 'human' },
+              protocol: {}
+            },
+            rawTransactionData: {
+              transactionHash: 'test-hash',
+              blockNumber: 123456,
+              transactionFee: { amount: '0.00001', token: { symbol: 'BTC', name: 'Bitcoin', decimals: 8, address: 'BTC' } }
+            }
+          }
+        ],
+        pageNumber: 1,
+        pageSize: 10,
+        hasNextPage: false,
+        nextPageUrl: null
+      };
+
+      mockRequest.mockResolvedValue({ response: mockTransactionsV5Invalid });
+
+      await expect(translate.getTransactions('btc', mockAddress, { v5Format: true }))
+        .rejects.toThrow(TransactionError);
+    });
+
+    it('should validate v2 format structure in getTransactions', async () => {
+      const mockTransactionsV2Invalid = {
+        items: [
+          {
+            txTypeVersion: 2,
+            chain: 'btc',
+            accountAddress: mockAddress,
+            classificationData: {
+              type: 'sendToken',
+              description: '',
+              source: { type: 'human' },
+              protocol: {}
+              // Missing required v2 fields: sent, received arrays
+            },
+            transfers: [], // Should not be present in v2 format
+            rawTransactionData: {
+              transactionHash: 'test-hash',
+              blockNumber: 123456,
+              transactionFee: { amount: '0.00001', token: { symbol: 'BTC', name: 'Bitcoin', decimals: 8, address: 'BTC' } },
+              timestamp: 1234567890
+            }
+          }
+        ],
+        pageNumber: 1,
+        pageSize: 10,
+        hasNextPage: false,
+        nextPageUrl: null
+      };
+
+      mockRequest.mockResolvedValue({ response: mockTransactionsV2Invalid });
+
+      await expect(translate.getTransactions('btc', mockAddress))
         .rejects.toThrow(TransactionError);
     });
   });
@@ -592,8 +808,128 @@ describe('TranslateUTXO', () => {
   });
 
   describe('getTransaction', () => {
-    it('should fetch transaction details successfully', async () => {
-      const mockTransaction = {
+    it('should fetch transaction details successfully with default v5 format', async () => {
+      const mockTransactionV5 = {
+        txTypeVersion: 5,
+        chain: 'btc',
+        accountAddress: '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL',
+        timestamp: 1727202127,
+        classificationData: {
+          type: 'sendToken',
+          description: '',
+          source: {
+            type: 'human'
+          },
+          protocol: {}
+        },
+        transfers: [
+          {
+            action: 'paidGas',
+            amount: '0.00001288',
+            token: {
+              address: 'BTC',
+              name: 'Bitcoin',
+              decimals: 8,
+              symbol: 'BTC'
+            },
+            from: {
+              name: '',
+              address: '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL',
+              owner: {}
+            },
+            to: {
+              name: 'Miners',
+              address: '',
+              owner: {}
+            }
+          },
+          {
+            action: 'sendToken',
+            amount: '0.0000792',
+            token: {
+              address: 'BTC',
+              name: 'Bitcoin',
+              decimals: 8,
+              symbol: 'BTC'
+            },
+            from: {
+              name: '',
+              address: '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL',
+              owner: {}
+            },
+            to: {
+              name: '',
+              address: 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297',
+              owner: {}
+            }
+          }
+        ],
+        values: [
+          {
+            name: 'utxo',
+            value: {
+              summary: {
+                inputs: [
+                  {
+                    senders: [
+                      '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
+                    ],
+                    totalSent: {
+                      amount: '0.00377184',
+                      token: {
+                        symbol: 'BTC',
+                        name: 'Bitcoin',
+                        decimals: 8,
+                        address: 'BTC'
+                      }
+                    }
+                  }
+                ],
+                outputs: [
+                  {
+                    receivers: [
+                      'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297',
+                      '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
+                    ],
+                    totalReceived: {
+                      amount: '0.00375896',
+                      token: {
+                        symbol: 'BTC',
+                        name: 'Bitcoin',
+                        decimals: 8,
+                        address: 'BTC'
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        rawTransactionData: {
+          transactionHash: '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e',
+          blockNumber: 862699,
+          transactionFee: {
+            amount: '0.00001288',
+            token: {
+              symbol: 'BTC',
+              name: 'Bitcoin',
+              decimals: 8,
+              address: 'BTC'
+            }
+          }
+        }
+      };
+
+      mockRequest.mockResolvedValue({ response: mockTransactionV5 });
+
+      const response = await translate.getTransaction('btc', '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e');
+      expect(response).toEqual(mockTransactionV5);
+      expect(mockRequest).toHaveBeenCalledWith('btc/tx/v5/5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e');
+    });
+
+    it('should fetch transaction details successfully with v2 format', async () => {
+      const mockTransactionV2 = {
         txTypeVersion: 2,
         chain: 'btc',
         accountAddress: '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL',
@@ -622,6 +958,24 @@ describe('TranslateUTXO', () => {
                 decimals: 8,
                 address: 'BTC'
               }
+            },
+            {
+              action: 'sendToken',
+              from: {
+                name: null,
+                address: '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
+              },
+              to: {
+                name: '',
+                address: 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297'
+              },
+              amount: '0.0000792',
+              token: {
+                symbol: 'BTC',
+                name: 'Bitcoin',
+                decimals: 8,
+                address: 'BTC'
+              }
             }
           ],
           received: [],
@@ -643,7 +997,7 @@ describe('TranslateUTXO', () => {
               ],
               outputs: [
                 {
-                  receivers: ['bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297'],
+                  receivers: ['bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297', '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'],
                   totalReceived: {
                     amount: '0.00375896',
                     token: {
@@ -674,78 +1028,91 @@ describe('TranslateUTXO', () => {
         }
       };
 
-      mockRequest.mockResolvedValue({ response: mockTransaction });
+      mockRequest.mockResolvedValue({ response: mockTransactionV2 });
 
-      const response = await translate.getTransaction('btc', '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e');
-      expect(response).toEqual(mockTransaction);
+      const response = await translate.getTransaction('btc', '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e', 2);
+      expect(response).toEqual(mockTransactionV2);
+      expect(mockRequest).toHaveBeenCalledWith('btc/tx/v2/5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e');
     });
 
-    it('should fetch transaction details with viewAsAccountAddress', async () => {
-      const mockTransaction = {
-        txTypeVersion: 2,
+    it('should fetch transaction details with viewAsAccountAddress parameter', async () => {
+      const mockTransactionV5 = {
+        txTypeVersion: 5,
         chain: 'btc',
-        accountAddress: '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL',
+        accountAddress: 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297',
+        timestamp: 1727202127,
         classificationData: {
-          type: 'sendToken',
+          type: 'receiveToken',
+          description: '',
           source: {
             type: 'human'
           },
-          description: '',
-          protocol: {},
-          sent: [],
-          received: [
-            {
-              action: 'receivedToken',
-              from: {
-                name: null,
-                address: 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297'
-              },
-              to: {
-                name: null,
-                address: '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
-              },
-              amount: '0.0000792',
-              token: {
-                symbol: 'BTC',
-                name: 'Bitcoin',
-                decimals: 8,
-                address: 'BTC'
-              }
-            }
-          ],
-          utxo: {
-            summary: {
-              inputs: [
-                {
-                  senders: ['bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297'],
-                  totalSent: {
-                    amount: '0.0000792',
-                    token: {
-                      symbol: 'BTC',
-                      name: 'Bitcoin',
-                      decimals: 8,
-                      address: 'BTC'
-                    }
-                  }
-                }
-              ],
-              outputs: [
-                {
-                  receivers: ['3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'],
-                  totalReceived: {
-                    amount: '0.0000792',
-                    token: {
-                      symbol: 'BTC',
-                      name: 'Bitcoin',
-                      decimals: 8,
-                      address: 'BTC'
-                    }
-                  }
-                }
-              ]
+          protocol: {}
+        },
+        transfers: [
+          {
+            action: 'receiveToken',
+            amount: '0.0000792',
+            token: {
+              address: 'BTC',
+              name: 'Bitcoin',
+              decimals: 8,
+              symbol: 'BTC'
+            },
+            from: {
+              name: '',
+              address: '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL',
+              owner: {}
+            },
+            to: {
+              name: '',
+              address: 'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297',
+              owner: {}
             }
           }
-        },
+        ],
+        values: [
+          {
+            name: 'utxo',
+            value: {
+              summary: {
+                inputs: [
+                  {
+                    senders: [
+                      '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
+                    ],
+                    totalSent: {
+                      amount: '0.00377184',
+                      token: {
+                        symbol: 'BTC',
+                        name: 'Bitcoin',
+                        decimals: 8,
+                        address: 'BTC'
+                      }
+                    }
+                  }
+                ],
+                outputs: [
+                  {
+                    receivers: [
+                      'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297',
+                      '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
+                    ],
+                    totalReceived: {
+                      amount: '0.00375896',
+                      token: {
+                        symbol: 'BTC',
+                        name: 'Bitcoin',
+                        decimals: 8,
+                        address: 'BTC'
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
         rawTransactionData: {
           transactionHash: '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e',
           blockNumber: 862699,
@@ -757,22 +1124,27 @@ describe('TranslateUTXO', () => {
               decimals: 8,
               address: 'BTC'
             }
-          },
-          timestamp: 1727202127
+          }
         }
       };
 
-      mockRequest.mockResolvedValue({ response: mockTransaction });
+      mockRequest.mockResolvedValue({ response: mockTransactionV5 });
 
       const response = await translate.getTransaction(
         'btc',
         '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e',
-        '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
+        5,
+        'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297'
       );
-      expect(response).toEqual(mockTransaction);
+      expect(response).toEqual(mockTransactionV5);
       expect(mockRequest).toHaveBeenCalledWith(
-        'btc/tx/5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e?viewAsAccountAddress=3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
+        'btc/tx/v5/5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e?viewAsAccountAddress=bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297'
       );
+    });
+
+    it('should handle invalid txTypeVersion parameter', async () => {
+      await expect(translate.getTransaction('btc', '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e', 3))
+        .rejects.toThrow(TransactionError);
     });
 
     it('should handle validation errors', async () => {

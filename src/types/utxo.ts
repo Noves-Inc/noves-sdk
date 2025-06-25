@@ -36,20 +36,40 @@ export interface UTXOTranslateToken {
 }
 
 /**
- * UTXO address information
+ * UTXO address information - v2 format (nullable addresses)
  */
-export interface UTXOTranslateAddress {
+export interface UTXOTranslateAddressV2 {
   name: string | null;
   address: string | null;
 }
 
 /**
- * UTXO transfer information
+ * UTXO address information - v5 format (with owner field)
  */
-export interface UTXOTranslateTransfer {
+export interface UTXOTranslateAddressV5 {
+  name: string;
+  address: string;
+  owner: Record<string, any>;
+}
+
+/**
+ * UTXO transfer information - v2 format (in sent/received arrays)
+ */
+export interface UTXOTranslateTransferV2 {
   action: string;
-  from: UTXOTranslateAddress;
-  to: UTXOTranslateAddress;
+  from: UTXOTranslateAddressV2;
+  to: UTXOTranslateAddressV2;
+  amount: string;
+  token: UTXOTranslateToken;
+}
+
+/**
+ * UTXO transfer information - v5 format (in transfers array)
+ */
+export interface UTXOTranslateTransferV5 {
+  action: string;
+  from: UTXOTranslateAddressV5;
+  to: UTXOTranslateAddressV5;
   amount: string;
   token: UTXOTranslateToken;
 }
@@ -79,26 +99,38 @@ export interface UTXOTransactionSummary {
 }
 
 /**
- * UTXO classification data
+ * UTXO classification data - v2 format
  */
-export interface UTXOTranslateClassificationData {
+export interface UTXOTranslateClassificationDataV2 {
   type: string;
   source: {
-    type: string | null;
+    type: string;
   };
   description: string;
   protocol: Record<string, any>;
-  sent: UTXOTranslateTransfer[];
-  received: UTXOTranslateTransfer[];
+  sent: UTXOTranslateTransferV2[];
+  received: UTXOTranslateTransferV2[];
   utxo: {
     summary: UTXOTransactionSummary;
   };
 }
 
 /**
- * UTXO raw transaction data
+ * UTXO classification data - v5 format
  */
-export interface UTXOTranslateRawTransactionData {
+export interface UTXOTranslateClassificationDataV5 {
+  type: string;
+  source: {
+    type: string;
+  };
+  description: string;
+  protocol: Record<string, any>;
+}
+
+/**
+ * UTXO raw transaction data - v2 format (timestamp in rawTransactionData)
+ */
+export interface UTXOTranslateRawTransactionDataV2 {
   transactionHash: string;
   blockNumber: number;
   transactionFee: {
@@ -109,15 +141,56 @@ export interface UTXOTranslateRawTransactionData {
 }
 
 /**
- * UTXO transaction
+ * UTXO raw transaction data - v5 format (no timestamp in rawTransactionData)
  */
-export interface UTXOTranslateTransaction extends PaginatedItem {
-  txTypeVersion: number;
+export interface UTXOTranslateRawTransactionDataV5 {
+  transactionHash: string;
+  blockNumber: number;
+  transactionFee: {
+    amount: string;
+    token: UTXOTranslateToken;
+  };
+}
+
+/**
+ * UTXO value item - v5 format specific
+ */
+export interface UTXOTranslateValueItem {
+  name: string;
+  value: {
+    summary: UTXOTransactionSummary;
+  };
+}
+
+/**
+ * UTXO transaction - v2 format
+ */
+export interface UTXOTranslateTransactionV2 extends PaginatedItem {
+  txTypeVersion: 2;
   chain: string;
   accountAddress: string;
-  classificationData: UTXOTranslateClassificationData;
-  rawTransactionData: UTXOTranslateRawTransactionData;
+  classificationData: UTXOTranslateClassificationDataV2;
+  rawTransactionData: UTXOTranslateRawTransactionDataV2;
 }
+
+/**
+ * UTXO transaction - v5 format
+ */
+export interface UTXOTranslateTransactionV5 extends PaginatedItem {
+  txTypeVersion: 5;
+  chain: string;
+  accountAddress: string;
+  timestamp: number;
+  classificationData: UTXOTranslateClassificationDataV5;
+  transfers: UTXOTranslateTransferV5[];
+  values: UTXOTranslateValueItem[];
+  rawTransactionData: UTXOTranslateRawTransactionDataV5;
+}
+
+/**
+ * Union type for UTXO transactions
+ */
+export type UTXOTranslateTransaction = UTXOTranslateTransactionV2 | UTXOTranslateTransactionV5;
 
 /**
  * Response type for the Transactions endpoint

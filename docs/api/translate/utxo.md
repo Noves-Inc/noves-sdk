@@ -40,12 +40,24 @@ interface UTXOTranslateChain {
 ### getTransactions(chain: string, accountAddress: string, pageOptions?: PageOptions)
 Get a pagination object to iterate over transactions pages.
 
+**Transaction Formats:**
+The API supports two transaction formats:
+- **v2 format** (default): Traditional format with `sent` and `received` arrays in `classificationData`
+- **v5 format**: New format with `transfers` and `values` arrays at the root level and `timestamp` at transaction level
+
 ```typescript
+// Default v2 format
 const transactionsPage = await translate.getTransactions('btc', address, {
   pageSize: 10,
   startBlock: 865798,
   endBlock: 868128,
   sort: 'desc'
+});
+
+// v5 format - specify in pageOptions
+const transactionsPageV5 = await translate.getTransactions('btc', address, {
+  pageSize: 10,
+  v5Format: true
 });
 
 // Get current page of transactions
@@ -450,15 +462,26 @@ Example error response:
 }
 ```
 
-### getTransaction(chain: string, hash: string, viewAsAccountAddress?: string)
+### getTransaction(chain: string, hash: string, txTypeVersion?: number, viewAsAccountAddress?: string)
 Get detailed information about a specific transaction.
 
+**Transaction Formats:**
+The API supports two transaction formats:
+- **v2 format**: Traditional format with `sent` and `received` arrays in `classificationData` and `timestamp` in `rawTransactionData`
+- **v5 format** (default): New format with `transfers` and `values` arrays at the root level and `timestamp` at transaction level
+
 ```typescript
+// Default v5 format
 const txInfo = await translate.getTransaction('btc', '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e');
-// Or with viewAsAccountAddress parameter
+
+// Specify v2 format
+const txInfoV2 = await translate.getTransaction('btc', '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e', 2);
+
+// v5 format with viewAsAccountAddress parameter
 const txInfo = await translate.getTransaction(
   'btc',
   '5df5adce7c6a0e2ac8af65d7a226fccac7896449c09570a214dcaf5b8c43f85e',
+  5,
   '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
 );
 ```
@@ -466,6 +489,7 @@ const txInfo = await translate.getTransaction(
 #### Parameters
 - `chain` (string): The chain name (e.g., "btc")
 - `hash` (string): The transaction hash
+- `txTypeVersion` (number, optional): The transaction format version (2 or 5). Defaults to 5
 - `viewAsAccountAddress` (string, optional): The account address to view the transaction from its perspective
 
 #### Response Format

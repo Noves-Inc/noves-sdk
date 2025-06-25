@@ -37,7 +37,7 @@ export interface TVMTranslateToken {
  */
 export interface TVMTranslateAddress {
     name: string | null;
-    address: string;
+    address: string | null;
 }
 
 /**
@@ -89,9 +89,9 @@ export interface TVMTranslateRawTransactionData {
 }
 
 /**
- * Classification data for TVM transactions
+ * Classification data for TVM transactions (v2 format)
  */
-export interface TVMTranslateClassificationData {
+export interface TVMTranslateClassificationDataV2 {
     type: string;
     source: TVMTranslateSource;
     description: string;
@@ -101,21 +101,50 @@ export interface TVMTranslateClassificationData {
 }
 
 /**
- * TVM transaction structure
+ * Classification data for TVM transactions (v5 format)
  */
-export interface TVMTranslateTransaction {
+export interface TVMTranslateClassificationDataV5 {
+    type: string;
+    source: TVMTranslateSource;
+    description: string;
+    protocol: TVMTranslateProtocol;
+}
+
+/**
+ * TVM transaction structure (v2 format - legacy)
+ */
+export interface TVMTranslateTransactionV2 {
     txTypeVersion: number;
     chain: string;
     accountAddress: string;
-    classificationData: TVMTranslateClassificationData;
+    classificationData: TVMTranslateClassificationDataV2;
     rawTransactionData: TVMTranslateRawTransactionData;
 }
+
+/**
+ * TVM transaction structure (v5 format - current)
+ */
+export interface TVMTranslateTransactionV5 {
+    txTypeVersion: number;
+    chain: string;
+    accountAddress: string;
+    timestamp: number;
+    classificationData: TVMTranslateClassificationDataV5;
+    transfers: TVMTranslateTransfer[];
+    values: any[]; // Array of values, structure may vary
+    rawTransactionData: TVMTranslateRawTransactionData;
+}
+
+/**
+ * Union type for both transaction formats
+ */
+export type TVMTranslateTransactionResponse = TVMTranslateTransactionV2 | TVMTranslateTransactionV5;
 
 /**
  * TVM transactions response structure for paginated results
  */
 export interface TVMTranslateTransactionsResponse {
-    items: TVMTranslateTransaction[];
+    items: TVMTranslateTransactionV2[];
     pageSize: number;
     hasNextPage: boolean;
     nextPageUrl?: string;
@@ -171,5 +200,9 @@ export type TVMProtocol = TVMTranslateProtocol;
 export type TVMSource = TVMTranslateSource;
 export type TVMTransactionFee = TVMTranslateTransactionFee;
 export type TVMRawTransactionData = TVMTranslateRawTransactionData;
-export type TVMClassificationData = TVMTranslateClassificationData;
-export type TVMTransaction = TVMTranslateTransaction; 
+export type TVMClassificationData = TVMTranslateClassificationDataV2;
+export type TVMTransaction = TVMTranslateTransactionV2;
+
+// Additional backward compatibility aliases
+export type TVMTranslateTransaction = TVMTranslateTransactionV2;
+export type TVMTranslateClassificationData = TVMTranslateClassificationDataV2; 

@@ -42,15 +42,132 @@ interface TVMTranslateChain {
 }
 ```
 
-### getTransaction(chain: string, hash: string)
-Get detailed information about a specific transaction.
+### getTransaction(chain: string, hash: string, format?: 'v2' | 'v5')
+Get detailed information about a specific transaction. The format parameter determines the response structure.
 
 ```typescript
-const txInfo = await tvmTranslate.getTransaction(
+// Get transaction in v5 format (default)
+const txInfoV5 = await tvmTranslate.getTransaction(
   "tron",
-  "c709a6400fc11a24460ac3a2871ad5877bc47383b51fc702c00d4f447091c462"
+  "3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8"
+);
+
+// Get transaction in v2 format (legacy)
+const txInfoV2 = await tvmTranslate.getTransaction(
+  "tron",
+  "3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8",
+  "v2"
 );
 ```
+
+#### V5 Response Format (Default)
+```typescript
+interface TVMTranslateTransactionV5 {
+  txTypeVersion: number;     // Always 5 for v5 format
+  chain: string;             // Chain name (e.g., "tron")
+  accountAddress: string;    // Account address
+  timestamp: number;         // Transaction timestamp (top-level)
+  classificationData: {
+    type: string;           // Transaction type (e.g., "sendToken")
+    source: {
+      type: string;         // Source type (e.g., "human")
+    };
+    description: string;    // Human-readable description
+    protocol: {
+      name: string | null;  // Protocol name or null
+    };
+  };
+  transfers: Array<{        // Array of transfers
+    action: string;         // Action type (e.g., "sent", "received", "paidGas")
+    from: {
+      name: string | null;  // From address name or null
+      address: string | null; // From address or null
+    };
+    to: {
+      name: string | null;  // To address name or null  
+      address: string | null; // To address or null
+    };
+    amount: string;         // Transfer amount
+    token: {
+      symbol: string;       // Token symbol
+      name: string;         // Token name
+      decimals: number;     // Token decimals
+      address: string;      // Token address
+    };
+  }>;
+  values: any[];            // Array of values (structure may vary)
+  rawTransactionData: {
+    transactionHash: string;
+    fromAddress: string;
+    toAddress: string;
+    blockNumber: number;
+    gas: number;
+    gasUsed: number;
+    gasPrice: number;
+    transactionFee: {
+      amount: string;
+      token: {
+        symbol: string;
+        name: string;
+        decimals: number;
+        address: string;
+      };
+    };
+    timestamp: number;      // Also included in rawTransactionData
+  };
+}
+```
+
+#### V2 Response Format (Legacy)
+```typescript
+interface TVMTranslateTransactionV2 {
+  txTypeVersion: number;     // Always 2 for v2 format
+  chain: string;             // Chain name (e.g., "tron")
+  accountAddress: string;    // Account address
+  classificationData: {
+    type: string;           // Transaction type
+    source: {
+      type: string;         // Source type
+    };
+    description: string;    // Human-readable description
+    protocol: {
+      name: string | null;  // Protocol name or null
+    };
+    sent: Array<{           // Sent transfers
+      action: string;
+      from: { name: string | null; address: string | null; };
+      to: { name: string | null; address: string | null; };
+      amount: string;
+      token: { symbol: string; name: string; decimals: number; address: string; };
+    }>;
+    received: Array<{       // Received transfers
+      action: string;
+      from: { name: string | null; address: string | null; };
+      to: { name: string | null; address: string | null; };
+      amount: string;
+      token: { symbol: string; name: string; decimals: number; address: string; };
+    }>;
+  };
+  rawTransactionData: {
+    transactionHash: string;
+    fromAddress: string;
+    toAddress: string;
+    blockNumber: number;
+    gas: number;
+    gasUsed: number;
+    gasPrice: number;
+    transactionFee: {
+      amount: string;
+      token: { symbol: string; name: string; decimals: number; address: string; };
+    };
+    timestamp: number;      // Timestamp is only in rawTransactionData for v2
+  };
+}
+```
+
+**Key Differences Between Formats:**
+- **V5 Format**: Has `timestamp` at top level, uses `transfers` array, includes `values` array
+- **V2 Format**: Has `timestamp` only in `rawTransactionData`, uses separate `sent`/`received` arrays
 
 ### getTransactions(chain: string, accountAddress: string, pageOptions?: PageOptions)
 Get a pagination object to iterate over transactions pages.

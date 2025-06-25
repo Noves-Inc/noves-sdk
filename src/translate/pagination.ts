@@ -120,6 +120,14 @@ export abstract class Pagination<T> {
     }
 
     /**
+     * Check if there's a next page available.
+     * @returns {boolean} True if there's a next page, false otherwise.
+     */
+    public hasNext(): boolean {
+        return !!this.nextPageKeys;
+    }
+
+    /**
      * Check if there's a previous page available.
      * @returns {boolean} True if there's a previous page, false otherwise.
      */

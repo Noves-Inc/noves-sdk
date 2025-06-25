@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2025-06-25
+
+### Added
+- **Enhanced TVM Translate API transaction format support**:
+  - New `getTransaction` method with format parameter supporting both v2 and v5 transaction formats
+  - Enhanced `getTransactions` method with `v5Format` parameter supporting both v2 and v5 transaction formats
+  - Enhanced type definitions with `TVMTranslateTransactionV2` and `TVMTranslateTransactionV5` interfaces
+  - New `TVMTranslateTransactionResponse` union type for handling both format versions
+  - v5 format includes top-level `timestamp`, `transfers`, and `values` fields for improved data structure
+  - v2 format maintains backward compatibility with nested transaction data in `classificationData`
+  - Default format is v5 for `getTransaction` and v2 for `getTransactions` for backward compatibility
+  - Comprehensive format validation ensuring API responses match requested transaction format versions
+- **Enhanced UTXO Translate API transaction format support**:
+  - New `getTransaction` method with `txTypeVersion` parameter supporting both v2 and v5 transaction formats
+  - Enhanced `getTransactions` method with `v5Format` parameter supporting both v2 and v5 transaction formats
+  - Enhanced type definitions with `UTXOTranslateTransactionV2` and `UTXOTranslateTransactionV5` interfaces
+  - New address type definitions with `UTXOTranslateAddressV2` and `UTXOTranslateAddressV5` interfaces
+  - New transfer type definitions with `UTXOTranslateTransferV2` and `UTXOTranslateTransferV5` interfaces
+  - v5 format includes top-level `timestamp`, `transfers`, and `values` fields with enhanced address information
+  - v2 format maintains backward compatibility with `sent`/`received` arrays in `classificationData`
+  - Default format is v5 for `getTransaction` and v2 for `getTransactions` for backward compatibility
+  - Comprehensive format validation ensuring API responses match requested transaction format versions
+
+
 ## [1.1.4] - 2025-06-19
 
 ### Added

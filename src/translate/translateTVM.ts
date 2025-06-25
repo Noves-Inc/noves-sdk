@@ -1,7 +1,9 @@
 import { PageOptions } from '../types/common';
 import { 
     TVMTranslateChain, 
-    TVMTranslateTransaction,
+    TVMTranslateTransactionV2,
+    TVMTranslateTransactionV5,
+    TVMTranslateTransactionResponse,
     TVMTranslateStartBalanceJobResponse,
     TVMTranslateBalanceJobResult,
     TVMTranslateStartBalanceJobParams
@@ -50,12 +52,17 @@ export class TranslateTVM extends BaseTranslate {
      * Returns all of the available transaction information for the chain and transaction hash requested.
      * @param {string} chain - The chain name.
      * @param {string} hash - The transaction hash.
-     * @returns {Promise<TVMTransaction>} A promise that resolves to the transaction details.
+     * @param {string} format - The response format version ('v2' or 'v5'). Defaults to 'v5'.
+     * @returns {Promise<TVMTranslateTransactionResponse>} A promise that resolves to the transaction details.
      * @throws {TransactionError} If there are validation errors in the request.
      */
-    public async getTransaction(chain: string, hash: string): Promise<TVMTranslateTransaction> {
+    public async getTransaction(
+        chain: string, 
+        hash: string, 
+        format: 'v2' | 'v5' = 'v5'
+    ): Promise<TVMTranslateTransactionResponse> {
         try {
-            const result = await this.makeRequest(`${chain}/tx/${hash}`);
+            const result = await this.makeRequest(`${chain}/tx/${format}/${hash}`);
             return result;
         } catch (error) {
             if (error instanceof TransactionError) {
@@ -70,13 +77,60 @@ export class TranslateTVM extends BaseTranslate {
      * @param {string} chain - The chain name.
      * @param {string} walletAddress - The wallet address.
      * @param {PageOptions} pageOptions - The page options object.
-     * @returns {Promise<TransactionsPage<TVMTranslateTransaction>>} A promise that resolves to a TransactionsPage instance.
+     * @returns {Promise<TransactionsPage<TVMTranslateTransactionV2 | TVMTranslateTransactionV5>>} A promise that resolves to a TransactionsPage instance.
      */
-    public async getTransactions(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<TVMTranslateTransaction>> {
+    public async getTransactions(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<TVMTranslateTransactionV2 | TVMTranslateTransactionV5>> {
         try {
             const endpoint = `${chain}/txs/${walletAddress}`;
+            // constructUrl automatically handles all PageOptions parameters, including v5Format
             const url = constructUrl(endpoint, pageOptions);
             const result = await this.makeRequest(url);
+
+            if (!result.items || !Array.isArray(result.items)) {
+                throw new TransactionError({ message: ['Invalid response format'] });
+            }
+
+            // Validate response format matches the requested format
+            if (result.items.length > 0) {
+                const firstTx = result.items[0];
+                const requestedV5Format = pageOptions.v5Format === true;
+                const expectedVersion = requestedV5Format ? 5 : 2;
+                
+                // Check if we got the expected txTypeVersion
+                if (firstTx.txTypeVersion !== expectedVersion) {
+                    throw new TransactionError({ 
+                        message: [`API returned txTypeVersion ${firstTx.txTypeVersion} but expected ${expectedVersion}. Check v5Format parameter.`] 
+                    });
+                }
+                
+                // Validate transaction structure based on format
+                if (requestedV5Format) {
+                    // v5 format should have transfers, values, timestamp, and NO sent/received in classificationData
+                    if (!firstTx.transfers || !Array.isArray(firstTx.transfers)) {
+                        throw new TransactionError({ message: ['Invalid v5 transaction format - missing transfers array'] });
+                    }
+                    if (!firstTx.values || !Array.isArray(firstTx.values)) {
+                        throw new TransactionError({ message: ['Invalid v5 transaction format - missing values array'] });
+                    }
+                    if (!firstTx.timestamp) {
+                        throw new TransactionError({ message: ['Invalid v5 transaction format - missing timestamp'] });
+                    }
+                    if (firstTx.classificationData?.sent || firstTx.classificationData?.received) {
+                        throw new TransactionError({ message: ['v5 format should not have sent/received arrays in classificationData'] });
+                    }
+                } else {
+                    // v2 format should have sent/received in classificationData and NO transfers/values at root level
+                    if (!firstTx.classificationData?.sent || !Array.isArray(firstTx.classificationData.sent)) {
+                        throw new TransactionError({ message: ['Invalid v2 transaction format - missing sent array in classificationData'] });
+                    }
+                    if (!firstTx.classificationData?.received || !Array.isArray(firstTx.classificationData.received)) {
+                        throw new TransactionError({ message: ['Invalid v2 transaction format - missing received array in classificationData'] });
+                    }
+                    if (firstTx.transfers || firstTx.values) {
+                        throw new TransactionError({ message: ['v2 format should not have transfers/values arrays at root level'] });
+                    }
+                }
+            }
 
             const initialData = {
                 chain: chain,
@@ -154,9 +208,9 @@ export class TranslateTVM extends BaseTranslate {
      * @param {string} chain - The chain name.
      * @param {string} walletAddress - The wallet address.
      * @param {PageOptions} pageOptions - The page options object.
-     * @returns {Promise<TransactionsPage<TVMTranslateTransaction>>} A promise that resolves to a TransactionsPage instance.
+     * @returns {Promise<TransactionsPage<TVMTranslateTransactionV2 | TVMTranslateTransactionV5>>} A promise that resolves to a TransactionsPage instance.
      */
-    public async Transactions(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<TVMTranslateTransaction>> {
+    public async Transactions(chain: string, walletAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<TVMTranslateTransactionV2 | TVMTranslateTransactionV5>> {
         return this.getTransactions(chain, walletAddress, pageOptions);
     }
 }
