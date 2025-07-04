@@ -84,10 +84,35 @@ export interface SVMTranslateSourceV4 {
 }
 
 /**
+ * SVM transaction type union based on actual API response from /svm/txTypes endpoint
+ */
+export type SVMTransactionType = 
+  | 'addLiquidity'
+  | 'bridge'
+  | 'cancelNftListing'
+  | 'claimRewards'
+  | 'closeTipAccount'
+  | 'createNftListing'
+  | 'depositForStake'
+  | 'depositToVault'
+  | 'distributeRewards'
+  | 'error'
+  | 'failed'
+  | 'mergeStake'
+  | 'mintNFT'
+  | 'mintToken'
+  | 'removeLiquidity'
+  | 'stake'
+  | 'swap'
+  | 'unclassified'
+  | 'unstake'
+  | 'withdrawStake';
+
+/**
  * Interface representing classification data for SVM V5 transactions
  */
 export interface SVMTranslateClassificationDataV5 {
-  type: string;
+  type: SVMTransactionType;
   description: string | null;
 }
 
@@ -95,7 +120,7 @@ export interface SVMTranslateClassificationDataV5 {
  * Interface representing classification data for SVM V4 transactions
  */
 export interface SVMTranslateClassificationDataV4 {
-  type: string;
+  type: SVMTransactionType;
 }
 
 /**
@@ -143,7 +168,7 @@ export interface SVMTranslateTransactionsResponse {
  */
 export interface SVMTranslateDescribeTransaction {
   signature: string;
-  type: string;
+  type: SVMTransactionType;
   description: string;
   timestamp: number;
   transfers: SVMTranslateTransfer[];
@@ -250,7 +275,7 @@ export interface SVMTranslateStakingTransaction {
   timestamp: number;
   classificationData: {
     description: string;
-    type: string;
+    type: SVMTransactionType;
   };
   transfers: SVMTranslateTransfer[];
   values: Array<{

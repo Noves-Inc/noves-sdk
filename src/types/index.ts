@@ -27,6 +27,14 @@ export * from './utxo';
 // Move types
 export * from './move';
 
+// Transaction Type Unions
+export type { EVMTransactionType } from './evm';
+export type { SVMTransactionType } from './svm';
+export type { TVMTransactionType } from './tvm';
+export type { UTXOTransactionType } from './utxo';
+export type { CosmosTransactionType } from './cosmos';
+export type { PolkadotTransactionType } from './polkadot';
+
 // Re-export old generic names for backward compatibility
 export type { EVMTranslateDescribeTransaction as DescribeTransaction } from './evm';
 export type { EVMTranslateHistoryData as HistoryData } from './evm';

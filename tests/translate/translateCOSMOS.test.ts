@@ -215,7 +215,7 @@ describe('TranslateCOSMOS', () => {
             chain: validChain,
             accountAddress: null,
             classificationData: {
-              type: 'genesisBalance',
+              type: 'unclassified',
               description: 'Starting balance of 163.19 TIA at chain genesis.'
             },
             transfers: [

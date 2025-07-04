@@ -160,10 +160,26 @@ export interface COSMOSTranslateTransfer {
 }
 
 /**
+ * Cosmos transaction type union - complete list of all supported transaction types
+ */
+export type CosmosTransactionType = 
+  | 'delegate'
+  | 'undelegate'
+  | 'withdrawRewards'
+  | 'claimRewards'
+  | 'swap'
+  | 'bridgeOut'
+  | 'ibcReceive'
+  | 'bridgeIn'
+  | 'EibcStart'
+  | 'payForBlobs'
+  | 'unclassified';
+
+/**
  * Cosmos transaction classification data - matches actual API response
  */
 export interface COSMOSTranslateClassificationData {
-  type: string;
+  type: CosmosTransactionType;
   description: string;
 }
 

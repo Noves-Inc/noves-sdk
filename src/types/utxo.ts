@@ -99,10 +99,15 @@ export interface UTXOTransactionSummary {
 }
 
 /**
+ * UTXO transaction type union based on backend confirmation (only sendToken/receiveToken)
+ */
+export type UTXOTransactionType = 'sendToken' | 'receiveToken';
+
+/**
  * UTXO classification data - v2 format
  */
 export interface UTXOTranslateClassificationDataV2 {
-  type: string;
+  type: UTXOTransactionType;
   source: {
     type: string;
   };
@@ -119,7 +124,7 @@ export interface UTXOTranslateClassificationDataV2 {
  * UTXO classification data - v5 format
  */
 export interface UTXOTranslateClassificationDataV5 {
-  type: string;
+  type: UTXOTransactionType;
   source: {
     type: string;
   };

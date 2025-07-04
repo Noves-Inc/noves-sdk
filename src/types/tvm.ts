@@ -2,6 +2,14 @@
  * TVM (Tron Virtual Machine) specific types for the Noves SDK
  */
 
+import { PaginatedItem } from '../translate/transactionsPage';
+import type { EVMTransactionType } from './evm';
+
+/**
+ * TVM transaction type (same as EVM per backend confirmation)
+ */
+export type TVMTransactionType = EVMTransactionType;
+
 /**
  * Native coin/token information for TVM chains
  */
@@ -92,7 +100,7 @@ export interface TVMTranslateRawTransactionData {
  * Classification data for TVM transactions (v2 format)
  */
 export interface TVMTranslateClassificationDataV2 {
-    type: string;
+    type: TVMTransactionType;
     source: TVMTranslateSource;
     description: string;
     protocol: TVMTranslateProtocol;
@@ -104,7 +112,7 @@ export interface TVMTranslateClassificationDataV2 {
  * Classification data for TVM transactions (v5 format)
  */
 export interface TVMTranslateClassificationDataV5 {
-    type: string;
+    type: TVMTransactionType;
     source: TVMTranslateSource;
     description: string;
     protocol: TVMTranslateProtocol;

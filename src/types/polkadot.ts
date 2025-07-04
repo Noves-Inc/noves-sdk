@@ -71,10 +71,39 @@ export interface POLKADOTTranslateValue {
 }
 
 /**
+ * Polkadot transaction type union - complete list of all supported transaction types
+ */
+export type PolkadotTransactionType = 
+  | 'unclassified'
+  | 'failed'
+  | 'transfer'
+  | 'tokenTransfer'
+  | 'stake'
+  | 'unstake'
+  | 'moveStake'
+  | 'transferStake'
+  | 'syntheticStakingReward'
+  | 'register'
+  | 'burnedRegister'
+  | 'setWeights'
+  | 'commitWeights'
+  | 'revealWeights'
+  | 'swapHotkey'
+  | 'executeColdkeySwap'
+  | 'scheduleColdkeySwap'
+  | 'setChildkeyTake'
+  | 'claimRewards'
+  | 'delegate'
+  | 'undelegate'
+  | 'bridgeOut'
+  | 'bridgeIn'
+  | 'swap';
+
+/**
  * Polkadot-specific classification data interface
  */
 export interface POLKADOTTranslateClassificationData {
-  type: string;
+  type: PolkadotTransactionType;
   description: string;
 }
 
