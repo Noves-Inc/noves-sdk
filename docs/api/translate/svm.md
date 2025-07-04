@@ -885,6 +885,7 @@ for await (const tx of transactionsPage) {
   - `pageSize` (number): Number of transactions per page (default: 10)
   - `v5Format` (boolean): Whether to use v5 format (default: true)
   - `sort` (string): Sort order ('asc' or 'desc', default: 'desc')
+  - `maxNavigationHistory` (number): Maximum number of pages to keep in navigation history for backward navigation (default: 10)
 
 The method returns a `TransactionsPage` object with the following methods:
 

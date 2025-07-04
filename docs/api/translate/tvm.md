@@ -210,6 +210,7 @@ The `pageOptions` parameter supports the following options:
 - `pageNumber`: Page number to fetch (default: 1)
 - `liveData`: Whether to include live data (default: false)
 - `viewAsTransactionSender`: Whether to view transactions as sender (default: false)
+- `maxNavigationHistory`: Maximum number of pages to keep in navigation history for backward navigation (default: 10)
 
 The method returns a `TransactionsPage` object with the following methods:
 

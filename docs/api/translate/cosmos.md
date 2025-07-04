@@ -78,6 +78,13 @@ if (transactionsPage.hasPrevious()) {
 }
 ```
 
+#### Parameters
+- `chain` (string): The chain name (e.g., "cosmoshub")
+- `accountAddress` (string): The account address to get transactions for
+- `pageOptions` (PageOptions, optional): Pagination and filtering options
+  - `pageSize` (number): Number of transactions per page (default: 10)
+  - `maxNavigationHistory` (number): Maximum number of pages to keep in navigation history for backward navigation (default: 10)
+
 The method returns a `TransactionsPage` object with the following methods:
 
 #### Simple Pagination Methods

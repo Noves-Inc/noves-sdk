@@ -151,6 +151,7 @@ The `pageOptions` parameter supports the following options:
 - `endTimestamp`: Ending timestamp in milliseconds
 - `sort`: Sort order ('desc' or 'asc')
 - `viewAsAccountAddress`: View transactions from this address's perspective
+- `maxNavigationHistory`: Maximum number of pages to keep in navigation history for backward navigation (default: 10)
 
 The method returns a `TransactionsPage` object with the following methods:
 

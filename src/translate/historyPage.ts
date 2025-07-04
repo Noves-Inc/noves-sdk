@@ -53,6 +53,14 @@ export class HistoryPage<T> extends Pagination<T>{
       this.nextPageKeys = response.getNextPageKeys();
       this.pageKeys.push(this.currentPageKeys);
 
+      // Implement page key pruning to prevent unbounded growth
+      // This is crucial to prevent cursor size from growing infinitely
+      const maxHistorySize = this.getMaxNavigationHistorySize();
+      if (this.pageKeys.length > maxHistorySize) {
+        // Keep only the most recent pages to limit cursor growth
+        this.pageKeys = this.pageKeys.slice(-maxHistorySize);
+      }
+
       return true;
     } catch (error) {
       return false;

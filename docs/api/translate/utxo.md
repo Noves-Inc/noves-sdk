@@ -83,6 +83,19 @@ for await (const tx of transactionsPage) {
 }
 ```
 
+#### Parameters
+- `chain` (string): The chain name (e.g., "btc")
+- `accountAddress` (string): The account address to get transactions for
+- `pageOptions` (PageOptions, optional): Pagination and filtering options
+  - `pageSize` (number): Number of transactions per page (default: 10)
+  - `startBlock` (number): Starting block number to filter by
+  - `endBlock` (number): Ending block number to filter by
+  - `startTimestamp` (number): Starting timestamp in milliseconds to filter by
+  - `endTimestamp` (number): Ending timestamp in milliseconds to filter by
+  - `sort` (string): Sort order ('desc' or 'asc', default: 'desc')
+  - `v5Format` (boolean): Whether to use v5 format (default: false)
+  - `maxNavigationHistory` (number): Maximum number of pages to keep in navigation history for backward navigation (default: 10)
+
 The method returns a `TransactionsPage` object with the following methods:
 
 #### Simple Pagination Methods

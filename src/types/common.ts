@@ -42,6 +42,18 @@ export interface CursorNavigationMeta {
      * PageOptions for the next page (null if no next page)
      */
     nextPageOptions: PageOptions | null;
+
+    /**
+     * Original page index before navigation history truncation.
+     * Used for proper navigation when history is limited.
+     */
+    originalPageIndex?: number;
+
+    /**
+     * Start index of the navigation history slice.
+     * Used to reconstruct full context when needed.
+     */
+    historyStartIndex?: number;
 }
 
 /**
@@ -162,6 +174,14 @@ export interface PageOptions {
      * This parameter is used for job-based pagination in UTXO.
      */
     ascending?: boolean;
+
+    /**
+     * Maximum number of pages to keep in navigation history for cursor-based pagination.
+     * This limits backward navigation but prevents cursor growth and 413 errors.
+     * Defaults to 10 if not specified. Set to a higher value if you need deeper backward navigation.
+     * @default 10
+     */
+    maxNavigationHistory?: number;
 }
 
 /**
