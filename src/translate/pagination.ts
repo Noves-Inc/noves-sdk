@@ -23,6 +23,19 @@ export abstract class Pagination<T> {
     protected previousPageKeys: PageOptions | null;
     protected pageKeys: PageOptions[];
 
+    /**
+     * Maximum number of pages to keep in navigation history to prevent cursor growth.
+     * This limits backward navigation but prevents 413 errors on deep pagination.
+     * Users can still navigate forward indefinitely.
+     */
+    private static readonly DEFAULT_MAX_NAVIGATION_HISTORY = 10;
+
+    /**
+     * Warning threshold for cursor size in KB.
+     * If cursor exceeds this size, a warning will be logged.
+     */
+    private static readonly CURSOR_SIZE_WARNING_THRESHOLD_KB = 5;
+
     constructor(translate: TranslateEVM | TranslateSVM | TranslateUTXO | TranslateCOSMOS | TranslateTVM | TranslatePOLKADOT, initialData: any) {
         this.translate = translate;
         this.walletAddress = initialData.walletAddress;
@@ -198,28 +211,53 @@ export abstract class Pagination<T> {
      * @returns {EnhancedCursorData} Enhanced cursor data with navigation metadata
      */
     protected createEnhancedCursor(targetPageOptions: PageOptions, targetPageIndex: number): EnhancedCursorData {
-        // Build navigation history up to the target page
-        const navigationHistory = this.pageKeys.slice(0, targetPageIndex + 1);
+        // Get the maximum navigation history size from PageOptions or use default
+        const maxHistorySize = this.getMaxNavigationHistorySize();
+        
+        // Calculate the start index to limit navigation history
+        const startIndex = Math.max(0, targetPageIndex + 1 - maxHistorySize);
+        
+        // Build limited navigation history
+        const navigationHistory = this.pageKeys.slice(startIndex, targetPageIndex + 1);
         
         // Ensure we have the target page in our history
-        if (navigationHistory.length <= targetPageIndex) {
-            navigationHistory[targetPageIndex] = targetPageOptions;
+        const adjustedTargetIndex = targetPageIndex - startIndex;
+        if (navigationHistory.length <= adjustedTargetIndex) {
+            navigationHistory[adjustedTargetIndex] = targetPageOptions;
         }
 
         const cursorMeta: CursorNavigationMeta = {
-            currentPageIndex: targetPageIndex,
+            currentPageIndex: adjustedTargetIndex,
             navigationHistory: [...navigationHistory],
             canGoBack: targetPageIndex > 0,
             canGoForward: targetPageIndex < this.pageKeys.length - 1 || !!this.nextPageKeys,
-            previousPageOptions: targetPageIndex > 0 ? navigationHistory[targetPageIndex - 1] : null,
+            previousPageOptions: adjustedTargetIndex > 0 ? navigationHistory[adjustedTargetIndex - 1] : null,
             nextPageOptions: targetPageIndex === this.getCurrentPageIndex() ? this.nextPageKeys : 
-                             targetPageIndex < this.pageKeys.length - 1 ? this.pageKeys[targetPageIndex + 1] : null
+                             targetPageIndex < this.pageKeys.length - 1 ? this.pageKeys[targetPageIndex + 1] : null,
+            // Store the original page index for proper navigation
+            originalPageIndex: targetPageIndex,
+            // Store the start index so we can reconstruct the full context if needed
+            historyStartIndex: startIndex
         };
 
         return {
             ...targetPageOptions,
             _cursorMeta: cursorMeta
         };
+    }
+
+    /**
+     * Get the maximum navigation history size.
+     * @returns {number} Maximum number of pages to keep in navigation history
+     */
+    protected getMaxNavigationHistorySize(): number {
+        // Check if maxNavigationHistory is set in current page options
+        const currentPageMaxHistory = this.currentPageKeys.maxNavigationHistory;
+        if (typeof currentPageMaxHistory === 'number' && currentPageMaxHistory > 0) {
+            return currentPageMaxHistory;
+        }
+        
+        return Pagination.DEFAULT_MAX_NAVIGATION_HISTORY;
     }
 
     /**
@@ -238,7 +276,16 @@ export abstract class Pagination<T> {
      * @returns {string} Base64 encoded cursor string
      */
     protected encodeEnhancedCursor(enhancedCursorData: EnhancedCursorData): string {
-        return Buffer.from(JSON.stringify(enhancedCursorData)).toString('base64');
+        const jsonString = JSON.stringify(enhancedCursorData);
+        const base64String = Buffer.from(jsonString).toString('base64');
+        
+        // Monitor cursor size and warn if it's getting large
+        const sizeKB = Buffer.byteLength(base64String, 'utf8') / 1024;
+        if (sizeKB > Pagination.CURSOR_SIZE_WARNING_THRESHOLD_KB) {
+            console.warn(`[Noves SDK] Cursor size is ${sizeKB.toFixed(2)}KB (${enhancedCursorData._cursorMeta?.navigationHistory?.length || 0} pages in history). Consider reducing maxNavigationHistory to prevent potential 413 errors.`);
+        }
+        
+        return base64String;
     }
 
     /**

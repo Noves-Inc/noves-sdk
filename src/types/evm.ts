@@ -33,11 +33,89 @@ export interface EVMForesightPreviewRawTransactionData {
 }
 
 /**
+ * EVM transaction type union based on actual API response from /evm/txTypes endpoint
+ */
+export type EVMTransactionType = 
+  | 'addLiquidity'
+  | 'addressPoisoning'
+  | 'admin'
+  | 'approveNFTCollection'
+  | 'approveSingleNFT'
+  | 'approveToken'
+  | 'borrow'
+  | 'burnNFT'
+  | 'burnToken'
+  | 'buyNFT'
+  | 'cancelNFTListing'
+  | 'cancelOrder'
+  | 'claimAndStake'
+  | 'claimRewards'
+  | 'composite'
+  | 'createContract'
+  | 'createNFTListing'
+  | 'delegate'
+  | 'deployContract'
+  | 'depositCollateral'
+  | 'depositToExchange'
+  | 'failed'
+  | 'fillOrder'
+  | 'gambling'
+  | 'gaming'
+  | 'issueLoan'
+  | 'leveragedFarming'
+  | 'liquidate'
+  | 'lock'
+  | 'mev'
+  | 'migrateToken'
+  | 'mintNFT'
+  | 'placeNFTBid'
+  | 'placeOrder'
+  | 'protocol'
+  | 'rebalancePosition'
+  | 'receiveFromBridge'
+  | 'receiveLoanRepayment'
+  | 'receiveNFT'
+  | 'receiveNFTAirdrop'
+  | 'receiveNFTRoyalty'
+  | 'receiveSpamNFT'
+  | 'receiveSpamToken'
+  | 'receiveToken'
+  | 'receiveTokenAirdrop'
+  | 'refinanceLoan'
+  | 'refund'
+  | 'registerDomain'
+  | 'removeLiquidity'
+  | 'renewDomain'
+  | 'repayLoan'
+  | 'revokeNFTCollectionApproval'
+  | 'revokeTokenApproval'
+  | 'sellNFT'
+  | 'sendNFT'
+  | 'sendNFTAirdrop'
+  | 'sendToBridge'
+  | 'sendToken'
+  | 'sendTokenAirdrop'
+  | 'signMultisig'
+  | 'stakeNFT'
+  | 'stakeToken'
+  | 'swap'
+  | 'system'
+  | 'unclassified'
+  | 'unstakeNFT'
+  | 'unstakeToken'
+  | 'unverifiedContract'
+  | 'unwrap'
+  | 'vote'
+  | 'withdrawCollateral'
+  | 'withdrawFromExchange'
+  | 'wrap';
+
+/**
  * Foresight Preview Response Classification Data
  * Based on actual API response from /evm/{chain}/preview endpoint
  */
 export interface EVMForesightPreviewClassificationData {
-    type: string;
+    type: EVMTransactionType;
     source: {
         type: string | null;
     };
@@ -74,7 +152,7 @@ export interface EVMForesightPreview4337RawTransactionData {
  * Based on actual API response from /evm/{chain}/preview4337 endpoint
  */
 export interface EVMForesightPreview4337ClassificationData {
-    type: string;
+    type: EVMTransactionType;
     source: {
         type: string | null;
     };
@@ -195,7 +273,7 @@ export interface EVMTranslateApproval {
  * Classification data for EVM transactions (v2 format)
  */
 export interface EVMTranslateClassificationDataV2 {
-    type: string;
+    type: EVMTransactionType;
     source: EVMTranslateSource;
     description: string;
     protocol: EVMTranslateProtocol;
@@ -208,7 +286,7 @@ export interface EVMTranslateClassificationDataV2 {
  * Classification data for EVM transactions (v5 format)
  */
 export interface EVMTranslateClassificationDataV5 {
-    type: string;
+    type: EVMTransactionType;
     source: EVMTranslateSource;
     description: string;
     protocol: EVMTranslateProtocol;
@@ -257,7 +335,7 @@ export type EVMTranslateTransaction = EVMTranslateTransactionV2 | EVMTranslateTr
  * This interface matches the response from the describeTx endpoint
  */
 export interface EVMTranslateDescribeTransaction {
-    type: string;
+    type: EVMTransactionType;
     description: string;
 }
 
@@ -267,7 +345,7 @@ export interface EVMTranslateDescribeTransaction {
  */
 export interface EVMTranslateDescribeTransactions {
     txHash: string;
-    type: string;
+    type: EVMTransactionType;
     description: string;
 }
 

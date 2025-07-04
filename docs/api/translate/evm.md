@@ -684,6 +684,19 @@ for await (const tx of transactionsPage) {
 }
 ```
 
+#### Parameters
+- `chain` (string): The chain name (e.g., "eth")
+- `walletAddress` (string): The wallet address to get transactions for
+- `pageOptions` (PageOptions, optional): Pagination and filtering options
+  - `pageSize` (number): Number of transactions per page (default: 10)
+  - `startBlock` (number): Start block number for filtering transactions
+  - `endBlock` (number): End block number for filtering transactions
+  - `sort` (string): Sort order ('asc' or 'desc', default: 'desc')
+  - `liveData` (boolean): Whether to include live data (default: false)
+  - `viewAsTransactionSender` (boolean): Whether to view transactions as sender (default: false)
+  - `v5Format` (boolean): Whether to use v5 format (default: false)
+  - `maxNavigationHistory` (number): Maximum number of pages to keep in navigation history for backward navigation (default: 10)
+
 The method returns a `TransactionsPage` object with the following methods:
 
 #### Simple Pagination Methods

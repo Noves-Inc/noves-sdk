@@ -85,10 +85,33 @@ export class TransactionsPage<T extends PaginatedItem> extends Pagination<T> {
             this.pageKeys.push(this.currentPageKeys);
             this.currentIndex = 0;
 
+            // Implement page key pruning to prevent unbounded growth
+            // This is crucial to prevent cursor size from growing infinitely
+            const maxHistorySize = this.getMaxNavigationHistorySize();
+            if (this.pageKeys.length > maxHistorySize) {
+                // Keep only the most recent pages to limit cursor growth
+                this.pageKeys = this.pageKeys.slice(-maxHistorySize);
+            }
+
             return true;
         } catch (error) {
             return false;
         }
+    }
+
+    /**
+     * Get the maximum navigation history size from current page options.
+     * @returns {number} Maximum number of pages to keep in navigation history
+     */
+    protected getMaxNavigationHistorySize(): number {
+        // Check if maxNavigationHistory is set in current page options
+        const currentPageMaxHistory = this.currentPageKeys.maxNavigationHistory;
+        if (typeof currentPageMaxHistory === 'number' && currentPageMaxHistory > 0) {
+            return currentPageMaxHistory;
+        }
+        
+        // Use default value - same as in Pagination class
+        return 10;
     }
 
     /**
@@ -186,23 +209,41 @@ export class TransactionsPage<T extends PaginatedItem> extends Pagination<T> {
                 enhancedPage.nextPageKeys = _cursorMeta.nextPageOptions;
             }
             
-            // Restore the previous page keys for proper backward navigation
+            // Handle navigation history restoration with support for truncated history
             const currentIndex = _cursorMeta.currentPageIndex;
+            const originalIndex = _cursorMeta.originalPageIndex ?? currentIndex;
+            const historyStartIndex = _cursorMeta.historyStartIndex ?? 0;
+            
+            // Restore the previous page keys for proper backward navigation
             if (currentIndex > 0 && _cursorMeta.navigationHistory.length > currentIndex) {
                 enhancedPage.previousPageKeys = _cursorMeta.navigationHistory[currentIndex - 1];
             }
             
-            // Ensure the pageKeys array reflects the full navigation history
-            // This is crucial for proper hasPrevious() and getPreviousCursor() functionality
-            enhancedPage.pageKeys = [..._cursorMeta.navigationHistory];
+            // Reconstruct pageKeys to simulate full navigation history
+            // This is important for proper navigation even with truncated history
+            const reconstructedPageKeys = [];
+            
+            // Fill in placeholder entries for pages before the history window
+            for (let i = 0; i < historyStartIndex; i++) {
+                // Use empty page options as placeholders - they won't be used for navigation
+                // due to the limited history, but they maintain the correct indexing
+                reconstructedPageKeys.push({});
+            }
+            
+            // Add the actual navigation history
+            reconstructedPageKeys.push(..._cursorMeta.navigationHistory);
+            
+            // Set the pageKeys to maintain proper indexing
+            enhancedPage.pageKeys = reconstructedPageKeys as PageOptions[];
             
             // This ensures that hasPrevious() can find the current page in the pageKeys array via JSON comparison
             const currentPageWithApiParams = response.getCurrentPageKeys ? response.getCurrentPageKeys() : pageOptions;
             enhancedPage.currentPageKeys = currentPageWithApiParams;
             
             // Update the navigation history to reflect the actual API response parameters
-            if (currentIndex < enhancedPage.pageKeys.length) {
-                enhancedPage.pageKeys[currentIndex] = currentPageWithApiParams;
+            const adjustedCurrentIndex = historyStartIndex + currentIndex;
+            if (adjustedCurrentIndex < enhancedPage.pageKeys.length) {
+                enhancedPage.pageKeys[adjustedCurrentIndex] = currentPageWithApiParams;
             }
         }
         
