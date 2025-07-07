@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.7] - 2025-07-07
+
+### Added
+- **Enhanced error handling with structured error types and HTTP status codes**:
+  - New `ErrorType` enum with predefined error categories (`JOB_NOT_FOUND`, `JOB_PROCESSING`, `JOB_NOT_READY`, `RATE_LIMIT_EXCEEDED`, `UNAUTHORIZED`, `INVALID_API_KEY`, `VALIDATION_ERROR`, `NETWORK_ERROR`, `UNKNOWN_ERROR`)
+  - Enhanced `TransactionError` class with structured error categorization:
+    - Added `errorType: ErrorType` property for type-safe error handling
+    - Added `httpStatusCode?: number` property for HTTP status code access
+    - Added `details?: any` property for additional error context
+  - New convenience methods for common error checking:
+    - `isJobNotFound()` - Check if job doesn't exist
+    - `isJobProcessing()` - Check if job is still processing
+    - `isRateLimited()` - Check if rate limited
+    - `isUnauthorized()` - Check if authentication failed
+    - `isErrorType(type)` - Check for specific error type
+  - Enhanced `ApiResponse` interface with `httpStatusCode` and `errorType` properties
+  - Updated all API clients to pass through HTTP status codes and structured error types
+  - Comprehensive error handling documentation with migration guide from string comparisons to structured error types
+- **Structured error mapping and constants**:
+  - New `ERROR_MESSAGES` mapping for consistent error messages across error types
+  - New `ERROR_STATUS_CODES` mapping from error types to HTTP status codes
+  - Automatic error type detection based on API response patterns and HTTP status codes
+
+### Changed
+- **Improved error handling across all APIs**:
+  - Enhanced `baseTranslate.ts` with structured error handling instead of string comparisons
+  - Updated error creation to include error types and HTTP status codes
+  - Legacy error message detection now maps to structured error types
+  - Better error context with HTTP status codes and additional details
+- **Enhanced API response structure**:
+  - Updated `createTranslateClient`, `createForesightClient`, and `createPricingClient` to include HTTP status codes
+  - Improved error response handling with structured error type assignment
+  - Better error context preservation from API responses
+
+### Fixed
+- **Eliminated fragile string-based error detection**:
+  - Replaced string comparisons like `msg.includes('does not exist')` with structured error types
+  - Resolved issues with error handling when API error messages change
+  - Improved reliability of job status detection (`JOB_NOT_FOUND` vs `JOB_PROCESSING`)
+  - Enhanced error handling consistency across different API endpoints
+
 ## [1.1.6] - 2025-07-04
 
 ### Added

@@ -49,7 +49,9 @@ export function createTranslateClient(ecosystem: string, apiKey: string) {
     if (response.status === 429) {
       return {
         succeeded: false,
-        response: { message: 'Rate limit exceeded' }
+        response: { message: 'Rate limit exceeded' },
+        httpStatusCode: 429,
+        errorType: 'RATE_LIMIT_EXCEEDED'
       };
     }
 
@@ -57,7 +59,9 @@ export function createTranslateClient(ecosystem: string, apiKey: string) {
     if (response.status === 401) {
       return {
         succeeded: false,
-        response: { message: 'Unauthorized' }
+        response: { message: 'Unauthorized' },
+        httpStatusCode: 401,
+        errorType: 'UNAUTHORIZED'
       };
     }
 
@@ -66,7 +70,9 @@ export function createTranslateClient(ecosystem: string, apiKey: string) {
       const responseData = await response.json();
       return {
         succeeded: false,
-        response: { message: 'Job not ready yet', detail: responseData.detail }
+        response: { message: 'Job not ready yet', detail: responseData.detail },
+        httpStatusCode: 425,
+        errorType: 'JOB_NOT_READY'
       };
     }
 
@@ -77,20 +83,24 @@ export function createTranslateClient(ecosystem: string, apiKey: string) {
       // Handle empty or invalid JSON responses
       return {
         succeeded: false,
-        response: { message: 'Invalid response format' }
+        response: { message: 'Invalid response format' },
+        httpStatusCode: response.status,
+        errorType: 'INVALID_RESPONSE_FORMAT'
       };
     }
 
     if (!response.ok) {
       return {
         succeeded: false,
-        response: responseData
+        response: responseData,
+        httpStatusCode: response.status
       };
     }
 
     return {
       succeeded: true,
-      response: responseData
+      response: responseData,
+      httpStatusCode: response.status
     };
   };
 }
@@ -115,7 +125,9 @@ export function createForesightClient(apiKey: string) {
     if (response.status === 429) {
       return {
         succeeded: false,
-        response: { message: 'Rate limit exceeded' }
+        response: { message: 'Rate limit exceeded' },
+        httpStatusCode: 429,
+        errorType: 'RATE_LIMIT_EXCEEDED'
       };
     }
 
@@ -123,7 +135,9 @@ export function createForesightClient(apiKey: string) {
     if (response.status === 401) {
       return {
         succeeded: false,
-        response: { message: 'Unauthorized' }
+        response: { message: 'Unauthorized' },
+        httpStatusCode: 401,
+        errorType: 'UNAUTHORIZED'
       };
     }
 
@@ -134,20 +148,24 @@ export function createForesightClient(apiKey: string) {
       // Handle empty or invalid JSON responses
       return {
         succeeded: false,
-        response: { message: 'Invalid response format' }
+        response: { message: 'Invalid response format' },
+        httpStatusCode: response.status,
+        errorType: 'INVALID_RESPONSE_FORMAT'
       };
     }
 
     if (!response.ok) {
       return {
         succeeded: false,
-        response: responseData
+        response: responseData,
+        httpStatusCode: response.status
       };
     }
 
     return {
       succeeded: true,
-      response: responseData
+      response: responseData,
+      httpStatusCode: response.status
     };
   };
 }
@@ -171,7 +189,8 @@ export function createPricingClient(ecosystem: string, apiKey: string) {
     const responseData = await response.json();
     return {
       succeeded: response.ok,
-      response: responseData
+      response: responseData,
+      httpStatusCode: response.status
     };
   };
 }

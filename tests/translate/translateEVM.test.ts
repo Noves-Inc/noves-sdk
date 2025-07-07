@@ -1,5 +1,6 @@
 import { TranslateEVM } from "../../src/translate/translateEVM";
 import { TransactionError } from "../../src/errors/TransactionError";
+import { ErrorType } from "../../src/errors/ErrorTypes";
 import { PageOptions } from "../../src/types/common";
 import { TransactionsPage } from "../../src/translate/transactionsPage";
 import { HistoryPage } from "../../src/translate/historyPage";
@@ -982,7 +983,9 @@ describe('TranslateEVM', () => {
       } catch (error: unknown) {
         expect(error).toBeInstanceOf(TransactionError);
         if (error instanceof TransactionError) {
-          expect(error.message).toContain('Transaction validation error');
+          expect(error.errorType).toBe(ErrorType.UNKNOWN_ERROR);
+          // For mocked errors, httpStatusCode may be undefined
+          expect(error).toHaveProperty('httpStatusCode');
         }
       }
     });
@@ -994,7 +997,9 @@ describe('TranslateEVM', () => {
       } catch (error: unknown) {
         expect(error).toBeInstanceOf(TransactionError);
         if (error instanceof TransactionError) {
-          expect(error.message).toContain('Transaction validation error');
+          expect(error.errorType).toBe(ErrorType.UNKNOWN_ERROR);
+          // For mocked errors, httpStatusCode may be undefined
+          expect(error).toHaveProperty('httpStatusCode');
         }
       }
     });

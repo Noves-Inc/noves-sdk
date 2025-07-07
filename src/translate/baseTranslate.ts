@@ -1,6 +1,7 @@
 import { createTranslateClient } from '../utils/apiUtils';
 import { ApiResponse } from '../types/common';
 import { TransactionError } from '../errors/TransactionError';
+import { ErrorType } from '../errors/ErrorTypes';
 
 /**
  * Base class for all translate implementations.
@@ -37,28 +38,50 @@ export abstract class BaseTranslate {
     
     // Handle error responses
     if (!result.succeeded) {
+      // Use structured error types when available
+      if (result.errorType) {
+        const errorType = result.errorType as ErrorType;
+        const errors = result.response?.errors || { message: [result.response?.message || 'Request failed'] };
+        throw new TransactionError(errors, errorType, result.httpStatusCode, result.response);
+      }
+
+      // Legacy error handling with structured error types
       if (result.response?.message === 'Unauthorized') {
-        throw new TransactionError({ message: ['Invalid API Key'] });
+        throw new TransactionError({ message: ['Invalid API Key'] }, ErrorType.INVALID_API_KEY, result.httpStatusCode);
       }
       if (result.response?.message === 'Rate limit exceeded') {
-        throw new TransactionError({ message: ['Rate limit exceeded'] });
+        throw new TransactionError({ message: ['Rate limit exceeded'] }, ErrorType.RATE_LIMIT_EXCEEDED, result.httpStatusCode);
       }
       if (result.response?.message === 'Job not ready yet') {
-        throw new TransactionError({ message: ['Job is still processing. Please try again in a few moments.'] });
+        throw new TransactionError({ message: ['Job is still processing. Please try again in a few moments.'] }, ErrorType.JOB_NOT_READY, result.httpStatusCode);
       }
       if (result.response?.message === 'Invalid response format') {
-        throw new TransactionError({ message: ['Invalid response format from API'] });
+        throw new TransactionError({ message: ['Invalid response format from API'] }, ErrorType.INVALID_RESPONSE_FORMAT, result.httpStatusCode);
       }
+
+      // Handle job not found based on error message content
+      if (result.response?.message && typeof result.response.message === 'string' && result.response.message.includes('does not exist')) {
+        throw new TransactionError({ message: [result.response.message] }, ErrorType.JOB_NOT_FOUND, result.httpStatusCode);
+      }
+
+      // Handle job processing based on error message content
+      if (result.response?.message && typeof result.response.message === 'string' && result.response.message.includes('Job is still processing')) {
+        throw new TransactionError({ message: [result.response.message] }, ErrorType.JOB_PROCESSING, result.httpStatusCode);
+      }
+
+      // Handle structured error responses
       if (result.response?.errors) {
-        throw new TransactionError(result.response.errors);
+        throw new TransactionError(result.response.errors, ErrorType.VALIDATION_ERROR, result.httpStatusCode);
       }
       if (result.response?.status === 400 && result.response?.errors) {
-        throw new TransactionError({ message: [result.response.title || 'Request failed'] });
+        throw new TransactionError({ message: [result.response.title || 'Request failed'] }, ErrorType.INVALID_REQUEST, result.httpStatusCode);
       }
       if (result.response?.detail) {
-        throw new TransactionError({ message: [result.response.detail] });
+        throw new TransactionError({ message: [result.response.detail] }, ErrorType.UNKNOWN_ERROR, result.httpStatusCode);
       }
-      throw new TransactionError({ message: [result.response?.message || 'Request failed'] });
+
+      // Default error handling
+      throw new TransactionError({ message: [result.response?.message || 'Request failed'] }, ErrorType.UNKNOWN_ERROR, result.httpStatusCode);
     }
 
     // Handle empty responses

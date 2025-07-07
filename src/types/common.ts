@@ -5,6 +5,8 @@
 export interface ApiResponse {
     succeeded: boolean;
     response: any;
+    httpStatusCode?: number;
+    errorType?: string;
 }
 
 /**

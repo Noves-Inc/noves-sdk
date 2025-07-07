@@ -136,5 +136,6 @@ export { shortenAddress } from './utils/addressUtils';
 // Export pagination classes
 export { TransactionsPage } from './translate/transactionsPage';
 
-// Export error classes
+// Export error types and enums
+export { ErrorType, ERROR_MESSAGES, ERROR_STATUS_CODES } from './errors/ErrorTypes';
 export { TransactionError } from './errors/TransactionError';

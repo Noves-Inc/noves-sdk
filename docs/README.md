@@ -7,6 +7,7 @@ Welcome to the Noves SDK documentation. This documentation provides comprehensiv
 1. [Getting Started](#getting-started)
 2. [API Documentation](./api/README.md)
 3. [Examples](./examples/README.md)
+4. [Error Handling Guide](./error-handling.md)
 
 ## Getting Started
 
@@ -44,6 +45,7 @@ docs/
 │   ├── translate/     # Translate examples
 │   ├── pricing/       # Pricing examples
 │   └── foresight/     # Foresight examples
+├── error-handling.md  # Error handling guide
 └── README.md          # This file
 ```
 
@@ -67,6 +69,15 @@ docs/
 - Gas estimation
 - State overrides
 - User operation simulation
+
+### Error Handling
+- Structured error types with enums
+- HTTP status code support
+- Type-safe error handling
+- Convenient error checking methods
+- Migration guide from string comparisons
+
+For detailed error handling information, see the [Error Handling Guide](./error-handling.md).
 
 ## Examples
 
