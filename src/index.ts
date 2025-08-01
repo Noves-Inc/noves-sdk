@@ -4,6 +4,7 @@ import { TranslateSVM } from './translate/translateSVM';
 import { TranslateCOSMOS } from './translate/translateCOSMOS';
 import { TranslateTVM } from './translate/translateTVM';
 import { TranslatePOLKADOT } from './translate/translatePOLKADOT';
+import { TranslateXRPL } from './translate/translateXRPL';
 
 import { PricingEVM, PriceType } from './pricing/pricingEVM';
 import { PricingSVM, PriceType as SVMPriceType } from './pricing/pricingSVM';
@@ -70,6 +71,13 @@ export const Translate = {
      * @returns A new TranslatePOLKADOT instance.
      */
     polkadot: (apiKey: string) => new TranslatePOLKADOT(apiKey),
+
+    /**
+     * Creates a new instance of TranslateXRPL for XRP Ledger based blockchain.
+     * @param apiKey - The API key for authentication.
+     * @returns A new TranslateXRPL instance.
+     */
+    xrpl: (apiKey: string) => new TranslateXRPL(apiKey),
 };
 
 /**
@@ -122,6 +130,7 @@ export { TranslateSVM } from './translate/translateSVM';
 export { TranslateCOSMOS } from './translate/translateCOSMOS';
 export { TranslateTVM } from './translate/translateTVM';
 export { TranslatePOLKADOT } from './translate/translatePOLKADOT';
+export { TranslateXRPL } from './translate/translateXRPL';
 
 // Export pricing classes
 export { PricingEVM } from './pricing/pricingEVM';

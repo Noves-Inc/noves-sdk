@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-08-01
+
+### Added
+- **Complete XRPL (XRP Ledger) ecosystem support for Translate API**:
+  - New `TranslateXRPL` class with full implementation of all 4 XRPL endpoints
+  - `getChains()` - Returns list of supported XRPL chains with native coin information
+  - `getTransaction(chain, txHash, viewAsAccountAddress?)` - Get single transaction with optional perspective view
+  - `getTransactions(chain, accountAddress, pageOptions?)` - Get paginated transaction history with cursor-based navigation
+  - `getTokenBalances(chain, accountAddress, includePrices?, ledgerIndex?, ledgerHash?)` - Get current/historical token balances with optional price data
+  - Factory method: `Translate.xrpl(apiKey)` for easy instantiation
+  - Direct class export: `TranslateXRPL` for advanced usage
+- **Comprehensive XRPL type definitions** (`src/types/xrpl.ts):
+  - `XRPLTranslateChain` - Chain information with tier and native coin details
+  - `XRPLTranslateTransaction` - Complete transaction structure using `txTypeVersion: 6`
+  - `XRPLTranslateToken` - Token information with XRPL-specific `issuer` field for issued tokens
+  - `XRPLTranslateTransfer` - Transfer information for transaction analysis
+  - `XRPLTranslateBalancesResponse` - Token balance response with timestamp and account info
+  - `XRPLTransactionType` - Union type for XRPL transaction classifications
+  - Full TypeScript support with proper interfaces for all API responses
+- **Extensive documentation and examples**:
+  - Complete API documentation (`docs/api/translate/xrpl.md`) with detailed method descriptions and usage examples
+  - Comprehensive examples file (`docs/examples/translate/xrpl.ts`) with 10 practical use cases:
+    - Basic chain and transaction retrieval
+    - Pagination handling with proper method usage
+    - Token balance tracking with historical support
+    - Portfolio analysis and transaction categorization
+    - Error handling demonstration
+  - Updated main translate documentation to include XRPL ecosystem
+- **Complete test coverage** (`tests/translate/translateXRPL.test.ts`):
+  - 22 comprehensive test cases covering all methods and error scenarios
+  - Full validation of API response structures and error handling
+  - Mocked responses based on real XRPL API endpoint data
+  - Edge case testing and validation error scenarios
+
+
 ## [1.1.7] - 2025-07-07
 
 ### Added

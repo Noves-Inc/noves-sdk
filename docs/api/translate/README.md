@@ -10,6 +10,7 @@ The Translate API provides functionality to interact with multiple blockchain ec
 - [UTXO](./utxo.md) - UTXO-based chains (Bitcoin, etc.)
 - [TVM](./tvm.md) - Tron Virtual Machine
 - [Polkadot](./polkadot.md) - Polkadot ecosystem
+- [XRPL](./xrpl.md) - XRP Ledger
 
 ## Common Features
 
