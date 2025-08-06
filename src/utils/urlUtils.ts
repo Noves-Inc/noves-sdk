@@ -15,8 +15,9 @@ export function constructUrl(endpoint: string, params?: PageOptions): string {
       }
     });
 
+    // Add default sort parameter if not provided
     if (params.sort === undefined) {
-      params.sort = 'desc';
+      queryParams.append('sort', 'desc');
     }
 
     const queryString = queryParams.toString();
