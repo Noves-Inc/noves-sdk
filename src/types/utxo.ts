@@ -227,6 +227,33 @@ export interface UTXOTranslateBalanceData {
 export type UTXOTranslateBalancesResponse = UTXOTranslateBalanceData[];
 
 /**
+ * Bitcoin address type for getAddressesByMasterKey
+ * Supports both numeric and string values
+ */
+export type BitcoinAddressType = 0 | 1 | 2 | 3 | 'Legacy' | 'SegWit' | 'SegWitP2SH' | 'Taproot';
+
+/**
+ * Options for getAddressesByMasterKey endpoint
+ */
+export interface GetAddressesByMasterKeyOptions {
+  /**
+   * Number of addresses to derive from the master key
+   * Values between 1-10000. Default: 20
+   */
+  count?: number;
+  /**
+   * Bitcoin address type to generate
+   * Supports both numeric (0-3) and string values
+   * 0/'Legacy': Legacy P2PKH addresses starting with "1" - Most compatible, higher fees
+   * 1/'SegWit': Native SegWit P2WPKH addresses starting with "bc1" - Lower fees, modern standard
+   * 2/'SegWitP2SH': SegWit P2SH-P2WPKH addresses starting with "3" - Backward compatible SegWit
+   * 3/'Taproot': Taproot P2TR addresses starting with "bc1p" - Enhanced privacy and flexibility
+   * Default: 'Legacy' (0)
+   */
+  addressType?: BitcoinAddressType;
+}
+
+/**
  * Response type for getAddressesByXpub endpoint (Bitcoin-specific)
  */
 export type UTXOTranslateAddressesResponse = string[];

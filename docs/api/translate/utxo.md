@@ -417,30 +417,76 @@ interface TransactionsResponse {
 }
 ```
 
-### getAddressesByMasterKey(masterKey: string)
+### getAddressesByMasterKey(masterKey: string, options?: GetAddressesByMasterKeyOptions)
 Utility endpoint for Bitcoin. Returns a list of derived addresses for the given master key (xpub, ypub, or zpub). This endpoint is useful for deriving Bitcoin addresses from an extended public key without needing to perform the derivation locally.
 
+Supports different Bitcoin address types:
+- **Legacy (0)**: Legacy P2PKH addresses starting with "1" - Most compatible, higher fees
+- **SegWit (1)**: Native SegWit P2WPKH addresses starting with "bc1" - Lower fees, modern standard
+- **SegWitP2SH (2)**: SegWit P2SH-P2WPKH addresses starting with "3" - Backward compatible SegWit  
+- **Taproot (3)**: Taproot P2TR addresses starting with "bc1p" - Enhanced privacy and flexibility
+
 ```typescript
-// Using xpub
+// Default behavior - Returns 20 legacy addresses
 const addresses = await translate.getAddressesByMasterKey('xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz');
 
-// Using ypub
-const addresses = await translate.getAddressesByMasterKey('ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNpj8ahQn9dDfJdLUKD1Bou4EQvjnyWYCJ8VGzHoLYpqJHYJg9Q7GvgEBXEZj6vDFkJ9pq8ABCD');
+// Custom count - Returns 50 legacy addresses
+const addresses = await translate.getAddressesByMasterKey('xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz', {
+  count: 50
+});
 
-// Using zpub
-const addresses = await translate.getAddressesByMasterKey('zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a');
+// Using numeric addressType - Returns 20 SegWit addresses
+const addresses = await translate.getAddressesByMasterKey('zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a', {
+  addressType: 1
+});
+
+// Using string addressType - Returns 20 SegWit addresses
+const addresses = await translate.getAddressesByMasterKey('zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a', {
+  addressType: 'SegWit'
+});
+
+// Both parameters - Returns 100 SegWitP2SH addresses
+const addresses = await translate.getAddressesByMasterKey('ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNpj8ahQn9dDfJdLUKD1Bou4EQvjnyWYCJ8VGzHoLYpqJHYJg9Q7GvgEBXEZj6vDFkJ9pq8ABCD', {
+  count: 100,
+  addressType: 'SegWitP2SH'
+});
+
+// Taproot addresses
+const addresses = await translate.getAddressesByMasterKey('zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a', {
+  count: 25,
+  addressType: 'Taproot'
+});
 ```
 
 #### Parameters
 - `masterKey` (string): The master key - can be xpub (legacy P2PKH), ypub (P2SH-wrapped SegWit), or zpub (native SegWit)
+- `options` (GetAddressesByMasterKeyOptions, optional): Configuration options for address derivation
+  - `count` (number, optional): Number of addresses to derive from the master key. Values between 1-10000. Default: 20
+  - `addressType` (BitcoinAddressType, optional): Bitcoin address type to generate. Supports both numeric (0-3) and string values. Default: 'Legacy' (0)
+    - `0` or `'Legacy'`: Legacy P2PKH addresses starting with "1"
+    - `1` or `'SegWit'`: Native SegWit P2WPKH addresses starting with "bc1"
+    - `2` or `'SegWitP2SH'`: SegWit P2SH-P2WPKH addresses starting with "3"
+    - `3` or `'Taproot'`: Taproot P2TR addresses starting with "bc1p"
 
-### getAddressesByXpub(xpub: string) **(Deprecated)**
+#### Examples with API endpoint equivalents:
+- `getAddressesByMasterKey(masterKey)` → `GET /utxo/btc/addresses/{masterKey}` (20 legacy addresses)
+- `getAddressesByMasterKey(masterKey, {count: 50, addressType: 1})` → `GET /utxo/btc/addresses/{masterKey}?count=50&addressType=1` (50 SegWit addresses)
+- `getAddressesByMasterKey(masterKey, {count: 100, addressType: 'SegWit'})` → `GET /utxo/btc/addresses/{masterKey}?count=100&addressType=1` (100 SegWit addresses)
+
+### getAddressesByXpub(xpub: string, options?: GetAddressesByMasterKeyOptions) **(Deprecated)**
 **⚠️ Deprecated:** Use `getAddressesByMasterKey` instead. This method will be removed in v2.0.0.
 
-Utility endpoint for Bitcoin. Returns a list of derived addresses for the given xpub master key.
+Utility endpoint for Bitcoin. Returns a list of derived addresses for the given xpub master key. Now supports the same options as `getAddressesByMasterKey` for backward compatibility.
 
 ```typescript
+// Legacy usage
 const addresses = await translate.getAddressesByXpub('xpub...');
+
+// With new options (backward compatible)
+const addresses = await translate.getAddressesByXpub('xpub...', {
+  count: 50,
+  addressType: 'SegWit'
+});
 ```
 
 #### Response Format

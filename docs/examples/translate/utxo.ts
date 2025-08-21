@@ -109,21 +109,84 @@ async function main() {
       console.log('Decoded cursor:', decodedPageOptions);
     }
 
-    // Example of getting derived addresses from different master key formats
-    console.log('\nFetching derived addresses from xpub...');
+    // === Address Derivation Examples ===
+    console.log('\n=== Address Derivation from Master Keys ===');
+    
+    // Example 1: Default behavior - 20 legacy addresses
+    console.log('\n1. Default behavior - 20 legacy addresses from xpub:');
     const xpub = 'xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz';
-    const xpubAddresses = await translate.getAddressesByMasterKey(xpub);
-    console.log('xpub derived addresses:', xpubAddresses);
+    const defaultAddresses = await translate.getAddressesByMasterKey(xpub);
+    console.log('Default xpub addresses:', defaultAddresses.slice(0, 3), '...', `(${defaultAddresses.length} total)`);
 
-    console.log('\nFetching derived addresses from ypub...');
+    // Example 2: Custom count parameter
+    console.log('\n2. Custom count - 50 legacy addresses:');
+    const customCountAddresses = await translate.getAddressesByMasterKey(xpub, {
+      count: 50
+    });
+    console.log('Custom count addresses:', customCountAddresses.slice(0, 3), '...', `(${customCountAddresses.length} total)`);
+
+    // Example 3: SegWit addresses using numeric addressType
+    console.log('\n3. SegWit addresses (numeric) from zpub:');
+    const zpub = 'zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a';
+    const segwitNumericAddresses = await translate.getAddressesByMasterKey(zpub, {
+      addressType: 1  // SegWit
+    });
+    console.log('SegWit (numeric) addresses:', segwitNumericAddresses.slice(0, 3), '...', `(${segwitNumericAddresses.length} total)`);
+
+    // Example 4: SegWit addresses using string addressType
+    console.log('\n4. SegWit addresses (string) from zpub:');
+    const segwitStringAddresses = await translate.getAddressesByMasterKey(zpub, {
+      addressType: 'SegWit'
+    });
+    console.log('SegWit (string) addresses:', segwitStringAddresses.slice(0, 3), '...', `(${segwitStringAddresses.length} total)`);
+
+    // Example 5: SegWitP2SH addresses from ypub
+    console.log('\n5. SegWitP2SH addresses from ypub:');
     const ypub = 'ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNpj8ahQn9dDfJdLUKD1Bou4EQvjnyWYCJ8VGzHoLYpqJHYJg9Q7GvgEBXEZj6vDFkJ9pq8ABCD';
-    const ypubAddresses = await translate.getAddressesByMasterKey(ypub);
-    console.log('ypub derived addresses:', ypubAddresses);
+    const segwitP2SHAddresses = await translate.getAddressesByMasterKey(ypub, {
+      addressType: 'SegWitP2SH'
+    });
+    console.log('SegWitP2SH addresses:', segwitP2SHAddresses.slice(0, 3), '...', `(${segwitP2SHAddresses.length} total)`);
 
-    // Demonstrating backward compatibility
-    console.log('\nUsing deprecated getAddressesByXpub method...');
-    const legacyAddresses = await translate.getAddressesByXpub(xpub);
-    console.log('Legacy method addresses:', legacyAddresses);
+    // Example 6: Taproot addresses
+    console.log('\n6. Taproot addresses from zpub:');
+    const taprootAddresses = await translate.getAddressesByMasterKey(zpub, {
+      count: 10,
+      addressType: 'Taproot'
+    });
+    console.log('Taproot addresses:', taprootAddresses.slice(0, 3), '...', `(${taprootAddresses.length} total)`);
+
+    // Example 7: Combined parameters - 100 SegWit addresses
+    console.log('\n7. Combined parameters - 100 SegWit addresses:');
+    const combinedParamsAddresses = await translate.getAddressesByMasterKey(zpub, {
+      count: 100,
+      addressType: 'SegWit'
+    });
+    console.log('Combined params addresses:', combinedParamsAddresses.slice(0, 3), '...', `(${combinedParamsAddresses.length} total)`);
+
+    // Example 8: All address types comparison
+    console.log('\n8. Address types comparison (first address of each type):');
+    const legacyDemo = await translate.getAddressesByMasterKey(xpub, { count: 1, addressType: 'Legacy' });
+    const segwitDemo = await translate.getAddressesByMasterKey(zpub, { count: 1, addressType: 'SegWit' });
+    const segwitP2SHDemo = await translate.getAddressesByMasterKey(ypub, { count: 1, addressType: 'SegWitP2SH' });
+    const taprootDemo = await translate.getAddressesByMasterKey(zpub, { count: 1, addressType: 'Taproot' });
+    
+    console.log('Legacy (starts with 1):', legacyDemo[0]);
+    console.log('SegWit (starts with bc1):', segwitDemo[0]);
+    console.log('SegWitP2SH (starts with 3):', segwitP2SHDemo[0]);
+    console.log('Taproot (starts with bc1p):', taprootDemo[0]);
+
+    // Demonstrating backward compatibility with deprecated method
+    console.log('\n9. Backward compatibility - deprecated getAddressesByXpub:');
+    const legacyMethodAddresses = await translate.getAddressesByXpub(xpub);
+    console.log('Legacy method (default):', legacyMethodAddresses.slice(0, 3), '...', `(${legacyMethodAddresses.length} total)`);
+    
+    // Deprecated method with new parameters
+    const legacyMethodWithParams = await translate.getAddressesByXpub(zpub, {
+      count: 15,
+      addressType: 'SegWit'
+    });
+    console.log('Legacy method (with params):', legacyMethodWithParams.slice(0, 3), '...', `(${legacyMethodWithParams.length} total)`);
 
     // Example of getting transaction details
     console.log('\nFetching transaction details...');

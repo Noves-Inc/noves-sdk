@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-08-21
+
+### Added
+- **Enhanced UTXO getAddressesByMasterKey endpoint with new parameters**:
+  - `count` parameter: Number of addresses to derive from master key (1-10000). Default: 20
+  - `addressType` parameter: Bitcoin address type to generate. Supports both numeric (0-3) and string values (Legacy/SegWit/SegWitP2SH/Taproot). Default: Legacy (0)
+  - Support for different Bitcoin address types:
+    - Legacy (0): Legacy P2PKH addresses starting with "1" - Most compatible, higher fees
+    - SegWit (1): Native SegWit P2WPKH addresses starting with "bc1" - Lower fees, modern standard
+    - SegWitP2SH (2): SegWit P2SH-P2WPKH addresses starting with "3" - Backward compatible SegWit
+    - Taproot (3): Taproot P2TR addresses starting with "bc1p" - Enhanced privacy and flexibility
+- **New TypeScript types**:
+  - `BitcoinAddressType`: Union type supporting both numeric (0-3) and string values
+  - `GetAddressesByMasterKeyOptions`: Options interface for address derivation parameters
+- **Enhanced backward compatibility**:
+  - Updated deprecated `getAddressesByXpub` method to support new parameters while maintaining backward compatibility
+  - All existing API calls continue to work with default values (20 Legacy addresses)
+- **Comprehensive validation**:
+  - Count parameter validation (1-10000 range)
+  - AddressType parameter validation (numeric 0-3 or string Legacy/SegWit/SegWitP2SH/Taproot)
+  - Clear error messages for invalid parameters
+- **Complete documentation and examples**:
+  - Updated API documentation with detailed parameter descriptions and usage examples
+  - Enhanced examples file with 9 comprehensive address derivation scenarios
+  - API endpoint mapping examples showing query parameter usage
+- **Extensive test coverage**:
+  - 15+ new test cases covering all parameter combinations and validation scenarios
+  - Tests for both numeric and string addressType values
+  - Error validation and edge case testing
+  - Backward compatibility testing for deprecated methods
+
 ## [1.2.1] - 2025-08-06
 
 ### Fixed

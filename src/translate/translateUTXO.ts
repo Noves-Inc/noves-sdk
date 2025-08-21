@@ -10,7 +10,9 @@ import {
   UTXOTranslateBalancesResponse,
   UTXOTranslateTransactionJob,
   UTXOTranslateTransactionJobResponse,
-  UTXOTranslateDeleteTransactionJobResponse
+  UTXOTranslateDeleteTransactionJobResponse,
+  GetAddressesByMasterKeyOptions,
+  BitcoinAddressType
 } from '../types/utxo';
 import { createTranslateClient } from '../utils/apiUtils';
 import { TransactionError } from '../errors/TransactionError';
@@ -158,14 +160,53 @@ export class TranslateUTXO {
     /**
    * Utility endpoint for Bitcoin. Returns a list of derived addresses for the given master key.
    * @param {string} masterKey - The master key (xpub, ypub, or zpub) to derive BTC addresses from.
+   * @param {GetAddressesByMasterKeyOptions} options - Optional parameters for address derivation.
    * @returns {Promise<UTXOTranslateAddressesResponse>} A promise that resolves to an array of derived addresses.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getAddressesByMasterKey(masterKey: string): Promise<UTXOTranslateAddressesResponse> {
+  public async getAddressesByMasterKey(
+    masterKey: string, 
+    options: GetAddressesByMasterKeyOptions = {}
+  ): Promise<UTXOTranslateAddressesResponse> {
     try {
-      // Note: This specific endpoint uses 'uxto' instead of 'utxo' in the URL
-      // This is an API inconsistency that we need to handle
-      const url = `https://translate.noves.fi/uxto/btc/addresses/${masterKey}`;
+      // Validate count parameter
+      if (options.count !== undefined && (options.count < 1 || options.count > 10000)) {
+        throw new TransactionError({ count: ['Count must be between 1 and 10000'] });
+      }
+
+      // Validate addressType parameter
+      if (options.addressType !== undefined) {
+        const validTypes = [0, 1, 2, 3, 'Legacy', 'SegWit', 'SegWitP2SH', 'Taproot'];
+        if (!validTypes.includes(options.addressType)) {
+          throw new TransactionError({ 
+            addressType: ['AddressType must be 0-3 or Legacy/SegWit/SegWitP2SH/Taproot'] 
+          });
+        }
+      }
+
+      // Set default values
+      const count = options.count ?? 20;
+      const addressType = options.addressType ?? 'Legacy';
+
+      // Convert string addressType to numeric value for API
+      const addressTypeMap: Record<string, number> = {
+        'Legacy': 0,
+        'SegWit': 1,
+        'SegWitP2SH': 2,
+        'Taproot': 3
+      };
+
+      const numericAddressType = typeof addressType === 'string' 
+        ? addressTypeMap[addressType] 
+        : addressType;
+
+      // Build query parameters for the API request
+      const queryParams = new URLSearchParams({
+        count: count.toString(),
+        addressType: numericAddressType.toString()
+      });
+
+      const url = `https://translate.noves.fi/utxo/btc/addresses/${masterKey}?${queryParams.toString()}`;
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -211,11 +252,15 @@ export class TranslateUTXO {
    * @deprecated Use getAddressesByMasterKey instead. This method will be removed in v2.0.0.
    * Utility endpoint for Bitcoin. Returns a list of derived addresses for the given xpub address.
    * @param {string} xpub - The xpub address to derive BTC addresses from.
+   * @param {GetAddressesByMasterKeyOptions} options - Optional parameters for address derivation.
    * @returns {Promise<UTXOTranslateAddressesResponse>} A promise that resolves to an array of derived addresses.
    * @throws {TransactionError} If there are validation errors in the request.
    */
-  public async getAddressesByXpub(xpub: string): Promise<UTXOTranslateAddressesResponse> {
-    return this.getAddressesByMasterKey(xpub);
+  public async getAddressesByXpub(
+    xpub: string, 
+    options: GetAddressesByMasterKeyOptions = {}
+  ): Promise<UTXOTranslateAddressesResponse> {
+    return this.getAddressesByMasterKey(xpub, options);
   }
 
   /**

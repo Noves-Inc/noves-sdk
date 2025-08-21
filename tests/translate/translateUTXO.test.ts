@@ -87,7 +87,7 @@ describe('TranslateUTXO', () => {
 
 
   describe('getAddressesByMasterKey', () => {
-    it('should fetch derived addresses successfully with xpub', async () => {
+    it('should fetch derived addresses successfully with default parameters', async () => {
       const mockAddresses = [
         '1FZMpLkc9W9hqv5dFvtTPqDwzEP8tZvm7z',
         '1NPBJiJSvdPrRtYt2Y9732Hvvhs5tCAiw9',
@@ -102,7 +102,7 @@ describe('TranslateUTXO', () => {
       const response = await translate.getAddressesByMasterKey('xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz');
       expect(response).toEqual(mockAddresses);
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://translate.noves.fi/uxto/btc/addresses/xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz',
+        'https://translate.noves.fi/utxo/btc/addresses/xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz?count=20&addressType=0',
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
@@ -113,22 +113,20 @@ describe('TranslateUTXO', () => {
       );
     });
 
-    it('should fetch derived addresses successfully with ypub', async () => {
-      const mockAddresses = [
-        '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL',
-        '3FcoNNfPJSfo58w9Zv5B1DmJBMe4Up17HF',
-        '36UsxVpZcQjydzke8NpvXTCDd1mvB7NM5p'
-      ];
+    it('should fetch derived addresses with custom count parameter', async () => {
+      const mockAddresses = Array.from({ length: 50 }, (_, i) => `1FZMpLkc9W9hqv5dFvtTPqDwzEP8tZvm7${i.toString().padStart(2, '0')}`);
 
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => mockAddresses
       });
 
-      const response = await translate.getAddressesByMasterKey('ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNpj8ahQn9dDfJdLUKD1Bou4EQvjnyWYCJ8VGzHoLYpqJHYJg9Q7GvgEBXEZj6vDFkJ9pq8ABCD');
+      const response = await translate.getAddressesByMasterKey('xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz', {
+        count: 50
+      });
       expect(response).toEqual(mockAddresses);
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://translate.noves.fi/uxto/btc/addresses/ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNpj8ahQn9dDfJdLUKD1Bou4EQvjnyWYCJ8VGzHoLYpqJHYJg9Q7GvgEBXEZj6vDFkJ9pq8ABCD',
+        'https://translate.noves.fi/utxo/btc/addresses/xpub6CUGRUonZSQ4TWtTMmzXdrXDtypWKiKrhko4egpiMZbpiaQL2jkwSB1icqYh2cfDfVxdx4df189oLKnC5fSwqPfgyP3hooxujYzAu3fDVmz?count=50&addressType=0',
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
@@ -139,7 +137,7 @@ describe('TranslateUTXO', () => {
       );
     });
 
-    it('should fetch derived addresses successfully with zpub', async () => {
+    it('should fetch derived addresses with numeric addressType (SegWit)', async () => {
       const mockAddresses = [
         'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
         'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
@@ -151,10 +149,12 @@ describe('TranslateUTXO', () => {
         json: async () => mockAddresses
       });
 
-      const response = await translate.getAddressesByMasterKey('zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a');
+      const response = await translate.getAddressesByMasterKey('zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a', {
+        addressType: 1
+      });
       expect(response).toEqual(mockAddresses);
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://translate.noves.fi/uxto/btc/addresses/zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a',
+        'https://translate.noves.fi/utxo/btc/addresses/zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a?count=20&addressType=1',
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
@@ -164,6 +164,165 @@ describe('TranslateUTXO', () => {
         })
       );
     });
+
+    it('should fetch derived addresses with string addressType (SegWit)', async () => {
+      const mockAddresses = [
+        'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4',
+        'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+        'bc1q34aq5drpuwy3wgl9lhup9892qp6svr8ldzyy7c'
+      ];
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => mockAddresses
+      });
+
+      const response = await translate.getAddressesByMasterKey('zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a', {
+        addressType: 'SegWit'
+      });
+      expect(response).toEqual(mockAddresses);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://translate.noves.fi/utxo/btc/addresses/zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a?count=20&addressType=1',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            'apiKey': 'test-api-key',
+            'Content-Type': 'application/json'
+          })
+        })
+      );
+    });
+
+    it('should fetch derived addresses with string addressType (SegWitP2SH)', async () => {
+      const mockAddresses = [
+        '3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL',
+        '3FcoNNfPJSfo58w9Zv5B1DmJBMe4Up17HF',
+        '36UsxVpZcQjydzke8NpvXTCDd1mvB7NM5p'
+      ];
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => mockAddresses
+      });
+
+      const response = await translate.getAddressesByMasterKey('ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNpj8ahQn9dDfJdLUKD1Bou4EQvjnyWYCJ8VGzHoLYpqJHYJg9Q7GvgEBXEZj6vDFkJ9pq8ABCD', {
+        addressType: 'SegWitP2SH'
+      });
+      expect(response).toEqual(mockAddresses);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://translate.noves.fi/utxo/btc/addresses/ypub6Ww3ibxVfGzLrAH1PNcjyAWenMTbbAosGNpj8ahQn9dDfJdLUKD1Bou4EQvjnyWYCJ8VGzHoLYpqJHYJg9Q7GvgEBXEZj6vDFkJ9pq8ABCD?count=20&addressType=2',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            'apiKey': 'test-api-key',
+            'Content-Type': 'application/json'
+          })
+        })
+      );
+    });
+
+    it('should fetch derived addresses with string addressType (Taproot)', async () => {
+      const mockAddresses = [
+        'bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9rusxg3297',
+        'bc1p8k7zq4g9r5dk3yh6ks8smlaatedr5dekq09ge9ztwac73sfr0rusxh4398',
+        'bc1p3j4kl7g6rdk4yhzks7smlaqtedr6dekq07ge7ztwac74sfr1rusxi5499'
+      ];
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => mockAddresses
+      });
+
+      const response = await translate.getAddressesByMasterKey('zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a', {
+        addressType: 'Taproot'
+      });
+      expect(response).toEqual(mockAddresses);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://translate.noves.fi/utxo/btc/addresses/zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a?count=20&addressType=3',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            'apiKey': 'test-api-key',
+            'Content-Type': 'application/json'
+          })
+        })
+      );
+    });
+
+    it('should fetch derived addresses with both count and addressType parameters', async () => {
+      const mockAddresses = Array.from({ length: 100 }, (_, i) => `bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t${i.toString().padStart(2, '0')}`);
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => mockAddresses
+      });
+
+      const response = await translate.getAddressesByMasterKey('zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a', {
+        count: 100,
+        addressType: 'SegWit'
+      });
+      expect(response).toEqual(mockAddresses);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://translate.noves.fi/utxo/btc/addresses/zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXgh3SsEF3C9vLpqHrwfbK6W1H2WdBLiHGvKJ8Q2Dpt6SbGwuL7X4VzNq3a?count=100&addressType=1',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            'apiKey': 'test-api-key',
+            'Content-Type': 'application/json'
+          })
+        })
+      );
+    });
+
+    it('should validate count parameter is within range (too small)', async () => {
+      await expect(translate.getAddressesByMasterKey('xpub123', { count: 0 }))
+        .rejects.toThrow(TransactionError);
+      
+      try {
+        await translate.getAddressesByMasterKey('xpub123', { count: 0 });
+      } catch (error) {
+        expect(error).toBeInstanceOf(TransactionError);
+        expect((error as TransactionError).errors.count).toContain('Count must be between 1 and 10000');
+      }
+    });
+
+    it('should validate count parameter is within range (too large)', async () => {
+      await expect(translate.getAddressesByMasterKey('xpub123', { count: 10001 }))
+        .rejects.toThrow(TransactionError);
+        
+      try {
+        await translate.getAddressesByMasterKey('xpub123', { count: 10001 });
+      } catch (error) {
+        expect(error).toBeInstanceOf(TransactionError);
+        expect((error as TransactionError).errors.count).toContain('Count must be between 1 and 10000');
+      }
+    });
+
+    it('should validate addressType parameter (invalid string)', async () => {
+      await expect(translate.getAddressesByMasterKey('xpub123', { addressType: 'Invalid' as any }))
+        .rejects.toThrow(TransactionError);
+        
+      try {
+        await translate.getAddressesByMasterKey('xpub123', { addressType: 'Invalid' as any });
+      } catch (error) {
+        expect(error).toBeInstanceOf(TransactionError);
+        expect((error as TransactionError).errors.addressType).toContain('AddressType must be 0-3 or Legacy/SegWit/SegWitP2SH/Taproot');
+      }
+    });
+
+    it('should validate addressType parameter (invalid number)', async () => {
+      await expect(translate.getAddressesByMasterKey('xpub123', { addressType: 4 as any }))
+        .rejects.toThrow(TransactionError);
+        
+      try {
+        await translate.getAddressesByMasterKey('xpub123', { addressType: 4 as any });
+      } catch (error) {
+        expect(error).toBeInstanceOf(TransactionError);
+        expect((error as TransactionError).errors.addressType).toContain('AddressType must be 0-3 or Legacy/SegWit/SegWitP2SH/Taproot');
+      }
+    });
+
+
 
     it('should handle validation errors for invalid master key format', async () => {
       mockFetch.mockResolvedValue({
@@ -214,7 +373,7 @@ describe('TranslateUTXO', () => {
   });
 
   describe('getAddressesByXpub (deprecated)', () => {
-    it('should still work for backward compatibility', async () => {
+    it('should still work for backward compatibility with default parameters', async () => {
       const mockAddresses = [
         '1FZMpLkc9W9hqv5dFvtTPqDwzEP8tZvm7z',
         '1NPBJiJSvdPrRtYt2Y9732Hvvhs5tCAiw9',
@@ -229,7 +388,32 @@ describe('TranslateUTXO', () => {
       const response = await translate.getAddressesByXpub('xpub123');
       expect(response).toEqual(mockAddresses);
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://translate.noves.fi/uxto/btc/addresses/xpub123',
+        'https://translate.noves.fi/utxo/btc/addresses/xpub123?count=20&addressType=0',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            'apiKey': 'test-api-key',
+            'Content-Type': 'application/json'
+          })
+        })
+      );
+    });
+
+    it('should work with new parameters for backward compatibility', async () => {
+      const mockAddresses = Array.from({ length: 30 }, (_, i) => `bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t${i.toString().padStart(2, '0')}`);
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => mockAddresses
+      });
+
+      const response = await translate.getAddressesByXpub('zpub123', {
+        count: 30,
+        addressType: 'SegWit'
+      });
+      expect(response).toEqual(mockAddresses);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://translate.noves.fi/utxo/btc/addresses/zpub123?count=30&addressType=1',
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
