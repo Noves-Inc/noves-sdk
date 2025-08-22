@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-08-22
+
+### Fixed
+- **Critical XRPL pagination bug**: Fixed issue where different pages returned identical transaction data despite generating correct cursor values. The SDK now properly includes the `marker` parameter from XRPL API responses in subsequent pagination requests, ensuring each page returns unique transactions as expected.
+- **Enhanced XRPL pagination support**: Added `marker` parameter to `PageOptions` interface and URL utilities to properly handle XRPL-specific pagination tokens.
+- **Improved pagination examples**: Updated XRPL documentation examples to demonstrate both `next()` and cursor-based pagination methods, showing how the fix ensures different pages return different transactions.
+
+### Technical Details
+- Added `marker?: string` parameter to `PageOptions` interface for XRPL pagination support
+- Updated `urlUtils.ts` to properly parse and construct URLs with `marker` parameter
+- Modified `TranslateXRPL.getTransactions()` to extract and preserve `marker` from API response `nextPageSettings`
+- Updated test expectations to account for default `sort=desc` parameter in URL construction
+
 ## [1.3.0] - 2025-08-21
 
 ### Added

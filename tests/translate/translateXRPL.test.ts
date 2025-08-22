@@ -265,7 +265,7 @@ describe('TranslateXRPL', () => {
 
       const result = await translateXRPL.getTransactions(validChain, validAddress, pageOptions);
 
-      expect(mockRequest).toHaveBeenCalledWith(`${validChain}/txs/${validAddress}?pageSize=10`);
+      expect(mockRequest).toHaveBeenCalledWith(`${validChain}/txs/${validAddress}?pageSize=10&sort=desc`);
       expect(result).toBeInstanceOf(TransactionsPage);
     });
 

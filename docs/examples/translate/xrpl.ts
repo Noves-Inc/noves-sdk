@@ -5,7 +5,7 @@
  * to get human-readable transaction descriptions and metadata.
  */
 
-import { Translate, TranslateXRPL, TransactionError } from '../../../src';
+import { Translate, TranslateXRPL, TransactionError, TransactionsPage, XRPLTranslateTransaction } from '../../../src';
 
 // Initialize the XRPL translate client
 const apiKey = 'your-api-key-here';
@@ -84,7 +84,7 @@ async function getTransactionFromPerspective() {
 }
 
 /**
- * Example 4: Get paginated transactions
+ * Example 4: Get paginated transactions (demonstrates pagination fix)
  */
 async function getPaginatedTransactions() {
   try {
@@ -94,26 +94,64 @@ async function getPaginatedTransactions() {
     
     // Get first page
     const transactionsPage = await translateXRPL.getTransactions('xrpl', accountAddress, {
-      pageSize: 10
+      pageSize: 10,
+      sort: 'desc',
+      v5Format: true
     });
     
     console.log(`Found ${transactionsPage.getTransactions().length} transactions on first page`);
     console.log('Has next page:', transactionsPage.hasNext());
     
+    // Store first transaction hash for comparison
+    const firstPageFirstTx = (transactionsPage.getTransactions()[0] as XRPLTranslateTransaction)?.rawTransactionData.signature;
+    console.log(`First page, first tx hash: ${firstPageFirstTx?.substring(0, 12)}...`);
+    
     // Show first few transactions
     transactionsPage.getTransactions().slice(0, 3).forEach((tx, index) => {
+      const xrplTx = tx as XRPLTranslateTransaction;
       console.log(`Transaction ${index + 1}:`);
-      console.log(`  Type: ${tx.classificationData.type}`);
-      console.log(`  Description: ${tx.classificationData.description}`);
-      console.log(`  Date: ${new Date(tx.timestamp * 1000).toLocaleString()}`);
+      console.log(`  Type: ${xrplTx.classificationData.type}`);
+      console.log(`  Description: ${xrplTx.classificationData.description}`);
+      console.log(`  Date: ${new Date(xrplTx.timestamp * 1000).toLocaleString()}`);
     });
     
-    // Get next page if available
+    // Demonstrate both pagination methods work correctly (fixed in v1.3.1)
     if (transactionsPage.hasNext()) {
-      console.log('\n⏭️ Getting next page...');
+      console.log('\n⏭️ Method 1: Getting next page using next()...');
       const hasNextPage = await transactionsPage.next();
       if (hasNextPage) {
+        const secondPageFirstTx = (transactionsPage.getTransactions()[0] as XRPLTranslateTransaction)?.rawTransactionData.signature;
         console.log(`Found ${transactionsPage.getTransactions().length} transactions on second page`);
+        console.log(`Second page, first tx hash: ${secondPageFirstTx?.substring(0, 12)}...`);
+        
+        // Verify different pages have different transactions
+        const areDifferent = firstPageFirstTx !== secondPageFirstTx;
+        console.log(`✅ Pages contain different transactions: ${areDifferent}`);
+      }
+      
+      // Demonstrate cursor-based pagination (also fixed in v1.3.1)
+      console.log('\n🎫 Method 2: Getting next page using cursor...');
+      
+      // Get fresh first page to demonstrate cursor method
+      const freshFirstPage = await translateXRPL.getTransactions('xrpl', accountAddress, {
+        pageSize: 10,
+        sort: 'desc',
+        v5Format: true
+      });
+      
+      if (freshFirstPage.hasNext()) {
+        const cursor = freshFirstPage.getNextCursor();
+        console.log(`Generated cursor (${cursor!.length} chars)`);
+        
+        // Create page from cursor
+        const pageFromCursor = await TransactionsPage.fromCursor(translateXRPL, 'xrpl', accountAddress, cursor!);
+        
+        const cursorPageFirstTx = (pageFromCursor.getTransactions()[0] as XRPLTranslateTransaction)?.rawTransactionData.signature;
+        console.log(`Cursor page, first tx hash: ${cursorPageFirstTx?.substring(0, 12)}...`);
+        
+        // Verify cursor method also returns different transactions
+        const cursorAreDifferent = firstPageFirstTx !== cursorPageFirstTx;
+        console.log(`✅ Cursor method also works correctly: ${cursorAreDifferent}`);
       }
     }
     

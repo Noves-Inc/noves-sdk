@@ -48,7 +48,8 @@ export function parseUrl(urlString: string): PageOptions {
         'ignoreTransactions',
         'pageKey',
         'pageNumber',
-        'ascending'
+        'ascending',
+        'marker'
       ];
     
       keys.forEach(key => {
@@ -58,7 +59,7 @@ export function parseUrl(urlString: string): PageOptions {
             params[key] = value as 'desc' | 'asc';
           } else if (key === 'liveData' || key === 'v5Format' || key === 'includePrices' || key === 'excludeZeroPrices' || key === 'ascending') {
             (params as any)[key] = value === 'true';
-          } else if (key === 'viewAsAccountAddress' || key === 'ignoreTransactions' || key === 'pageKey') {
+          } else if (key === 'viewAsAccountAddress' || key === 'ignoreTransactions' || key === 'pageKey' || key === 'marker') {
             params[key] = value;
           } else {
             // For numeric fields

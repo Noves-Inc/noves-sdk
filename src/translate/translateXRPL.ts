@@ -106,7 +106,13 @@ export class TranslateXRPL extends BaseTranslate {
 
       // Convert the XRPL response format to our standard pagination format
       const hasNextPage = !!(result.nextPageSettings && result.nextPageSettings.nextPageUrl);
-      const nextPageKeys = hasNextPage ? parseUrl(result.nextPageSettings.nextPageUrl) : null;
+      let nextPageKeys = hasNextPage ? parseUrl(result.nextPageSettings.nextPageUrl) : null;
+      
+      // For XRPL, we need to include the marker from nextPageSettings separately
+      // since it may not be present in the URL or may be URL-encoded
+      if (hasNextPage && result.nextPageSettings.marker && nextPageKeys) {
+        nextPageKeys.marker = result.nextPageSettings.marker;
+      }
 
       const initialData = {
         chain: chain,

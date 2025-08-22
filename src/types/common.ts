@@ -184,6 +184,12 @@ export interface PageOptions {
      * @default 10
      */
     maxNavigationHistory?: number;
+
+    /**
+     * Marker token for XRPL pagination. (Internal use - set by API responses)
+     * This parameter is used by XRPL chains for pagination.
+     */
+    marker?: string;
 }
 
 /**
