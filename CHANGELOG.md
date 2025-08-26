@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2025-08-26
+
+### Fixed
+- **Critical XRPL pagination bug - End-of-data validation error**: Fixed severe pagination issue in `TranslateXRPL.getTransactions()` where SDK incorrectly threw "Invalid response format" error when reaching the end of transaction data.
+  - **Root cause**: SDK validation required `nextPageSettings` field to always be present, but XRPL API correctly omits this field when no more pages are available (end of pagination)
+  - **Impact**: Users could not access complete transaction history as pagination failed with validation error when reaching final page
+  - **Fix**: Made `nextPageSettings` validation optional, allowing proper end-of-data handling
+
 ## [1.3.1] - 2025-08-22
 
 ### Fixed

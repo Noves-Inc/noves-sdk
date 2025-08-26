@@ -283,6 +283,55 @@ describe('TranslateXRPL', () => {
 
       await expect(translateXRPL.getTransactions(validChain, validAddress)).rejects.toThrow(TransactionError);
     });
+
+    it('should handle end-of-pagination when nextPageSettings is missing', async () => {
+      const mockResponse = {
+        items: [
+          {
+            txTypeVersion: 6,
+            chain: 'xrpl',
+            accountAddress: validAddress,
+            classificationData: {
+              type: 'sendToken',
+              description: 'Sent 0.1 XRP to rTest...',
+              protocol: { name: null },
+              source: { type: 'human' }
+            },
+            transfers: [
+              {
+                action: 'sent',
+                amount: '0.1',
+                from: { name: null, address: validAddress },
+                to: { name: null, address: 'rTest...' },
+                token: { symbol: 'XRP', name: 'XRP', decimals: 6, address: 'XRP', issuer: null }
+              }
+            ],
+            values: {},
+            rawTransactionData: {
+              signature: validTxHash,
+              account: validAddress,
+              type: 'Payment',
+              fee: '0.00001',
+              sequence: 12345,
+              destination: 'rTest...',
+              result: 'tesSUCCESS',
+              ledger_index: 98000000
+            },
+            timestamp: 1750000000
+          }
+        ]
+      };
+
+      mockRequest.mockResolvedValue(mockResponse);
+
+      const result = await translateXRPL.getTransactions(validChain, validAddress);
+
+      expect(mockRequest).toHaveBeenCalledWith(`${validChain}/txs/${validAddress}`);
+      expect(result).toBeInstanceOf(TransactionsPage);
+      expect(result.getTransactions()).toEqual(mockResponse.items);
+      expect(result.hasNext()).toBe(false);
+      expect(result.getNextPageKeys()).toBeNull();
+    });
   });
 
   describe('getTokenBalances', () => {

@@ -95,7 +95,7 @@ export class TranslateXRPL extends BaseTranslate {
       const url = constructUrl(endpoint, pageOptions);
       const result = await this.makeRequest(url);
 
-      if (!this.validateResponse(result, ['items', 'nextPageSettings'])) {
+      if (!this.validateResponse(result, ['items'])) {
         throw new TransactionError({ message: ['Invalid response format'] });
       }
 
@@ -105,13 +105,19 @@ export class TranslateXRPL extends BaseTranslate {
       }
 
       // Convert the XRPL response format to our standard pagination format
+      // nextPageSettings is only present when there are more pages available
       const hasNextPage = !!(result.nextPageSettings && result.nextPageSettings.nextPageUrl);
-      let nextPageKeys = hasNextPage ? parseUrl(result.nextPageSettings.nextPageUrl) : null;
+      let nextPageKeys = null;
       
-      // For XRPL, we need to include the marker from nextPageSettings separately
-      // since it may not be present in the URL or may be URL-encoded
-      if (hasNextPage && result.nextPageSettings.marker && nextPageKeys) {
-        nextPageKeys.marker = result.nextPageSettings.marker;
+      if (hasNextPage) {
+        // Parse the nextPageUrl to get pagination parameters
+        nextPageKeys = parseUrl(result.nextPageSettings.nextPageUrl);
+        
+        // For XRPL, we need to include the marker from nextPageSettings separately
+        // since it may not be present in the URL or may be URL-encoded
+        if (result.nextPageSettings.marker && nextPageKeys) {
+          nextPageKeys.marker = result.nextPageSettings.marker;
+        }
       }
 
       const initialData = {
