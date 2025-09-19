@@ -12,8 +12,10 @@ examples/
 │   └── ...
 ├── pricing/            # Examples for the Pricing API
 │   └── ...
-└── foresight/          # Examples for the Foresight API
-    └── ...
+├── foresight/          # Examples for the Foresight API
+│   └── ...
+├── retry-example.ts    # Retry configuration examples
+└── error-handling-example.ts  # Error handling examples
 ```
 
 ## Running the Examples
@@ -30,6 +32,9 @@ export NOVES_API_KEY=your_api_key_here
 
 3. Run an example:
 ```bash
+# Run the retry configuration example
+npx ts-node examples/retry-example.ts
+
 # Run the Cosmos Translate example
 npx ts-node examples/translate/cosmos.ts
 
@@ -55,6 +60,11 @@ npx ts-node examples/translate/evm.ts
 - Transaction simulation
 - Gas estimation
 - State overrides
+
+### Retry Configuration Examples
+- Basic retry setup with presets
+- Custom retry configuration with monitoring
+- Different retry strategies comparison
 
 
 ## Notes

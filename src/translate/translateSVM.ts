@@ -33,6 +33,7 @@ import { TransactionError } from '../errors/TransactionError';
 import { TransactionsPage, PaginatedItem } from './transactionsPage';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
 import { BaseTranslate } from './baseTranslate';
+import { RetryConfig } from '../types/common';
 
 const ECOSYSTEM = 'svm';
 
@@ -59,14 +60,15 @@ export class TranslateSVM extends BaseTranslate {
   /**
    * Create a TranslateSVM instance.
    * @param {string} apiKey - The API key to authenticate requests.
+   * @param {Partial<RetryConfig>} [retryConfig] - Optional retry configuration for enhanced resilience.
    * @throws Will throw an error if the API key is not provided.
    */
-  constructor(apiKey: string) {
-    super(ECOSYSTEM, apiKey);
+  constructor(apiKey: string, retryConfig?: Partial<RetryConfig>) {
+    super(ECOSYSTEM, apiKey, retryConfig);
     if (!apiKey) {
       throw new Error('API key is required');
     }
-    this.request = createTranslateClient(ECOSYSTEM, apiKey);
+    this.request = createTranslateClient(ECOSYSTEM, apiKey, retryConfig);
   }
 
   /**

@@ -6,6 +6,9 @@
 // Common types
 export * from './common';
 
+// Retry mechanism types
+export type { RetryConfig, RetryContext, RetryEngine } from './common';
+
 // EVM types
 export * from './evm';
 
@@ -29,6 +32,9 @@ export * from './move';
 
 // XRPL types
 export * from './xrpl';
+
+// Exchange types
+export * from './exchange';
 
 // Transaction Type Unions
 export type { EVMTransactionType } from './evm';

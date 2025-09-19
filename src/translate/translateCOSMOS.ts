@@ -13,6 +13,7 @@ import { constructUrl, parseUrl } from '../utils/urlUtils';
 import { validateCosmosAddress } from '../utils/cosmosUtils';
 import { CosmosAddressError, CosmosTransactionJobError } from '../errors/CosmosError';
 import { BaseTranslate } from './baseTranslate';
+import { RetryConfig } from '../types/common';
 
 const ECOSYSTEM = 'cosmos';
 
@@ -20,14 +21,15 @@ const ECOSYSTEM = 'cosmos';
  * Class representing the COSMOS translation module.
  */
 export class TranslateCOSMOS extends BaseTranslate {
-  /**
-   * Create a TranslateCOSMOS instance.
-   * @param {string} apiKey - The API key to authenticate requests.
-   * @throws Will throw an error if the API key is not provided.
-   */
-  constructor(apiKey: string) {
-    super(ECOSYSTEM, apiKey);
-  }
+    /**
+     * Create a TranslateCOSMOS instance.
+     * @param {string} apiKey - The API key to authenticate requests.
+     * @param {Partial<RetryConfig>} [retryConfig] - Optional retry configuration for enhanced resilience.
+     * @throws Will throw an error if the API key is not provided.
+     */
+    constructor(apiKey: string, retryConfig?: Partial<RetryConfig>) {
+        super(ECOSYSTEM, apiKey, retryConfig);
+    }
 
   /**
    * Returns a list with the names of the COSMOS blockchains currently supported by this API. 

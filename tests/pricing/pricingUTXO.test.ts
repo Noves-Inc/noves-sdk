@@ -26,7 +26,7 @@ describe('PricingUTXO', () => {
 
     it('should create a PricingUTXO instance with a valid API key', () => {
       expect(pricingUTXO).toBeInstanceOf(PricingUTXO);
-      expect(createPricingClient).toHaveBeenCalledWith('utxo', mockApiKey);
+      expect(createPricingClient).toHaveBeenCalledWith('utxo', mockApiKey, undefined);
     });
   });
 

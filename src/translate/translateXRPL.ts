@@ -9,6 +9,7 @@ import { TransactionsPage } from './transactionsPage';
 import { TransactionError } from '../errors/TransactionError';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
 import { BaseTranslate } from './baseTranslate';
+import { RetryConfig } from '../types/common';
 
 const ECOSYSTEM = 'xrpl';
 
@@ -16,14 +17,15 @@ const ECOSYSTEM = 'xrpl';
  * Class representing the XRPL translation module.
  */
 export class TranslateXRPL extends BaseTranslate {
-  /**
-   * Create a TranslateXRPL instance.
-   * @param {string} apiKey - The API key to authenticate requests.
-   * @throws Will throw an error if the API key is not provided.
-   */
-  constructor(apiKey: string) {
-    super(ECOSYSTEM, apiKey);
-  }
+    /**
+     * Create a TranslateXRPL instance.
+     * @param {string} apiKey - The API key to authenticate requests.
+     * @param {Partial<RetryConfig>} [retryConfig] - Optional retry configuration for enhanced resilience.
+     * @throws Will throw an error if the API key is not provided.
+     */
+    constructor(apiKey: string, retryConfig?: Partial<RetryConfig>) {
+        super(ECOSYSTEM, apiKey, retryConfig);
+    }
 
   /**
    * Returns a list with the names of the XRPL chains currently supported by this API. 

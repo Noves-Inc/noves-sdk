@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-09-19
+
+### Added
+- **Exchange Translate API**: Complete implementation of the new Exchange endpoints for centralized cryptocurrency exchanges
+  - **New TranslateExchange class**: Access to exchange-specific translation services
+  - **Four core methods**:
+    - `getExchanges()`: Returns list of supported exchanges (currently HyperLiquid)
+    - `getAccounts(exchange, authRequest)`: Gets available accounts for exchange credentials
+    - `getBalances(exchange, authRequest)`: Retrieves token balances for exchange account
+    - `getTransactions(exchange, authRequest, pageOptions?)`: Fetches all transactions with pagination support
+  - **Comprehensive authentication system**: Support for exchange-specific API keys and wallet addresses
+  - **Advanced pagination support**: Time-based filtering with `startTimestamp`, `endTimestamp`, `pageSize`, and `pageKey` parameters
+- **Enhanced Retry Mechanism**: Comprehensive retry strategy implementation with intelligent error handling
+  - **Configurable retry presets**: Production-ready configurations (PRODUCTION, DEVELOPMENT, REAL_TIME, BATCH_PROCESSING) for different use cases
+  - **Error-specific retry behavior**: Intelligent retry strategies tailored for different error types (rate limits, network errors, job processing)
+  - **Circuit breaker protection**: Built-in circuit breakers to prevent cascade failures and protect API resources
+  - **Exponential backoff with jitter**: Smart delay calculations to reduce API pressure and prevent thundering herd effects
+  - **Callback-based monitoring**: Track retry behavior through `onRetry`, `onSuccess`, and `onFailure` callbacks for custom logging and monitoring
+  - **Simplified configuration**: Easy-to-use `RetryConfigBuilder` and preset system for quick setup without complexity
+  - **Backward compatibility**: Retries are disabled by default, ensuring existing code continues to work unchanged
+
 ## [1.3.2] - 2025-08-26
 
 ### Fixed

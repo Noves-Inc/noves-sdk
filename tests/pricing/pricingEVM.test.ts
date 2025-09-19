@@ -26,7 +26,7 @@ describe('PricingEVM', () => {
 
     it('should create a PricingEVM instance with a valid API key', () => {
       expect(pricingEVM).toBeInstanceOf(PricingEVM);
-      expect(createPricingClient).toHaveBeenCalledWith('evm', mockApiKey);
+      expect(createPricingClient).toHaveBeenCalledWith('evm', mockApiKey, undefined);
     });
   });
 

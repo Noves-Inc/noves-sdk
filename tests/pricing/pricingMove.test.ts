@@ -27,7 +27,7 @@ describe('PricingMove', () => {
 
     it('should create a PricingMove instance with a valid API key', () => {
       expect(pricingMove).toBeInstanceOf(PricingMove);
-      expect(createPricingClient).toHaveBeenCalledWith('move', mockApiKey);
+      expect(createPricingClient).toHaveBeenCalledWith('move', mockApiKey, undefined);
     });
   });
 

@@ -202,7 +202,7 @@ export class TransactionsPage<T extends PaginatedItem> extends Pagination<T> {
             navigationHistory: _cursorMeta ? _cursorMeta.navigationHistory : [pageOptions]
         });
         
-        // Phase 3: Properly restore navigation state from cursor metadata
+        // Restore navigation state from cursor metadata
         if (_cursorMeta) {
             // Override the next page keys if the cursor metadata has more accurate information
             if (_cursorMeta.nextPageOptions) {

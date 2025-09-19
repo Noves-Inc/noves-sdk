@@ -12,6 +12,7 @@ The official SDK for interacting with the [Noves API](https://docs.noves.fi/refe
 - **Foresight**: Get pre-sign insights about transactions before execution
 - **Pricing**: Access real-time and historical token prices across chains
 - **Multi-chain Support**: EVM, Cosmos, SVM, UTXO, TVM, and Polkadot
+- **Retry Mechanism**: Built-in retry strategies with circuit breakers and intelligent backoff
 - **TypeScript Support**: Full type definitions and autocompletion
 
 ## 📦 Installation
@@ -55,6 +56,11 @@ For detailed documentation, please visit our [Documentation Site](https://docs.n
   - [UTXO](docs/api/pricing/utxo.md)
   - [Move](docs/api/pricing/move.md)
 - [Foresight API](docs/api/foresight/README.md)
+
+### Guides
+
+- [Retry Mechanism Guide](docs/retry-mechanism-guide.md) - Comprehensive guide to configuring retry behavior
+- [Error Handling Guide](docs/error-handling.md) - Best practices for error handling
 
 ### Examples
 

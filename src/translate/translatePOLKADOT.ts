@@ -9,6 +9,7 @@ import {
     POLKADOTTranslateStakingRewardsResponse 
 } from '../types/polkadot';
 import { BaseTranslate } from './baseTranslate';
+import { RetryConfig } from '../types/common';
 import { TransactionsPage } from './transactionsPage';
 import { ChainNotFoundError } from '../errors/ChainNotFoundError';
 import { TransactionError } from '../errors/TransactionError';
@@ -23,10 +24,11 @@ export class TranslatePOLKADOT extends BaseTranslate {
     /**
      * Create a TranslatePOLKADOT instance.
      * @param {string} apiKey - The API key to authenticate requests.
+     * @param {Partial<RetryConfig>} [retryConfig] - Optional retry configuration for enhanced resilience.
      * @throws Will throw an error if the API key is not provided.
      */
-    constructor(apiKey: string) {
-        super(ECOSYSTEM, apiKey);
+    constructor(apiKey: string, retryConfig?: Partial<RetryConfig>) {
+        super(ECOSYSTEM, apiKey, retryConfig);
     }
 
     /**

@@ -15,6 +15,7 @@ import {
   BitcoinAddressType
 } from '../types/utxo';
 import { createTranslateClient } from '../utils/apiUtils';
+import { RetryConfig } from '../types/common';
 import { TransactionError } from '../errors/TransactionError';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
 import { TransactionsPage } from './transactionsPage';
@@ -31,14 +32,15 @@ export class TranslateUTXO {
   /**
    * Create a TranslateUTXO instance.
    * @param {string} apiKey - The API key to authenticate requests.
+   * @param {Partial<RetryConfig>} [retryConfig] - Optional retry configuration for enhanced resilience.
    * @throws Will throw an error if the API key is not provided.
    */
-  constructor(apiKey: string) {
+  constructor(apiKey: string, retryConfig?: Partial<RetryConfig>) {
     if (!apiKey) {
       throw new Error('API key is required');
     }
     this.apiKey = apiKey;
-    this.request = createTranslateClient(ECOSYSTEM, apiKey);
+    this.request = createTranslateClient(ECOSYSTEM, apiKey, retryConfig);
   }
 
   /**

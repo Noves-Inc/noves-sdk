@@ -1,32 +1,9 @@
-// For end users of the SDK, use this import:
-// import { Translate, ErrorType, TransactionError } from '@noves/noves-sdk';
-
-// For development/testing, use relative imports:
 import { Translate, ErrorType, TransactionError } from '../../src';
 
 class ExampleService {
   private translate = Translate.evm('your-api-key');
 
-  // ❌ OLD WAY - String comparisons (fragile)
-  private isJobNotFoundError_OLD(error: any): boolean {
-    return (
-      error instanceof TransactionError &&
-      error.errors?.message?.some((msg: string) =>
-        msg.includes('does not exist'),
-      )
-    );
-  }
-
-  private isJobPendingError_OLD(error: any): boolean {
-    return (
-      error instanceof TransactionError &&
-      error.errors?.message?.some((msg: string) =>
-        msg.includes('Job is still processing'),
-      )
-    );
-  }
-
-  // ✅ NEW WAY - Using error enums (reliable)
+  // ✅ Using error enums (reliable and recommended)
   private isJobNotFoundError(error: any): boolean {
     return error instanceof TransactionError && error.isJobNotFound();
   }

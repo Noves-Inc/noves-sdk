@@ -15,6 +15,7 @@ import {
 } from '../types/evm';
 import { ForesightUrlScreenResponse } from '../types/common';
 import { createForesightClient } from '../utils/apiUtils';
+import { RetryConfig } from '../types/common';
 
 /**
  * Class representing the foresight transaction pre-sign API.
@@ -25,13 +26,14 @@ export class Foresight {
   /**
    * Create a Foresight instance.
    * @param {string} apiKey - The API key to authenticate requests.
+   * @param {Partial<RetryConfig>} [retryConfig] - Optional retry configuration for enhanced resilience.
    * @throws Will throw an error if the API key is not provided.
    */
-  constructor(apiKey: string) {
+  constructor(apiKey: string, retryConfig?: Partial<RetryConfig>) {
     if (!apiKey) {
       throw new Error('API key is required');
     }
-    this.request = createForesightClient(apiKey);
+    this.request = createForesightClient(apiKey, retryConfig);
   }
 
    /**

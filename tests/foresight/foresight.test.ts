@@ -43,7 +43,7 @@ describe('Foresight', () => {
 
     it('should create a Foresight instance with a valid API key', () => {
       expect(foresight).toBeInstanceOf(Foresight);
-      expect(createForesightClient).toHaveBeenCalledWith(mockApiKey);
+      expect(createForesightClient).toHaveBeenCalledWith(mockApiKey, undefined);
     });
   });
 

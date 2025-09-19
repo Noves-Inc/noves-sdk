@@ -27,7 +27,7 @@ describe('PricingSVM', () => {
 
     it('should create a PricingSVM instance with a valid API key', () => {
       expect(pricingSVM).toBeInstanceOf(PricingSVM);
-      expect(createPricingClient).toHaveBeenCalledWith('svm', mockApiKey);
+      expect(createPricingClient).toHaveBeenCalledWith('svm', mockApiKey, undefined);
     });
   });
 

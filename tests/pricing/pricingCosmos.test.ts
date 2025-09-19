@@ -27,7 +27,7 @@ describe('PricingCosmos', () => {
 
     it('should create a PricingCosmos instance with a valid API key', () => {
       expect(pricingCosmos).toBeInstanceOf(PricingCosmos);
-      expect(createPricingClient).toHaveBeenCalledWith('cosmos', mockApiKey);
+      expect(createPricingClient).toHaveBeenCalledWith('cosmos', mockApiKey, undefined);
     });
   });
 
