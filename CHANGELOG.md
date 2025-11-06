@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Move Translate API**: Complete implementation of the Move VM ecosystem translation services
+  - **New TranslateMOVE class**: Access to Move blockchain transaction classification and metadata
+  - **Four core methods**:
+    - `getChains()`: Returns list of supported Move chains (currently Sui)
+    - `getTransactionTypes()`: Gets all supported transaction types with descriptions
+    - `getTransaction(chain, txId)`: Retrieves single transaction with full classification data
+    - `getTransactions(chain, address, pageOptions?)`: Fetches paginated transactions for an address
+  - **Comprehensive type system**: Full TypeScript support with 15+ interfaces for Move transaction data
+  - **Advanced pagination support**: Built-in pagination with `TransactionsPage` integration and async iteration
+  - **23 transaction types supported**: Including swap, tokenTransfer, stake, addLiquidity, mint, burn, and more
+  - **Factory method integration**: `Translate.move("API_KEY")` with full retry configuration support
+  - **Complete documentation**: API documentation, examples, and comprehensive test coverage
+
 ## [1.4.0] - 2025-09-19
 
 ### Added

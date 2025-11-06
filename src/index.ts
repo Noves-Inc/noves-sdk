@@ -6,6 +6,7 @@ import { TranslateTVM } from './translate/translateTVM';
 import { TranslatePOLKADOT } from './translate/translatePOLKADOT';
 import { TranslateXRPL } from './translate/translateXRPL';
 import { TranslateExchange } from './translate/translateExchange';
+import { TranslateMOVE } from './translate/translateMOVE';
 
 import { PricingEVM, PriceType } from './pricing/pricingEVM';
 import { PricingSVM, PriceType as SVMPriceType } from './pricing/pricingSVM';
@@ -102,6 +103,11 @@ export const Translate = {
   exchange: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
     return new TranslateExchange(config.apiKey, config.retryConfig);
+  },
+
+  move: (options: string | SDKOptions) => {
+    const config = normalizeOptions(options);
+    return new TranslateMOVE(config.apiKey, config.retryConfig);
   }
 };
 
@@ -157,6 +163,7 @@ export { TranslateTVM } from './translate/translateTVM';
 export { TranslatePOLKADOT } from './translate/translatePOLKADOT';
 export { TranslateXRPL } from './translate/translateXRPL';
 export { TranslateExchange } from './translate/translateExchange';
+export { TranslateMOVE } from './translate/translateMOVE';
 
 // Export pricing classes
 export { PricingEVM } from './pricing/pricingEVM';

@@ -35,3 +35,6 @@ jest-config/
 
 # TypeScript compiled files
 *.tsbuildinfo
+
+# Cursor files
+.cursor/
