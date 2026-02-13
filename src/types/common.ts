@@ -262,7 +262,8 @@ export interface PageOptions {
 
     /**
      * Whether to use v5 format for transaction responses. (Optional)
-     * Only applicable for EVM chains. Defaults to false (v2 format).
+     * Applicable for EVM and UTXO chains. Defaults to false (v2 format).
+     * For UTXO chains, this determines the format path parameter (v5 or v2).
      */
     v5Format?: boolean;
 

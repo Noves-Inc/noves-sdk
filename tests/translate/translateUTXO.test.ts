@@ -589,7 +589,7 @@ describe('TranslateUTXO', () => {
       }
     };
 
-    it('should fetch transactions with default parameters', async () => {
+    it('should fetch transactions with default parameters (v2 format)', async () => {
       const mockResponse = {
         items: [mockTransactionReceive],
         pageNumber: 1,
@@ -603,7 +603,7 @@ describe('TranslateUTXO', () => {
       const transactions = await translate.getTransactions('btc', mockAddress);
       expect(transactions.getTransactions()).toEqual(mockResponse.items);
       expect(mockRequest).toHaveBeenCalledWith(
-        'btc/txs/3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
+        'btc/txs/v2/3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
       );
     });
 
@@ -622,7 +622,7 @@ describe('TranslateUTXO', () => {
         pageNumber: 1,
         pageSize: 5,
         hasNextPage: true,
-        nextPageUrl: 'https://translate.noves.fi/utxo/btc/txs/3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL?endBlock=865798&pageSize=5'
+        nextPageUrl: 'https://translate.noves.fi/utxo/btc/txs/v2/3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL?endBlock=865798&pageSize=5'
       };
 
       mockRequest.mockResolvedValue({ response: mockResponse });
@@ -630,7 +630,7 @@ describe('TranslateUTXO', () => {
       const transactions = await translate.getTransactions('btc', mockAddress, pageOptions);
       expect(transactions.getTransactions()).toEqual(mockResponse.items);
       expect(mockRequest).toHaveBeenCalledWith(
-        'btc/txs/3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL?pageSize=5&startBlock=865798&endBlock=868128&startTimestamp=1729018695&endTimestamp=1730310693&sort=desc'
+        'btc/txs/v2/3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL?pageSize=5&startBlock=865798&endBlock=868128&startTimestamp=1729018695&endTimestamp=1730310693&sort=desc'
       );
     });
 
@@ -640,7 +640,7 @@ describe('TranslateUTXO', () => {
         pageNumber: 1,
         pageSize: 10,
         hasNextPage: true,
-        nextPageUrl: 'https://translate.noves.fi/utxo/btc/txs/3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL?endBlock=865798&pageSize=10'
+        nextPageUrl: 'https://translate.noves.fi/utxo/btc/txs/v2/3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL?endBlock=865798&pageSize=10'
       };
 
       mockRequest.mockResolvedValue({ response: mockResponse });
@@ -822,13 +822,18 @@ describe('TranslateUTXO', () => {
       const transactions = await translate.getTransactions('btc', mockAddress, pageOptions);
       expect(transactions.getTransactions()).toEqual(mockResponse.items);
       
-             // Test that v5 format structure is properly validated
-       const txs = transactions.getTransactions();
-       const firstTxV5 = txs[0] as any; // Cast to any to access v5 format fields
-       expect(firstTxV5.txTypeVersion).toBe(5);
-       expect(firstTxV5.transfers).toBeDefined();
-       expect(firstTxV5.values).toBeDefined();
-       expect(firstTxV5.timestamp).toBeDefined();
+      // Verify v5 is used in the URL path (not as query parameter)
+      expect(mockRequest).toHaveBeenCalledWith(
+        'btc/txs/v5/3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
+      );
+      
+      // Test that v5 format structure is properly validated
+      const txs = transactions.getTransactions();
+      const firstTxV5 = txs[0] as any; // Cast to any to access v5 format fields
+      expect(firstTxV5.txTypeVersion).toBe(5);
+      expect(firstTxV5.transfers).toBeDefined();
+      expect(firstTxV5.values).toBeDefined();
+      expect(firstTxV5.timestamp).toBeDefined();
     });
 
     it('should handle format version mismatch in getTransactions', async () => {
@@ -986,7 +991,7 @@ describe('TranslateUTXO', () => {
       const transactions = await translate.Transactions('btc', mockAddress);
       expect(transactions.getTransactions()).toEqual(mockResponse.items);
       expect(mockRequest).toHaveBeenCalledWith(
-        'btc/txs/3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
+        'btc/txs/v2/3Q9St1xqncesXHAs7eZ9ScE7jYWhdMtkXL'
       );
     });
   });

@@ -71,14 +71,18 @@ export class TranslateUTXO {
    * Get a pagination object to iterate over transactions pages.
    * @param {string} chain - The chain name.
    * @param {string} accountAddress - The account address.
-   * @param {PageOptions} pageOptions - The page options object.
+   * @param {PageOptions} pageOptions - The page options object. Use v5Format: true to get v5 format responses.
    * @returns {Promise<TransactionsPage<UTXOTranslateTransaction>>} A promise that resolves to a TransactionsPage instance.
    */
   public async getTransactions(chain: string, accountAddress: string, pageOptions: PageOptions = {}): Promise<TransactionsPage<UTXOTranslateTransaction>> {
     try {
-      const endpoint = `${chain}/txs/${accountAddress}`;
-      // constructUrl automatically handles all PageOptions parameters, including v5Format
-      const url = constructUrl(endpoint, pageOptions);
+      // Determine the format based on v5Format option (default: v2 for backward compatibility)
+      const format = pageOptions.v5Format === true ? 'v5' : 'v2';
+      const endpoint = `${chain}/txs/${format}/${accountAddress}`;
+      
+      // Create a copy of pageOptions without v5Format since it's now a path parameter
+      const { v5Format, ...queryParams } = pageOptions;
+      const url = constructUrl(endpoint, queryParams);
       const result = await this.request(url);
 
       if (!result || !result.response || !Array.isArray(result.response.items)) {
@@ -88,7 +92,7 @@ export class TranslateUTXO {
       // Validate response format matches the requested format
       if (result.response.items.length > 0) {
         const firstTx = result.response.items[0];
-        const requestedV5Format = pageOptions.v5Format === true;
+        const requestedV5Format = format === 'v5';
         const expectedVersion = requestedV5Format ? 5 : 2;
         
         // Check if we got the expected txTypeVersion

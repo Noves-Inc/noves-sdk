@@ -55,16 +55,22 @@ export class TranslateTVM extends BaseTranslate {
      * @param {string} chain - The chain name.
      * @param {string} hash - The transaction hash.
      * @param {string} format - The response format version ('v2' or 'v5'). Defaults to 'v5'.
+     * @param {string} [viewAsAccountAddress] - Optional. Results are returned with the view/perspective of this account address.
      * @returns {Promise<TVMTranslateTransactionResponse>} A promise that resolves to the transaction details.
      * @throws {TransactionError} If there are validation errors in the request.
      */
     public async getTransaction(
         chain: string, 
         hash: string, 
-        format: 'v2' | 'v5' = 'v5'
+        format: 'v2' | 'v5' = 'v5',
+        viewAsAccountAddress?: string
     ): Promise<TVMTranslateTransactionResponse> {
         try {
-            const result = await this.makeRequest(`${chain}/tx/${format}/${hash}`);
+            let endpoint = `${chain}/tx/${format}/${hash}`;
+            if (viewAsAccountAddress) {
+                endpoint += `?viewAsAccountAddress=${encodeURIComponent(viewAsAccountAddress)}`;
+            }
+            const result = await this.makeRequest(endpoint);
             return result;
         } catch (error) {
             if (error instanceof TransactionError) {

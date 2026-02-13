@@ -271,6 +271,249 @@ describe('TranslateTVM', () => {
             .rejects.toThrow(TransactionError);
     });
 
+    it('should fetch a transaction with viewAsAccountAddress (v5 format)', async () => {
+        const mockTransactionV5: TVMTranslateTransactionV5 = {
+            txTypeVersion: 5,
+            chain: "tron",
+            accountAddress: "TLaGjwhvA8XQYSxFAcAXy7Dvuue9eGYitv",
+            timestamp: 1750855026,
+            classificationData: {
+                type: "receiveToken",
+                source: {
+                    type: "human"
+                },
+                description: "Received 952.71 USDT.",
+                protocol: {
+                    name: null
+                }
+            },
+            transfers: [
+                {
+                    action: "received",
+                    from: {
+                        name: null,
+                        address: "0xFf08DdBD8D36b38c048763b8904A42ff625efd3c"
+                    },
+                    to: {
+                        name: "This wallet",
+                        address: "TLaGjwhvA8XQYSxFAcAXy7Dvuue9eGYitv"
+                    },
+                    amount: "952.71",
+                    token: {
+                        symbol: "USDT",
+                        name: "Tether USD",
+                        decimals: 6,
+                        address: "0xa614f803b6fd780986a42c78ec9c7f77e6ded13c"
+                    }
+                }
+            ],
+            values: [],
+            rawTransactionData: {
+                transactionHash: "0x3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8",
+                fromAddress: "0xFf08DdBD8D36b38c048763b8904A42ff625efd3c",
+                toAddress: "0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C",
+                blockNumber: 73399429,
+                gas: 64285,
+                gasUsed: 64285,
+                gasPrice: 210,
+                transactionFee: {
+                    amount: "0",
+                    token: {
+                        symbol: "TRX",
+                        name: "Tron",
+                        decimals: 6,
+                        address: "TRX"
+                    }
+                },
+                timestamp: 1750855026
+            }
+        };
+
+        mockRequest.mockResolvedValue(mockTransactionV5);
+
+        const response = await translate.getTransaction(
+            'tron', 
+            '3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8', 
+            'v5',
+            'TLaGjwhvA8XQYSxFAcAXy7Dvuue9eGYitv'
+        );
+        expect(response).toEqual(mockTransactionV5);
+        expect(mockRequest).toHaveBeenCalledWith(
+            'tron/tx/v5/3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8?viewAsAccountAddress=TLaGjwhvA8XQYSxFAcAXy7Dvuue9eGYitv'
+        );
+    });
+
+    it('should fetch a transaction with viewAsAccountAddress (v2 format)', async () => {
+        const mockTransactionV2: TVMTranslateTransactionV2 = {
+            txTypeVersion: 2,
+            chain: "tron",
+            accountAddress: "TLaGjwhvA8XQYSxFAcAXy7Dvuue9eGYitv",
+            classificationData: {
+                type: "receiveToken",
+                source: {
+                    type: "human"
+                },
+                description: "Received 952.71 USDT.",
+                protocol: {
+                    name: null
+                },
+                sent: [],
+                received: [
+                    {
+                        action: "received",
+                        from: {
+                            name: null,
+                            address: "TZDhw1SAPL2xEWopyRK9XZRqMiRhGEs6NM"
+                        },
+                        to: {
+                            name: "This wallet",
+                            address: "TLaGjwhvA8XQYSxFAcAXy7Dvuue9eGYitv"
+                        },
+                        amount: "952.71",
+                        token: {
+                            symbol: "USDT",
+                            name: "Tether USD",
+                            decimals: 6,
+                            address: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+                        }
+                    }
+                ]
+            },
+            rawTransactionData: {
+                transactionHash: "3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8",
+                fromAddress: "TZDhw1SAPL2xEWopyRK9XZRqMiRhGEs6NM",
+                toAddress: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+                blockNumber: 73399429,
+                gas: 64285,
+                gasUsed: 64285,
+                gasPrice: 210,
+                transactionFee: {
+                    amount: "0",
+                    token: {
+                        symbol: "TRX",
+                        name: "Tron",
+                        decimals: 6,
+                        address: "TRX"
+                    }
+                },
+                timestamp: 1750855026
+            }
+        };
+
+        mockRequest.mockResolvedValue(mockTransactionV2);
+
+        const response = await translate.getTransaction(
+            'tron', 
+            '3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8', 
+            'v2',
+            'TLaGjwhvA8XQYSxFAcAXy7Dvuue9eGYitv'
+        );
+        expect(response).toEqual(mockTransactionV2);
+        expect(mockRequest).toHaveBeenCalledWith(
+            'tron/tx/v2/3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8?viewAsAccountAddress=TLaGjwhvA8XQYSxFAcAXy7Dvuue9eGYitv'
+        );
+    });
+
+    it('should properly encode viewAsAccountAddress with special characters', async () => {
+        const mockTransactionV5: TVMTranslateTransactionV5 = {
+            txTypeVersion: 5,
+            chain: "tron",
+            accountAddress: "TLaGjwhvA8XQYSxFAcAXy7Dvuue9eGYitv",
+            timestamp: 1750855026,
+            classificationData: {
+                type: "receiveToken",
+                source: { type: "human" },
+                description: "Received 952.71 USDT.",
+                protocol: { name: null }
+            },
+            transfers: [],
+            values: [],
+            rawTransactionData: {
+                transactionHash: "0x3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8",
+                fromAddress: "0xFf08DdBD8D36b38c048763b8904A42ff625efd3c",
+                toAddress: "0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C",
+                blockNumber: 73399429,
+                gas: 64285,
+                gasUsed: 64285,
+                gasPrice: 210,
+                transactionFee: {
+                    amount: "0",
+                    token: {
+                        symbol: "TRX",
+                        name: "Tron",
+                        decimals: 6,
+                        address: "TRX"
+                    }
+                },
+                timestamp: 1750855026
+            }
+        };
+
+        mockRequest.mockResolvedValue(mockTransactionV5);
+
+        // Test with an address that might need encoding
+        const addressWithSpecialChars = 'TTest+Address/Special';
+        await translate.getTransaction(
+            'tron', 
+            '3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8', 
+            'v5',
+            addressWithSpecialChars
+        );
+        expect(mockRequest).toHaveBeenCalledWith(
+            `tron/tx/v5/3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8?viewAsAccountAddress=${encodeURIComponent(addressWithSpecialChars)}`
+        );
+    });
+
+    it('should not include viewAsAccountAddress query param when not provided', async () => {
+        const mockTransactionV5: TVMTranslateTransactionV5 = {
+            txTypeVersion: 5,
+            chain: "tron",
+            accountAddress: "0xFf08DdBD8D36b38c048763b8904A42ff625efd3c",
+            timestamp: 1750855026,
+            classificationData: {
+                type: "sendToken",
+                source: { type: "human" },
+                description: "Sent 952.71 USDT.",
+                protocol: { name: null }
+            },
+            transfers: [],
+            values: [],
+            rawTransactionData: {
+                transactionHash: "0x3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8",
+                fromAddress: "0xFf08DdBD8D36b38c048763b8904A42ff625efd3c",
+                toAddress: "0xa614f803B6FD780986A42c78Ec9c7f77e6DeD13C",
+                blockNumber: 73399429,
+                gas: 64285,
+                gasUsed: 64285,
+                gasPrice: 210,
+                transactionFee: {
+                    amount: "0",
+                    token: {
+                        symbol: "TRX",
+                        name: "Tron",
+                        decimals: 6,
+                        address: "TRX"
+                    }
+                },
+                timestamp: 1750855026
+            }
+        };
+
+        mockRequest.mockResolvedValue(mockTransactionV5);
+
+        // Call without viewAsAccountAddress
+        await translate.getTransaction('tron', '3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8', 'v5');
+        expect(mockRequest).toHaveBeenCalledWith(
+            'tron/tx/v5/3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8'
+        );
+
+        // Call with undefined viewAsAccountAddress
+        await translate.getTransaction('tron', '3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8', 'v5', undefined);
+        expect(mockRequest).toHaveBeenCalledWith(
+            'tron/tx/v5/3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8'
+        );
+    });
+
     it('should fetch first page transactions successfully', async () => {
         const mockTransactions = {
             items: [

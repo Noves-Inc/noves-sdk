@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.5.0] - 2026-02-13
 
 ### Added
 - **Move Translate API**: Complete implementation of the Move VM ecosystem translation services
@@ -20,6 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **23 transaction types supported**: Including swap, tokenTransfer, stake, addLiquidity, mint, burn, and more
   - **Factory method integration**: `Translate.move("API_KEY")` with full retry configuration support
   - **Complete documentation**: API documentation, examples, and comprehensive test coverage
+- **UTXO v5 Format Support**: Added support for v5 response format in UTXO `getTransactions()` method
+  - **v5Format parameter**: Use `{ v5Format: true }` in `pageOptions` to receive v5 format responses
+  - **API alignment**: Updated endpoint to use format as path parameter (`/utxo/{chain}/txs/{format}/{accountAddress}`) per API specification
+  - **Backward compatible**: Defaults to v2 format for existing implementations
+  - **Updated PageOptions JSDoc**: Clarified that `v5Format` is applicable for both EVM and UTXO chains
+- **TVM viewAsAccountAddress Support**: Added `viewAsAccountAddress` parameter to TVM `getTransaction()` method
+  - **New optional parameter**: `viewAsAccountAddress?: string` allows specifying the perspective wallet address
+  - **Use case**: Returns transaction classification from the perspective of the specified account address
+  - **Backward compatible**: Existing code continues to work without changes
+  - **URL encoding**: Properly encodes the address parameter for API requests
 
 ## [1.4.0] - 2025-09-19
 
