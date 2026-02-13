@@ -11,7 +11,7 @@ import { TransactionsPage } from './transactionsPage';
 import { TransactionError } from '../errors/TransactionError';
 import { constructUrl, parseUrl } from '../utils/urlUtils';
 import { BaseTranslate } from './baseTranslate';
-import { RetryConfig } from '../types/common';
+import { RetryConfig, FetchConfig } from '../types/common';
 
 const ECOSYSTEM = 'move';
 
@@ -23,10 +23,11 @@ export class TranslateMOVE extends BaseTranslate {
    * Create a TranslateMOVE instance.
    * @param {string} apiKey - The API key to authenticate requests.
    * @param {Partial<RetryConfig>} [retryConfig] - Optional retry configuration for enhanced resilience.
+   * @param {FetchConfig} [fetchConfig] - Optional fetch configuration for timeouts, abort signals, and custom headers.
    * @throws Will throw an error if the API key is not provided.
    */
-  constructor(apiKey: string, retryConfig?: Partial<RetryConfig>) {
-    super(ECOSYSTEM, apiKey, retryConfig);
+  constructor(apiKey: string, retryConfig?: Partial<RetryConfig>, fetchConfig?: FetchConfig) {
+    super(ECOSYSTEM, apiKey, retryConfig, fetchConfig);
   }
 
   /**

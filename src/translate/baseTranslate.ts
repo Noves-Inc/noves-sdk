@@ -1,5 +1,5 @@
 import { createTranslateClient } from '../utils/apiUtils';
-import { ApiResponse, RetryConfig } from '../types/common';
+import { ApiResponse, RetryConfig, FetchConfig } from '../types/common';
 import { TransactionError } from '../errors/TransactionError';
 import { ErrorType } from '../errors/ErrorTypes';
 
@@ -16,14 +16,15 @@ export abstract class BaseTranslate {
    * @param {string} ecosystem - The blockchain ecosystem identifier.
    * @param {string} apiKey - The API key to authenticate requests.
    * @param {Partial<RetryConfig>} [retryConfig] - Optional retry configuration for enhanced resilience.
+   * @param {FetchConfig} [fetchConfig] - Optional fetch configuration for timeouts, abort signals, and custom headers.
    * @throws Will throw an error if the API key is not provided.
    */
-  constructor(ecosystem: string, apiKey: string, retryConfig?: Partial<RetryConfig>) {
+  constructor(ecosystem: string, apiKey: string, retryConfig?: Partial<RetryConfig>, fetchConfig?: FetchConfig) {
     if (!apiKey) {
       throw new Error('API key is required');
     }
     this.ecosystem = ecosystem;
-    this.client = createTranslateClient(ecosystem, apiKey, retryConfig);
+    this.client = createTranslateClient(ecosystem, apiKey, retryConfig, fetchConfig);
   }
 
   /**

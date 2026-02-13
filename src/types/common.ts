@@ -348,10 +348,77 @@ export interface ForesightUrlScreenResponse {
 }
 
 /**
+ * Configuration for customizing the underlying fetch client behavior.
+ * Allows users to set request timeouts, pass AbortController signals,
+ * and customize headers for all SDK requests.
+ * 
+ * @example
+ * ```typescript
+ * // Set a 30-second timeout for all requests
+ * const translate = Translate.evm({
+ *   apiKey: 'YOUR_API_KEY',
+ *   fetchConfig: { timeout: 30000 }
+ * });
+ * 
+ * // Use an AbortController for global cancellation
+ * const controller = new AbortController();
+ * const translate = Translate.evm({
+ *   apiKey: 'YOUR_API_KEY',
+ *   fetchConfig: { signal: controller.signal }
+ * });
+ * // Later: controller.abort();
+ * ```
+ */
+export interface FetchConfig {
+  /**
+   * Default request timeout in milliseconds for all API calls.
+   * When set, each request will be automatically aborted if it exceeds this duration.
+   * The timeout creates an internal AbortController per request attempt.
+   * If both `timeout` and `signal` are provided, the request will abort when either triggers first.
+   * Timeout applies per-attempt when retries are enabled (each retry gets a fresh timeout).
+   * @example 30000 // 30 seconds
+   */
+  timeout?: number;
+
+  /**
+   * Default AbortSignal to apply to all fetch calls.
+   * Useful for global cancellation (e.g., when shutting down your application or unmounting a component).
+   * If both `timeout` and `signal` are provided, the request will abort when either triggers first.
+   * When this signal is aborted, the request is cancelled immediately and retries are skipped.
+   * @example
+   * ```typescript
+   * const controller = new AbortController();
+   * const translate = Translate.evm({
+   *   apiKey: 'YOUR_API_KEY',
+   *   fetchConfig: { signal: controller.signal }
+   * });
+   * // Cancel all in-flight requests:
+   * controller.abort();
+   * ```
+   */
+  signal?: AbortSignal;
+
+  /**
+   * Additional headers to include in every request.
+   * These are merged with the SDK's default headers (apiKey, Content-Type).
+   * SDK default headers (apiKey, Content-Type) take precedence over custom headers.
+   * @example { 'X-Custom-Header': 'my-value' }
+   */
+  headers?: Record<string, string>;
+}
+
+/**
  * Enhanced factory options for SDK initialization
  */
 export interface SDKOptions {
   apiKey: string;
   retryConfig?: RetryConfig | string;
   environment?: 'production' | 'development' | 'testing';
+  
+  /**
+   * Configuration for customizing the underlying fetch client behavior.
+   * Allows setting request timeouts, abort signals, and custom headers.
+   * @see FetchConfig
+   */
+  fetchConfig?: FetchConfig;
 } 

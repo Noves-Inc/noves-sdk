@@ -30,6 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Use case**: Returns transaction classification from the perspective of the specified account address
   - **Backward compatible**: Existing code continues to work without changes
   - **URL encoding**: Properly encodes the address parameter for API requests
+- **Fetch Client Configuration (`FetchConfig`)**: New SDK-level configuration for customizing the underlying fetch client behavior across all API modules (Translate, Pricing, Foresight)
+  - **Request Timeouts**: `fetchConfig.timeout` sets a per-request timeout in milliseconds. When exceeded, the request is automatically aborted. Compatible with retries (each attempt gets a fresh timeout).
+  - **AbortController Signals**: `fetchConfig.signal` accepts a standard `AbortSignal` for global request cancellation. Aborted signals bypass retries and throw a native `AbortError`.
+  - **Custom Headers**: `fetchConfig.headers` allows adding custom headers (e.g., trace IDs, correlation headers) to every SDK request. SDK default headers (`apiKey`, `Content-Type`) take precedence.
+  - **Combined usage**: All `FetchConfig` options work together and alongside existing `retryConfig` and `environment` options
+  - **New `FetchConfig` interface**: Exported from `@noves/noves-sdk` for TypeScript users
+  - **Updated `SDKOptions` interface**: New optional `fetchConfig` property
+  - **Full backward compatibility**: All changes are additive. Existing code works without modification.
+  - **Documentation**: New `docs/fetch-config-guide.md` with usage examples, error handling, and common patterns
+  - **Examples**: New `docs/examples/fetch-config-example.ts` demonstrating timeout, AbortController, custom headers, combined config, and graceful shutdown patterns
 
 ## [1.4.0] - 2025-09-19
 

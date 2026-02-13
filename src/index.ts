@@ -14,7 +14,7 @@ import { PricingUTXO, PriceType as UTXOPriceType } from './pricing/pricingUTXO';
 import { PricingMove } from './pricing/pricingMove';
 import { PricingCosmos } from './pricing/pricingCosmos';
 
-import { RetryConfig, SDKOptions } from './types/common';
+import { RetryConfig, SDKOptions, FetchConfig } from './types/common';
 import { RetryPresets, RetryRecommendations } from './utils/retryPresets';
 
 export { Foresight } from './foresight/foresight';
@@ -25,6 +25,7 @@ export { Foresight } from './foresight/foresight';
 function normalizeOptions(options: string | SDKOptions): {
   apiKey: string;
   retryConfig?: RetryConfig;
+  fetchConfig?: FetchConfig;
 } {
   if (typeof options === 'string') {
     return { apiKey: options };
@@ -54,7 +55,8 @@ function normalizeOptions(options: string | SDKOptions): {
 
   return {
     apiKey: options.apiKey,
-    retryConfig
+    retryConfig,
+    fetchConfig: options.fetchConfig
   };
 }
 
@@ -67,47 +69,47 @@ export const Translate = {
    */
   evm: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new TranslateEVM(config.apiKey, config.retryConfig);
+    return new TranslateEVM(config.apiKey, config.retryConfig, config.fetchConfig);
   },
 
   svm: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new TranslateSVM(config.apiKey, config.retryConfig);
+    return new TranslateSVM(config.apiKey, config.retryConfig, config.fetchConfig);
   },
 
   utxo: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new TranslateUTXO(config.apiKey, config.retryConfig);
+    return new TranslateUTXO(config.apiKey, config.retryConfig, config.fetchConfig);
   },
 
   cosmos: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new TranslateCOSMOS(config.apiKey, config.retryConfig);
+    return new TranslateCOSMOS(config.apiKey, config.retryConfig, config.fetchConfig);
   },
 
   tvm: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new TranslateTVM(config.apiKey, config.retryConfig);
+    return new TranslateTVM(config.apiKey, config.retryConfig, config.fetchConfig);
   },
 
   polkadot: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new TranslatePOLKADOT(config.apiKey, config.retryConfig);
+    return new TranslatePOLKADOT(config.apiKey, config.retryConfig, config.fetchConfig);
   },
 
   xrpl: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new TranslateXRPL(config.apiKey, config.retryConfig);
+    return new TranslateXRPL(config.apiKey, config.retryConfig, config.fetchConfig);
   },
 
   exchange: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new TranslateExchange(config.apiKey, config.retryConfig);
+    return new TranslateExchange(config.apiKey, config.retryConfig, config.fetchConfig);
   },
 
   move: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new TranslateMOVE(config.apiKey, config.retryConfig);
+    return new TranslateMOVE(config.apiKey, config.retryConfig, config.fetchConfig);
   }
 };
 
@@ -117,27 +119,27 @@ export const Translate = {
 export const Pricing = {
   evm: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new PricingEVM(config.apiKey, config.retryConfig);
+    return new PricingEVM(config.apiKey, config.retryConfig, config.fetchConfig);
   },
 
   move: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new PricingMove(config.apiKey, config.retryConfig);
+    return new PricingMove(config.apiKey, config.retryConfig, config.fetchConfig);
   },
 
   cosmos: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new PricingCosmos(config.apiKey, config.retryConfig);
+    return new PricingCosmos(config.apiKey, config.retryConfig, config.fetchConfig);
   },
 
   svm: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new PricingSVM(config.apiKey, config.retryConfig);
+    return new PricingSVM(config.apiKey, config.retryConfig, config.fetchConfig);
   },
 
   utxo: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new PricingUTXO(config.apiKey, config.retryConfig);
+    return new PricingUTXO(config.apiKey, config.retryConfig, config.fetchConfig);
   }
 };
 
@@ -147,7 +149,7 @@ export const Pricing = {
 export const ForesightFactory = {
   evm: (options: string | SDKOptions) => {
     const config = normalizeOptions(options);
-    return new (require('./foresight/foresight').Foresight)(config.apiKey, config.retryConfig);
+    return new (require('./foresight/foresight').Foresight)(config.apiKey, config.retryConfig, config.fetchConfig);
   }
 };
 
@@ -183,7 +185,7 @@ export { ErrorType, ERROR_MESSAGES, ERROR_STATUS_CODES } from './errors/ErrorTyp
 export { TransactionError } from './errors/TransactionError';
 
 // Export retry mechanism types and constants
-export type { RetryConfig, RetryContext, RetryEngine, SDKOptions } from './types/common';
+export type { RetryConfig, RetryContext, RetryEngine, SDKOptions, FetchConfig } from './types/common';
 export { DEFAULT_RETRY_CONFIG, RETRY_PRESETS, mergeRetryConfig } from './utils/apiUtils';
 
 // Export enhanced retry functionality

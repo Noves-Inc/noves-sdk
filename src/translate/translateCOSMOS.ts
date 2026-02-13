@@ -13,7 +13,7 @@ import { constructUrl, parseUrl } from '../utils/urlUtils';
 import { validateCosmosAddress } from '../utils/cosmosUtils';
 import { CosmosAddressError, CosmosTransactionJobError } from '../errors/CosmosError';
 import { BaseTranslate } from './baseTranslate';
-import { RetryConfig } from '../types/common';
+import { RetryConfig, FetchConfig } from '../types/common';
 
 const ECOSYSTEM = 'cosmos';
 
@@ -25,10 +25,11 @@ export class TranslateCOSMOS extends BaseTranslate {
      * Create a TranslateCOSMOS instance.
      * @param {string} apiKey - The API key to authenticate requests.
      * @param {Partial<RetryConfig>} [retryConfig] - Optional retry configuration for enhanced resilience.
+     * @param {FetchConfig} [fetchConfig] - Optional fetch configuration for timeouts, abort signals, and custom headers.
      * @throws Will throw an error if the API key is not provided.
      */
-    constructor(apiKey: string, retryConfig?: Partial<RetryConfig>) {
-        super(ECOSYSTEM, apiKey, retryConfig);
+    constructor(apiKey: string, retryConfig?: Partial<RetryConfig>, fetchConfig?: FetchConfig) {
+        super(ECOSYSTEM, apiKey, retryConfig, fetchConfig);
     }
 
   /**

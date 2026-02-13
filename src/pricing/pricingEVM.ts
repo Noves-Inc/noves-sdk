@@ -10,7 +10,7 @@ import {
     EVMPricingPreFetchResponse
 } from '../types/evm';
 import { createPricingClient } from '../utils/apiUtils';
-import { RetryConfig } from '../types/common';
+import { RetryConfig, FetchConfig } from '../types/common';
 
 const ECOSYSTEM = 'evm';
 
@@ -41,13 +41,14 @@ export class PricingEVM {
    * Create a PricingEVM instance.
    * @param {string} apiKey - The API key to authenticate requests.
    * @param {Partial<RetryConfig>} [retryConfig] - Optional retry configuration for enhanced resilience.
+   * @param {FetchConfig} [fetchConfig] - Optional fetch configuration for timeouts, abort signals, and custom headers.
    * @throws Will throw an error if the API key is not provided.
    */
-  constructor(apiKey: string, retryConfig?: Partial<RetryConfig>) {
+  constructor(apiKey: string, retryConfig?: Partial<RetryConfig>, fetchConfig?: FetchConfig) {
     if (!apiKey) {
       throw new Error('API key is required');
     }
-    this.request = createPricingClient(ECOSYSTEM, apiKey, retryConfig);
+    this.request = createPricingClient(ECOSYSTEM, apiKey, retryConfig, fetchConfig);
   }
 
   /**

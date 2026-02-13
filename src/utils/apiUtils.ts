@@ -1,4 +1,4 @@
-import { ApiResponse, RetryConfig, RetryContext } from '../types/common';
+import { ApiResponse, RetryConfig, RetryContext, FetchConfig } from '../types/common';
 import { ErrorType } from '../errors/ErrorTypes';
 import { TransactionError } from '../errors/TransactionError';
 
@@ -1114,6 +1114,73 @@ export { ErrorRecoveryPatterns };
 const retryEngine = new IntelligentRetryEngine();
 
 /**
+ * Combines multiple AbortSignals into a single signal that aborts when any input signal aborts.
+ * Used internally to merge user-provided signals with timeout-generated signals.
+ * @param signals Array of AbortSignal instances to combine
+ * @returns A single AbortSignal that aborts when any input signal aborts
+ */
+function combineAbortSignals(...signals: AbortSignal[]): AbortSignal {
+  if (signals.length === 1) return signals[0];
+
+  const controller = new AbortController();
+  for (const signal of signals) {
+    if (signal.aborted) {
+      controller.abort(signal.reason);
+      return controller.signal;
+    }
+    signal.addEventListener('abort', () => controller.abort(signal.reason), { once: true });
+  }
+  return controller.signal;
+}
+
+/**
+ * Builds the AbortSignal and cleanup function for a single fetch request attempt.
+ * Handles combining timeout signals, user-provided signals, and per-request signals.
+ * @param fetchConfig Optional SDK-level fetch configuration
+ * @param perRequestSignal Optional per-request AbortSignal from RequestInit
+ * @returns Object with the combined signal and a cleanup function to clear timeouts
+ */
+function buildRequestSignal(
+  fetchConfig?: FetchConfig,
+  perRequestSignal?: AbortSignal | null
+): { signal: AbortSignal | undefined; cleanup: () => void } {
+  const signals: AbortSignal[] = [];
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let timeoutController: AbortController | undefined;
+
+  // Setup per-attempt timeout
+  if (fetchConfig?.timeout) {
+    timeoutController = new AbortController();
+    timeoutId = setTimeout(() => timeoutController!.abort(), fetchConfig.timeout);
+    signals.push(timeoutController.signal);
+  }
+
+  // User-provided global signal
+  if (fetchConfig?.signal) {
+    signals.push(fetchConfig.signal);
+  }
+
+  // Per-request signal from options
+  if (perRequestSignal) {
+    signals.push(perRequestSignal);
+  }
+
+  const cleanup = () => {
+    if (timeoutId) clearTimeout(timeoutId);
+  };
+
+  if (signals.length === 0) {
+    return { signal: undefined, cleanup };
+  }
+
+  if (signals.length === 1) {
+    return { signal: signals[0], cleanup };
+  }
+
+  return { signal: combineAbortSignals(...signals), cleanup };
+}
+
+/**
  * Unified response processing function that handles errors consistently across all clients.
  * @param response The fetch Response object
  * @returns Promise that resolves to an ApiResponse
@@ -1189,12 +1256,14 @@ async function processResponse(response: Response): Promise<ApiResponse> {
  * @param ecosystem The blockchain ecosystem identifier
  * @param apiKey The API key for authentication
  * @param retryConfig Optional retry configuration for enhanced resilience
+ * @param fetchConfig Optional fetch configuration for timeouts, abort signals, and custom headers
  * @returns A request function with retry capabilities
  */
 export function createTranslateClient(
     ecosystem: string, 
     apiKey: string, 
-    retryConfig?: Partial<RetryConfig>
+    retryConfig?: Partial<RetryConfig>,
+    fetchConfig?: FetchConfig
 ) {
   const config = mergeRetryConfig(retryConfig);
   
@@ -1208,24 +1277,57 @@ export function createTranslateClient(
     try {
       return await retryEngine.executeWithRetry(
         async () => {
-          const url = `${TRANSLATE_URL}/${ecosystem}/${endpoint}`;
-          
-          const response = await fetch(url, {
-            ...options,
-            method,
-            headers: {
-              ...options.headers,
-              'apiKey': apiKey,
-              'Content-Type': 'application/json',
-            },
-          });
+          // Check if user signal is already aborted before attempting
+          if (fetchConfig?.signal?.aborted) {
+            throw new DOMException('The operation was aborted.', 'AbortError');
+          }
 
-          return processResponse(response);
+          const url = `${TRANSLATE_URL}/${ecosystem}/${endpoint}`;
+          const { signal, cleanup } = buildRequestSignal(fetchConfig, options.signal as AbortSignal | undefined);
+
+          try {
+            const response = await fetch(url, {
+              ...options,
+              method,
+              signal,
+              headers: {
+                ...fetchConfig?.headers,
+                ...options.headers,
+                'apiKey': apiKey,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            return processResponse(response);
+          } catch (error: any) {
+            // Differentiate between timeout and user-initiated abort
+            if (error.name === 'AbortError') {
+              if (fetchConfig?.signal?.aborted) {
+                // User-initiated abort - propagate directly (non-retryable)
+                throw error;
+              }
+              if (fetchConfig?.timeout) {
+                // Timeout - convert to network error for retry eligibility
+                const timeoutError = new Error(`Request timed out after ${fetchConfig.timeout}ms`);
+                (timeoutError as any).code = 'NETWORK_ERROR';
+                throw timeoutError;
+              }
+              // Per-request signal abort - propagate directly
+              throw error;
+            }
+            throw error;
+          } finally {
+            cleanup();
+          }
         },
         config,
         operationId
       );
     } catch (error: any) {
+      // Propagate abort errors directly to the user
+      if (error.name === 'AbortError') {
+        throw error;
+      }
       // Convert thrown errors to ApiResponse format for consistency
       return {
         succeeded: false,
@@ -1240,11 +1342,13 @@ export function createTranslateClient(
  * Creates a retry-enabled HTTP client for the Foresight API.
  * @param apiKey The API key for authentication
  * @param retryConfig Optional retry configuration for enhanced resilience
+ * @param fetchConfig Optional fetch configuration for timeouts, abort signals, and custom headers
  * @returns A request function with retry capabilities
  */
 export function createForesightClient(
     apiKey: string,
-    retryConfig?: Partial<RetryConfig>
+    retryConfig?: Partial<RetryConfig>,
+    fetchConfig?: FetchConfig
 ) {
   const config = mergeRetryConfig(retryConfig);
   
@@ -1258,23 +1362,51 @@ export function createForesightClient(
     try {
       return await retryEngine.executeWithRetry(
         async () => {
-          const response = await fetch(`${FORESIGHT_URL}/${endpoint}`, {
-            ...options,
-            method,
-            headers: {
-              ...options.headers,
-              'apiKey': apiKey,
-              'Content-Type': 'application/json',
-            },
-          });
+          // Check if user signal is already aborted before attempting
+          if (fetchConfig?.signal?.aborted) {
+            throw new DOMException('The operation was aborted.', 'AbortError');
+          }
 
-          return processResponse(response);
+          const { signal, cleanup } = buildRequestSignal(fetchConfig, options.signal as AbortSignal | undefined);
+
+          try {
+            const response = await fetch(`${FORESIGHT_URL}/${endpoint}`, {
+              ...options,
+              method,
+              signal,
+              headers: {
+                ...fetchConfig?.headers,
+                ...options.headers,
+                'apiKey': apiKey,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            return processResponse(response);
+          } catch (error: any) {
+            if (error.name === 'AbortError') {
+              if (fetchConfig?.signal?.aborted) {
+                throw error;
+              }
+              if (fetchConfig?.timeout) {
+                const timeoutError = new Error(`Request timed out after ${fetchConfig.timeout}ms`);
+                (timeoutError as any).code = 'NETWORK_ERROR';
+                throw timeoutError;
+              }
+              throw error;
+            }
+            throw error;
+          } finally {
+            cleanup();
+          }
         },
         config,
         operationId
       );
     } catch (error: any) {
-      // Convert thrown errors to ApiResponse format for consistency
+      if (error.name === 'AbortError') {
+        throw error;
+      }
       return {
         succeeded: false,
         response: { message: error.message || 'Request failed after retries' },
@@ -1289,12 +1421,14 @@ export function createForesightClient(
  * @param ecosystem The blockchain ecosystem identifier
  * @param apiKey The API key for authentication
  * @param retryConfig Optional retry configuration for enhanced resilience
+ * @param fetchConfig Optional fetch configuration for timeouts, abort signals, and custom headers
  * @returns A request function with retry capabilities
  */
 export function createPricingClient(
     ecosystem: string, 
     apiKey: string, 
-    retryConfig?: Partial<RetryConfig>
+    retryConfig?: Partial<RetryConfig>,
+    fetchConfig?: FetchConfig
 ) {
   const config = mergeRetryConfig(retryConfig);
   
@@ -1308,23 +1442,51 @@ export function createPricingClient(
     try {
       return await retryEngine.executeWithRetry(
         async () => {
-          const response = await fetch(`${PRICING_URL}/${ecosystem}/${endpoint}`, {
-            ...options,
-            method,
-            headers: {
-              ...options.headers,
-              'apiKey': apiKey,
-              'Content-Type': 'application/json',
-            },
-          });
+          // Check if user signal is already aborted before attempting
+          if (fetchConfig?.signal?.aborted) {
+            throw new DOMException('The operation was aborted.', 'AbortError');
+          }
 
-          return processResponse(response);
+          const { signal, cleanup } = buildRequestSignal(fetchConfig, options.signal as AbortSignal | undefined);
+
+          try {
+            const response = await fetch(`${PRICING_URL}/${ecosystem}/${endpoint}`, {
+              ...options,
+              method,
+              signal,
+              headers: {
+                ...fetchConfig?.headers,
+                ...options.headers,
+                'apiKey': apiKey,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            return processResponse(response);
+          } catch (error: any) {
+            if (error.name === 'AbortError') {
+              if (fetchConfig?.signal?.aborted) {
+                throw error;
+              }
+              if (fetchConfig?.timeout) {
+                const timeoutError = new Error(`Request timed out after ${fetchConfig.timeout}ms`);
+                (timeoutError as any).code = 'NETWORK_ERROR';
+                throw timeoutError;
+              }
+              throw error;
+            }
+            throw error;
+          } finally {
+            cleanup();
+          }
         },
         config,
         operationId
       );
     } catch (error: any) {
-      // Convert thrown errors to ApiResponse format for consistency
+      if (error.name === 'AbortError') {
+        throw error;
+      }
       return {
         succeeded: false,
         response: { message: error.message || 'Request failed after retries' },

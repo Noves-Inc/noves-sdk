@@ -1,6 +1,6 @@
 import { SVMPricingChainsResponse, SVMPricingPrice } from '../types/svm';
 import { createPricingClient } from '../utils/apiUtils';
-import { RetryConfig } from '../types/common';
+import { RetryConfig, FetchConfig } from '../types/common';
 
 const ECOSYSTEM = 'svm';
 
@@ -31,11 +31,11 @@ export class PricingSVM {
    * @param {Partial<RetryConfig>} [retryConfig] - Optional retry configuration for enhanced resilience.
    * @throws Will throw an error if the API key is not provided.
    */
-  constructor(apiKey: string, retryConfig?: Partial<RetryConfig>) {
+  constructor(apiKey: string, retryConfig?: Partial<RetryConfig>, fetchConfig?: FetchConfig) {
     if (!apiKey) {
       throw new Error('API key is required');
     }
-    this.request = createPricingClient(ECOSYSTEM, apiKey, retryConfig);
+    this.request = createPricingClient(ECOSYSTEM, apiKey, retryConfig, fetchConfig);
   }
 
   /**

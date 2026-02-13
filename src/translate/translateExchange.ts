@@ -11,7 +11,7 @@ import {
 import { TransactionError } from '../errors/TransactionError';
 import { ErrorType } from '../errors/ErrorTypes';
 import { BaseTranslate } from './baseTranslate';
-import { RetryConfig } from '../types/common';
+import { RetryConfig, FetchConfig } from '../types/common';
 
 const ECOSYSTEM = 'exchange';
 
@@ -24,13 +24,14 @@ export class TranslateExchange extends BaseTranslate {
    * Create a TranslateExchange instance.
    * @param {string} apiKey - The API key to authenticate requests.
    * @param {Partial<RetryConfig>} [retryConfig] - Optional retry configuration for enhanced resilience.
+   * @param {FetchConfig} [fetchConfig] - Optional fetch configuration for timeouts, abort signals, and custom headers.
    * @throws Will throw an error if the API key is not provided.
    */
-  constructor(apiKey: string, retryConfig?: Partial<RetryConfig>) {
+  constructor(apiKey: string, retryConfig?: Partial<RetryConfig>, fetchConfig?: FetchConfig) {
     if (!apiKey) {
       throw new Error('API key is required');
     }
-    super(ECOSYSTEM, apiKey, retryConfig);
+    super(ECOSYSTEM, apiKey, retryConfig, fetchConfig);
   }
 
   /**
