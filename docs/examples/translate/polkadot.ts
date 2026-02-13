@@ -1,15 +1,14 @@
-import { TranslatePOLKADOT } from '../../../src/translate/translatePOLKADOT';
-import { TransactionsPage } from '../../../src/index';
+import { Translate, TransactionsPage } from '@noves/noves-sdk';
 
 async function main() {
-    // Initialize the Polkadot Translate client
+    // Initialize the Polkadot Translate client using the factory pattern
     // Replace 'your-api-key-here' with your actual Noves API key
     // Or set the NOVES_API_KEY environment variable: export NOVES_API_KEY=your-api-key
     const apiKey = process.env.NOVES_API_KEY || 'your-api-key-here';
     if (apiKey === 'your-api-key-here') {
         console.warn('Please set your API key either by replacing "your-api-key-here" or setting the NOVES_API_KEY environment variable');
     }
-    const translate = new TranslatePOLKADOT(apiKey);
+    const translate = Translate.polkadot(apiKey);
 
     try {
         // Get all supported Polkadot chains

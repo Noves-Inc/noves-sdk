@@ -1,4 +1,4 @@
-import { Pricing, PriceType } from "../../../src";
+import { Pricing, PriceType } from '@noves/noves-sdk';
 
 /**
  * Example demonstrating the usage of the EVM Pricing API

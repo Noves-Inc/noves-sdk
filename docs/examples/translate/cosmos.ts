@@ -1,14 +1,12 @@
-import { TranslateCOSMOS } from "../../../src/translate/translateCOSMOS";
-import { CosmosTransactionJobError } from "../../../src/errors/CosmosError";
-import { TransactionError } from "../../../src/errors/TransactionError";
-import { TransactionsPage } from "../../../src/index";
+import { Translate, TransactionsPage, TransactionError } from '@noves/noves-sdk';
+import { CosmosTransactionJobError } from '@noves/noves-sdk';
 
 /**
  * Example demonstrating the usage of the Cosmos Translate API
  */
 async function cosmosTranslateExample() {
-  // Initialize the Cosmos translator
-  const cosmosTranslate = new TranslateCOSMOS("YOUR_API_KEY");
+  // Initialize the Cosmos translator using the factory pattern
+  const cosmosTranslate = Translate.cosmos("YOUR_API_KEY");
 
   try {
     // 1. Get supported chains
@@ -198,7 +196,7 @@ async function cosmosTranslateExample() {
  * Example demonstrating error handling with the Cosmos Translate API
  */
 async function cosmosErrorHandlingExample() {
-  const cosmosTranslate = new TranslateCOSMOS("YOUR_API_KEY");
+  const cosmosTranslate = Translate.cosmos("YOUR_API_KEY");
 
   // Example 1: API error handling
   try {
@@ -224,7 +222,7 @@ async function cosmosErrorHandlingExample() {
  * Example demonstrating advanced usage of the Cosmos Translate API
  */
 async function cosmosAdvancedExample() {
-  const cosmosTranslate = new TranslateCOSMOS("YOUR_API_KEY");
+  const cosmosTranslate = Translate.cosmos("YOUR_API_KEY");
   const accountAddress = "cosmos1abcdefghijklmnopqrstuvwxyz1234567890";
 
   try {

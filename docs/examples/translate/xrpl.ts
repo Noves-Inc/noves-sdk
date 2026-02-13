@@ -5,7 +5,7 @@
  * to get human-readable transaction descriptions and metadata.
  */
 
-import { Translate, TranslateXRPL, TransactionError, TransactionsPage, XRPLTranslateTransaction } from '../../../src';
+import { Translate, TranslateXRPL, TransactionError, TransactionsPage, XRPLTranslateTransaction } from '@noves/noves-sdk';
 
 // Initialize the XRPL translate client
 const apiKey = 'your-api-key-here';

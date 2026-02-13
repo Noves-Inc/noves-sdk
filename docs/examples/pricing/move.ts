@@ -1,5 +1,5 @@
-import { Pricing } from "../../../src";
-import { MOVEPricingChain, MOVEPricingPoolResponse } from "../../../src/types/move";
+import { Pricing } from '@noves/noves-sdk';
+import { MOVEPricingChain, MOVEPricingPoolResponse } from '@noves/noves-sdk';
 
 /**
  * Example demonstrating the usage of the Move Pricing API

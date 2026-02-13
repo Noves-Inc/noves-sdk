@@ -1,5 +1,5 @@
-import { Pricing } from "../../../src";
-import { COSMOSPricingChainsResponse, COSMOSPricingPoolPricing } from "../../../src/types/cosmos";
+import { Pricing } from '@noves/noves-sdk';
+import { COSMOSPricingChainsResponse, COSMOSPricingPoolPricing } from '@noves/noves-sdk';
 
 /**
  * Example demonstrating the usage of the Cosmos Pricing API

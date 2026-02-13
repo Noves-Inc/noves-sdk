@@ -1,13 +1,11 @@
-import { TranslateTVM } from "../../../src/translate/translateTVM";
-import { TransactionsPage } from "../../../src/index";
-import { TVMTranslateTransactionV5, TVMTranslateTransactionV2 } from "../../../src/types/tvm";
+import { Translate, TransactionsPage, TVMTranslateTransactionV5, TVMTranslateTransactionV2 } from '@noves/noves-sdk';
 
 /**
  * Example demonstrating the usage of the TVM Translate API
  */
 async function tvmTranslateExample() {
-  // Initialize the TVM translator
-  const tvmTranslate = new TranslateTVM("YOUR_API_KEY");
+  // Initialize the TVM translator using the factory pattern
+  const tvmTranslate = Translate.tvm("YOUR_API_KEY");
 
   try {
     // 1. Get supported chains
@@ -106,6 +104,23 @@ async function tvmTranslateExample() {
         });
       });
     }
+
+    // 2b. Get transaction with viewAsAccountAddress
+    // This returns the classification from the perspective of a specific account
+    console.log("\nFetching transaction with viewAsAccountAddress...");
+    const viewAsAddress = "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7";
+    const txWithViewAs = await tvmTranslate.getTransaction(
+      "tron",
+      txHash,
+      "v5",
+      viewAsAddress  // View transaction from this account's perspective
+    );
+
+    console.log("Transaction from perspective of", viewAsAddress, ":", {
+      version: txWithViewAs.txTypeVersion,
+      type: txWithViewAs.classificationData.type,
+      description: txWithViewAs.classificationData.description
+    });
 
     // 3. Get transaction history with pagination
     const accountAddress = "TD7beBofzDoDZ7qcGUAeHK1zf2Fnsvz2SP";

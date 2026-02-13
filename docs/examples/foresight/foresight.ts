@@ -1,20 +1,22 @@
-import { Foresight } from "../../../src/foresight/foresight";
-import { TransactionError } from "../../../src/errors/TransactionError";
 import { 
+  ForesightFactory,
+  Foresight,
+  TransactionError,
   EVMTranslateUserOperation, 
   EVMForesightPreviewResponse, 
   EVMForesightPreview4337Response,
   EVMTranslateUnsignedTransaction,
   EVMForesightScreenResponse,
-  EVMForesightScreen4337Response
-} from "../../../src/types/evm";
-import { ForesightUrlScreenResponse } from "../../../src/types/common";
+  EVMForesightScreen4337Response,
+  ForesightUrlScreenResponse
+} from '@noves/noves-sdk';
 
 /**
  * Example demonstrating the usage of the Foresight API
  */
 async function foresightExample() {
-  // Initialize the Foresight client
+  // Initialize the Foresight client using the factory pattern
+  // You can also use: const foresight = ForesightFactory.evm("YOUR_API_KEY");
   const foresight = new Foresight("YOUR_API_KEY");
 
   try {

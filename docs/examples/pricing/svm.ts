@@ -1,5 +1,4 @@
-import { Pricing } from "../../../src";
-import { PriceType } from "../../../src/pricing/pricingSVM";
+import { Pricing, SVMPriceType as PriceType } from '@noves/noves-sdk';
 
 /**
  * Example demonstrating the usage of the SVM Pricing API

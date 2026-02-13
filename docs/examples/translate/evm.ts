@@ -1,7 +1,6 @@
-import { Translate, TransactionsPage } from "../../../src/index";
-import { ChainNotFoundError } from "../../../src/errors/ChainNotFoundError";
-import { TransactionError } from "../../../src/errors/TransactionError";
-import { EVMTranslateHistoryData } from "../../../src/types/evm";
+import { Translate, TransactionsPage, TransactionError } from '@noves/noves-sdk';
+import { ChainNotFoundError } from '@noves/noves-sdk';
+import { EVMTranslateHistoryData } from '@noves/noves-sdk';
 
 /**
  * Example demonstrating the usage of the EVM Translate API

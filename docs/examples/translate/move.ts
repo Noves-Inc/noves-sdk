@@ -5,7 +5,7 @@
  * data and classification for Move VM-based blockchains (currently Sui).
  */
 
-import { Translate, TransactionError, ErrorType } from 'noves-sdk';
+import { Translate, TransactionError, ErrorType } from '@noves/noves-sdk';
 
 // Initialize the Move translate client
 const translate = Translate.move("YOUR_API_KEY");

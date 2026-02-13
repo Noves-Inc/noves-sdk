@@ -42,8 +42,14 @@ interface TVMTranslateChain {
 }
 ```
 
-### getTransaction(chain: string, hash: string, format?: 'v2' | 'v5')
-Get detailed information about a specific transaction. The format parameter determines the response structure.
+### getTransaction(chain: string, hash: string, format?: 'v2' | 'v5', viewAsAccountAddress?: string)
+Get detailed information about a specific transaction. The format parameter determines the response structure. The optional `viewAsAccountAddress` parameter allows viewing the transaction from the perspective of a specific account address.
+
+**Parameters:**
+- `chain` (string): The chain name (e.g., `"tron"`)
+- `hash` (string): The transaction hash
+- `format` (optional, `'v2' | 'v5'`): Response format version. Defaults to `'v5'`
+- `viewAsAccountAddress` (optional, string): When provided, the transaction classification is returned from the perspective of this account address. This is useful when a transaction involves multiple parties and you want to see how it affects a specific wallet
 
 ```typescript
 // Get transaction in v5 format (default)
@@ -58,6 +64,15 @@ const txInfoV2 = await tvmTranslate.getTransaction(
   "3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8",
   "v2"
 );
+
+// Get transaction from the perspective of a specific account
+const txFromPerspective = await tvmTranslate.getTransaction(
+  "tron",
+  "3c74d7fedca0cc50f80d472233d990449d10190de1e80c9098168d721f6aa2b8",
+  "v5",
+  "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7"  // viewAsAccountAddress
+);
+// The classificationData.type and description will reflect this account's perspective
 ```
 
 #### V5 Response Format (Default)

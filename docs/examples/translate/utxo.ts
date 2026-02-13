@@ -1,6 +1,5 @@
-import { Translate } from '../../../src';
-import { UTXOTranslateChain } from '../../../src/types/utxo';
-import { TransactionsPage } from '../../../src/index';
+import { Translate, TransactionsPage } from '@noves/noves-sdk';
+import { UTXOTranslateChain } from '@noves/noves-sdk';
 
 async function main() {
   // Initialize the UTXO translator

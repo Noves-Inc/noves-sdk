@@ -1,14 +1,12 @@
-import { TranslateSVM } from "../../../src/translate/translateSVM";
-import { ChainNotFoundError } from "../../../src/errors/ChainNotFoundError";
-import { TransactionError } from "../../../src/errors/TransactionError";
-import { TransactionsPage } from "../../../src/index";
+import { Translate, TransactionsPage, TransactionError } from '@noves/noves-sdk';
+import { ChainNotFoundError } from '@noves/noves-sdk';
 
 /**
  * Example demonstrating the usage of the Solana (SVM) Translate API
  */
 async function solanaTranslateExample() {
-  // Initialize the Solana translator
-  const solanaTranslate = new TranslateSVM("YOUR_API_KEY");
+  // Initialize the Solana translator using the factory pattern
+  const solanaTranslate = Translate.svm("YOUR_API_KEY");
 
   try {
     // 1. Get supported chains

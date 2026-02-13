@@ -1,9 +1,8 @@
-import { Translate } from "../../../src/index";
-import { TransactionError } from "../../../src/errors/TransactionError";
+import { Translate, TransactionError } from '@noves/noves-sdk';
 import { 
   ExchangeTranslateAuthRequest,
   ExchangeTranslatePageOptions
-} from "../../../src/types/exchange";
+} from '@noves/noves-sdk';
 
 /**
  * Example demonstrating the usage of the Exchange Translate API
