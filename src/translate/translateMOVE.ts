@@ -9,8 +9,7 @@ import {
 import { PageOptions } from '../types/common';
 import { TransactionsPage } from './transactionsPage';
 import { TransactionError } from '../errors/TransactionError';
-import { ErrorType } from '../errors/ErrorTypes';
-import { constructUrl } from '../utils/urlUtils';
+import { constructUrl, parseUrl } from '../utils/urlUtils';
 import { BaseTranslate } from './baseTranslate';
 import { RetryConfig } from '../types/common';
 
@@ -43,16 +42,18 @@ export class TranslateMOVE extends BaseTranslate {
    * ```
    */
   public async getChains(): Promise<MOVETranslateChains> {
-    const result = await this.makeRequest('chains');
-    
-    if (!this.validateResponse(result, [])) {
-      throw new TransactionError(
-        { message: ['Invalid response format from chains endpoint'] },
-        ErrorType.INVALID_RESPONSE_FORMAT
-      );
+    try {
+      const result = await this.makeRequest('chains');
+      if (!Array.isArray(result)) {
+        throw new TransactionError({ message: ['Invalid response format'] });
+      }
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to get chains'] });
     }
-
-    return result as MOVETranslateChains;
   }
 
   /**
@@ -68,24 +69,26 @@ export class TranslateMOVE extends BaseTranslate {
    * ```
    */
   public async getTransactionTypes(): Promise<MOVETranslateTransactionTypesResponse> {
-    const result = await this.makeRequest('txTypes');
-    
-    if (!this.validateResponse(result, ['version', 'transactionTypes'])) {
-      throw new TransactionError(
-        { message: ['Invalid response format from transaction types endpoint'] },
-        ErrorType.INVALID_RESPONSE_FORMAT
-      );
+    try {
+      const result = await this.makeRequest('txTypes');
+      if (!result || !result.version || !Array.isArray(result.transactionTypes)) {
+        throw new TransactionError({ message: ['Invalid response format'] });
+      }
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to get transaction types'] });
     }
-
-    return result as MOVETranslateTransactionTypesResponse;
   }
 
   /**
    * Returns a single Move VM transaction.
    * @param {string} chain - The name of the chain to retrieve the transaction from.
-   * @param {string} txId - The transaction ID/hash to retrieve.
+   * @param {string} txId - The transaction ID/digest to retrieve.
    * @returns {Promise<MOVETranslateTransaction>} A promise that resolves to the transaction data.
-   * @throws Will throw an error if the transaction is not found or if there's an API error.
+   * @throws {TransactionError} If there are validation errors in the request.
    * 
    * @example
    * ```typescript
@@ -97,115 +100,81 @@ export class TranslateMOVE extends BaseTranslate {
   public async getTransaction(chain: string, txId: string): Promise<MOVETranslateTransaction> {
     if (!chain || !txId) {
       throw new TransactionError(
-        { message: ['Chain and transaction ID are required'] },
-        ErrorType.INVALID_REQUEST
+        { message: ['Chain and transaction ID are required'] }
       );
     }
 
-    const endpoint = `${chain}/tx/${txId}`;
-    const result = await this.makeRequest(endpoint);
-    
-    if (!this.validateResponse(result, ['txTypeVersion', 'chain', 'classificationData', 'rawTransactionData'])) {
-      throw new TransactionError(
-        { message: ['Invalid response format from transaction endpoint'] },
-        ErrorType.INVALID_RESPONSE_FORMAT
-      );
+    try {
+      const result = await this.makeRequest(`${chain}/tx/${txId}`);
+      return result;
+    } catch (error) {
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to get transaction'] });
     }
-
-    return result as MOVETranslateTransaction;
   }
 
   /**
-   * Returns a paginated list of Move VM transactions for an address.
+   * Get a pagination object to iterate over transactions pages.
    * @param {string} chain - The name of the chain to retrieve transactions from.
-   * @param {string} address - The address to retrieve transactions for.
+   * @param {string} walletAddress - The wallet address to retrieve transactions for.
    * @param {PageOptions} [pageOptions={}] - Optional pagination parameters.
-   * @returns {Promise<TransactionsPage<MOVETranslateTransaction>>} A promise that resolves to a paginated list of transactions.
-   * @throws Will throw an error if the address is invalid or if there's an API error.
+   * @returns {Promise<TransactionsPage<MOVETranslateTransaction>>} A promise that resolves to a TransactionsPage instance.
    * 
    * @example
    * ```typescript
    * const translate = Translate.move("YOUR_API_KEY");
-   * const transactions = await translate.getTransactions("sui", "0xa0766ff7b0325c18e4c7416ad4ea4d01e92f09147b8c5e7e4a582dc84ca3a874");
+   * const page = await translate.getTransactions("sui", "0xa0766ff7b0325c18e4c7416ad4ea4d01e92f09147b8c5e7e4a582dc84ca3a874");
    * 
-   * // Iterate through transactions
-   * for (const tx of transactions.transactions) {
+   * // Get current page of transactions
+   * const txs = page.getTransactions();
+   * for (const tx of txs) {
    *   console.log(`${tx.rawTransactionData.digest}: ${tx.classificationData.type}`);
    * }
    * 
-   * // Get next page if available
-   * if (transactions.hasNextPage()) {
-   *   const nextPage = await transactions.getNextPage();
+   * // Fetch next page
+   * if (page.hasNext()) {
+   *   await page.next();
    * }
    * ```
    */
   public async getTransactions(
     chain: string, 
-    address: string, 
+    walletAddress: string, 
     pageOptions: PageOptions = {}
   ): Promise<TransactionsPage<MOVETranslateTransaction>> {
-    if (!chain || !address) {
+    if (!chain || !walletAddress) {
       throw new TransactionError(
-        { message: ['Chain and address are required'] },
-        ErrorType.INVALID_REQUEST
+        { message: ['Chain and wallet address are required'] }
       );
     }
 
-    const endpoint = `${chain}/txs/${address}`;
-    const url = constructUrl(endpoint, pageOptions);
-    const result = await this.makeRequest(url);
-    
-    // Validate response structure
-    if (!this.validateResponse(result, ['items'])) {
-      throw new TransactionError(
-        { message: ['Invalid response format from transactions endpoint'] },
-        ErrorType.INVALID_RESPONSE_FORMAT
-      );
-    }
-
-    const response = result as MOVETranslateTransactionsResponse;
-    
-    // Extract next page keys from the response
-    const nextPageKeys = this.extractNextPageKeys(response);
-    
-    return new TransactionsPage(this, {
-      chain,
-      walletAddress: address,
-      transactions: response.items,
-      currentPageKeys: pageOptions,
-      nextPageKeys
-    });
-  }
-
-  /**
-   * Extract next page keys from the API response for pagination.
-   * @param {MOVETranslateTransactionsResponse} response - The API response.
-   * @returns {PageOptions | null} The next page options or null if no next page.
-   * @private
-   */
-  private extractNextPageKeys(response: MOVETranslateTransactionsResponse): PageOptions | null {
-    if (!response.nextPageUrl) {
-      return null;
-    }
-    
-    const nextPageKeys: PageOptions = {};
-    
-    // Parse the nextPageUrl to extract pagination parameters
     try {
-      const url = new URL(response.nextPageUrl, 'https://translate.noves.fi');
-      const pageNumber = url.searchParams.get('pageNumber');
-      const pageSize = url.searchParams.get('pageSize');
-      const sort = url.searchParams.get('sort');
-      
-      if (pageNumber) nextPageKeys.pageNumber = parseInt(pageNumber, 10);
-      if (pageSize) nextPageKeys.pageSize = parseInt(pageSize, 10);
-      if (sort && (sort === 'desc' || sort === 'asc')) nextPageKeys.sort = sort;
-      
-      // Return the parsed keys if we have any, otherwise null
-      return Object.keys(nextPageKeys).length > 0 ? nextPageKeys : null;
+      const endpoint = `${chain}/txs/${walletAddress}`;
+      const url = constructUrl(endpoint, pageOptions);
+      const result = await this.makeRequest(url);
+
+      if (!result.items || !Array.isArray(result.items)) {
+        throw new TransactionError({ message: ['Invalid response format'] });
+      }
+
+      const response = result as MOVETranslateTransactionsResponse;
+
+      const initialData = {
+        chain,
+        walletAddress,
+        transactions: response.items,
+        currentPageKeys: pageOptions,
+        nextPageKeys: response.nextPageUrl ? parseUrl(response.nextPageUrl) : null,
+      };
+
+      return new TransactionsPage(this, initialData);
     } catch (error) {
-      // If URL parsing fails, no next page is available
-      return null;
+      if (error instanceof TransactionError) {
+        throw error;
+      }
+      throw new TransactionError({ message: ['Failed to get transactions'] });
     }
   }
 }

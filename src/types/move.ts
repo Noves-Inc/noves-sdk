@@ -148,13 +148,23 @@ export interface MOVETranslateAddress {
 }
 
 /**
+ * NFT information in Move transactions
+ */
+export interface MOVETranslateNft {
+    name: string;
+    id: string;
+    symbol: string;
+    address: string;
+}
+
+/**
  * Transfer information in Move transactions
  */
 export interface MOVETranslateTransfer {
     action: string;
     amount: string;
     token: MOVETranslateToken;
-    nft: any | null;
+    nft: MOVETranslateNft | null;
     from: MOVETranslateAddress;
     to: MOVETranslateAddress | null;
 }
